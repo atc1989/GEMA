@@ -16,7 +16,7 @@ export default async function AdminLayout({
       subtitle="Event management, registrant review, attendance scanning, and reporting."
       title="Admin Events"
       user={{
-        name: profile.fullName,
+        name: profile.fullName ?? profile.email ?? "Admin",
         email: profile.email ?? "",
         role: "Admin",
       }}

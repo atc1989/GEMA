@@ -36,18 +36,20 @@ const AVATAR_COLORS = [
   "#1d4ed8", "#7c3aed", "#047857", "#b45309", "#be123c", "#0369a1",
 ];
 
-function avatarBg(name: string): string {
+function avatarBg(name: string | null | undefined): string {
+  const n = name ?? "";
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash * 31 + name.charCodeAt(i)) & 0xffffffff;
+  for (let i = 0; i < n.length; i++) {
+    hash = (hash * 31 + n.charCodeAt(i)) & 0xffffffff;
   }
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]!;
 }
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
+function initials(name: string | null | undefined): string {
+  const n = (name ?? "?").trim();
+  const parts = n.split(/\s+/);
   if (parts.length >= 2) return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
+  return n.slice(0, 2).toUpperCase() || "?";
 }
 
 // ─── Theme switcher ──────────────────────────────────────────────────────────

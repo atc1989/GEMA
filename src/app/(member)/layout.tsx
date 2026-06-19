@@ -16,7 +16,7 @@ export default async function MemberLayout({
       subtitle="Authenticated member home for events, prospects, passes, and No-Zero progress."
       title="Member Home"
       user={{
-        name: ctx.profile.fullName,
+        name: ctx.profile.fullName ?? ctx.profile.email ?? "Member",
         email: ctx.profile.email ?? "",
         role: "Member",
       }}
