@@ -1,8 +1,10 @@
 "use server";
 
 import { randomBytes, randomUUID } from "node:crypto";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { requireMember } from "@/lib/auth/require-member";
 import {
   prospectRegistrationSchema,
   type ProspectRegistrationInput,
@@ -23,6 +25,12 @@ export type RegistrationSuccess = {
   eventTitle: string;
   startsAt: string;
   timezone: string;
+};
+
+export type MemberRsvpSuccess = {
+  registrationId: string;
+  passCode: string;
+  eventId: string;
 };
 
 function newPassCode(): string {
@@ -114,6 +122,85 @@ export async function registerProspectForEvent(
   }
 
   return { ok: false, error: "Could not complete registration. Please try again." };
+}
+
+/** Authenticated member RSVP. Creates a member registration + signed QR pass. */
+export async function rsvpMemberToEvent(
+  eventId: string,
+): Promise<ActionResult<MemberRsvpSuccess>> {
+  const parsed = z.string().uuid().safeParse(eventId);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid event." };
+  }
+
+  const ctx = await requireMember();
+  if (ctx.member.status !== "active") {
+    return { ok: false, error: "Only active members can RSVP to events." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  const existing = await supabase
+    .from("event_registrations")
+    .select("id, pass_code, status")
+    .eq("event_id", parsed.data)
+    .eq("member_id", ctx.member.id)
+    .neq("status", "cancelled")
+    .maybeSingle<{ id: string; pass_code: string; status: string }>();
+
+  if (existing.error) {
+    return { ok: false, error: existing.error.message };
+  }
+  if (existing.data) {
+    return {
+      ok: true,
+      data: {
+        registrationId: existing.data.id,
+        passCode: existing.data.pass_code,
+        eventId: parsed.data,
+      },
+    };
+  }
+
+  const registrationId = randomUUID();
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const passCode = newPassCode();
+    const qrToken = createRegistrationQrToken({
+      registrationId,
+      eventId: parsed.data,
+      attendeeId: ctx.member.id,
+      kind: "member",
+    });
+
+    const { data, error } = await supabase.rpc("register_member_for_event", {
+      p_event_id: parsed.data,
+      p_registration_id: registrationId,
+      p_pass_code: passCode,
+      p_qr_payload: qrToken,
+    });
+
+    if (!error) {
+      revalidatePath("/member/events");
+      revalidatePath(`/member/events/${parsed.data}`);
+      return {
+        ok: true,
+        data: { registrationId: data ?? registrationId, passCode, eventId: parsed.data },
+      };
+    }
+
+    const message = error.message.toLowerCase();
+    const isCollision =
+      message.includes("duplicate") ||
+      message.includes("unique") ||
+      message.includes("pass_code") ||
+      message.includes("qr_payload");
+    if (!isCollision) {
+      return { ok: false, error: friendlyDbError(error.message) };
+    }
+  }
+
+  return { ok: false, error: "Could not complete RSVP. Please try again." };
 }
 
 function friendlyDbError(message: string): string {

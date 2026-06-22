@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  CalendarCheck,
   CalendarDays,
   Coins,
   Gift,
@@ -29,11 +30,12 @@ export const prospectNavigation: NavigationItem[] = [
 
 export const memberNavigation: NavigationItem[] = [
   { href: "/dashboard", label: "Home", icon: Home, exact: true },
+  { href: "/member/profile", label: "Profile", icon: User, exact: true },
   { href: "/member/events", label: "Events", icon: CalendarDays },
+  { href: "/member/calendar", label: "Calendar", icon: CalendarCheck },
   { href: "/member/referrals", label: "Referrals", icon: Gift },
   { href: "/member/prospects", label: "Prospects", icon: Users },
   { href: "/member/earnings", label: "Earnings", icon: Coins },
-  { href: "/member/settings", label: "Settings", icon: Settings },
 ];
 
 export const adminNavigation: NavigationItem[] = [

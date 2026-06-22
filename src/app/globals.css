@@ -27,6 +27,7 @@
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-dark: var(--brand-dark);
   --color-gold: var(--gold);
+  --color-gold-dark: var(--gold-dark);
   --color-success: var(--success);
   --color-info: var(--info);
   --color-purple: var(--purple);
@@ -87,6 +88,7 @@
   --success: #1e9e57;
   --info: #2f7fd6;
   --purple: #7b3fd1;
+  --gold-dark: #c9890a;
   --cream: #f8f9fc;
   --radius: 0.75rem;
   --sidebar: #ffffff;
@@ -122,6 +124,7 @@
   --brand-foreground: #ffffff;
   --brand-dark: #2563b0;
   --gold: #f5b716;
+  --gold-dark: #e0a526;
   --success: #22c55e;
   --info: #60a5fa;
   --purple: #a78bfa;
@@ -165,5 +168,33 @@
 
   .gema-card-shadow {
     box-shadow: 0 2px 12px rgb(14 34 73 / 5%);
+  }
+
+  /* Pulsing ring for "today" in the No-Zero calendar. */
+  .cal-today-ring {
+    box-shadow:
+      0 0 0 2px var(--card),
+      0 0 0 4px var(--brand);
+    animation: calTodayPulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes calTodayPulse {
+    0%,
+    100% {
+      box-shadow:
+        0 0 0 2px var(--card),
+        0 0 0 4px var(--brand);
+    }
+    50% {
+      box-shadow:
+        0 0 0 2px var(--card),
+        0 0 0 8px color-mix(in srgb, var(--brand) 28%, transparent);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cal-today-ring {
+      animation: none;
+    }
   }
 }
