@@ -101,6 +101,7 @@ export const eventFormSchema = z
       }),
     description: optionalText,
     bannerUrl: optionalLenientUrl,
+    speakerName: optionalText,
   })
   .refine(
     (data) => data.endsAt === undefined || Date.parse(data.endsAt) > Date.parse(data.startsAt),

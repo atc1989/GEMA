@@ -63,7 +63,7 @@ export function AuthLayout({ title, subtitle, footer, children }: AuthLayoutProp
       </div>
 
       {/* Form panel */}
-      <div className="flex flex-1 flex-col items-center justify-center bg-[#eef2f7] px-4 py-10">
+      <div className="flex flex-1 flex-col items-center justify-center bg-muted px-4 py-10">
         {/* Mobile brand mark */}
         <div className="mb-8 flex flex-col items-center gap-1.5 lg:hidden">
           <div className="font-heading flex size-14 items-center justify-center rounded-[12px_12px_22px_22px] border-2 border-gold bg-linear-to-br from-info to-brand-dark text-xl font-extrabold text-white shadow-[0_8px_24px_rgb(31_93_153/30%)]">

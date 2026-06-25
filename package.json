@@ -17,6 +17,7 @@
     "@zxing/library": "^0.22.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "html-to-image": "^1.11.13",
     "lucide-react": "^1.18.0",
     "next": "15.5.19",
     "next-themes": "^0.4.6",

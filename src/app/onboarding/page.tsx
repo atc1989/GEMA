@@ -19,7 +19,7 @@ export default async function OnboardingPage({
   if (member) redirect("/dashboard");
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-[#e6eaf1] px-4 py-10">
+    <div className="flex min-h-dvh items-center justify-center bg-muted px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-black tracking-tight">Activate your membership</h1>

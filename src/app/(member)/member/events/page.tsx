@@ -1,9 +1,12 @@
 import Link from "next/link";
 import {
   CalendarDays,
+  CalendarPlus,
   CheckCircle2,
+  Download,
   MapPin,
   Monitor,
+  Pencil,
   QrCode,
   Search,
   Ticket,
@@ -27,7 +30,18 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { formatEventDateTime } from "@/lib/utils/format";
 
-type EventsTab = "all" | "mine" | "passes";
+type HostedEventRow = {
+  id: string;
+  title: string;
+  event_type: EventType;
+  status: EventStatus;
+  mode: EventMode;
+  starts_at: string;
+  timezone: string;
+  venue_name: string | null;
+};
+
+type EventsTab = "all" | "mine" | "passes" | "hosting";
 
 type MemberEventCardRow = {
   id: string;
@@ -78,13 +92,18 @@ const TABS: { key: EventsTab; label: string; description: string }[] = [
   },
   {
     key: "mine",
-    label: "My Events",
+    label: "My RSVPs",
     description: "Events you are registered for.",
   },
   {
     key: "passes",
     label: "My Passes",
     description: "QR passes ready for check-in.",
+  },
+  {
+    key: "hosting",
+    label: "Hosting",
+    description: "Events you created and host.",
   },
 ];
 
@@ -107,7 +126,8 @@ const REG_STATUS: Record<RegistrationStatus, { label: string; className: string 
 };
 
 function normalizeTab(tab?: string): EventsTab {
-  return tab === "mine" || tab === "passes" ? tab : "all";
+  if (tab === "mine" || tab === "passes" || tab === "hosting") return tab;
+  return "all";
 }
 
 function tabHref(tab: EventsTab, search: string) {
@@ -128,7 +148,7 @@ export default async function MemberEventsPage({
   const ctx = await requireMember();
   const supabase = await createSupabaseServerClient();
 
-  const [eventCardsRes, registrationsRes] = await Promise.all([
+  const [eventCardsRes, registrationsRes, hostedEventsRes] = await Promise.all([
     activeTab === "all"
       ? supabase
           .rpc("get_member_event_cards", {
@@ -137,7 +157,7 @@ export default async function MemberEventsPage({
           })
           .returns<MemberEventCardRow[]>()
       : Promise.resolve({ data: [] as MemberEventCardRow[], error: null }),
-    activeTab !== "all"
+    activeTab === "mine" || activeTab === "passes"
       ? supabase
           .from("event_registrations")
           .select(
@@ -148,12 +168,22 @@ export default async function MemberEventsPage({
           .order("registered_at", { ascending: false })
           .returns<RegistrationRow[]>()
       : Promise.resolve({ data: [] as RegistrationRow[], error: null }),
+    activeTab === "hosting"
+      ? supabase
+          .from("events")
+          .select("id, title, event_type, status, mode, starts_at, timezone, venue_name")
+          .eq("host_member_id", ctx.member.id)
+          .order("starts_at", { ascending: false })
+          .limit(50)
+          .returns<HostedEventRow[]>()
+      : Promise.resolve({ data: [] as HostedEventRow[], error: null }),
   ]);
 
   const eventCards = Array.isArray(eventCardsRes.data)
     ? (eventCardsRes.data as MemberEventCardRow[])
     : [];
   const registrations = registrationsRes.data ?? [];
+  const hostedEvents  = hostedEventsRes.data ?? [];
 
   return (
     <div className="grid gap-4">
@@ -165,7 +195,7 @@ export default async function MemberEventsPage({
       </div>
 
       <div className="grid gap-3">
-        <div className="grid grid-cols-3 gap-1 rounded-xl bg-muted p-1">
+        <div className="grid grid-cols-4 gap-1 rounded-xl bg-muted p-1">
           {TABS.map((tab) => (
             <Link
               key={tab.key}
@@ -197,10 +227,15 @@ export default async function MemberEventsPage({
           registrations={registrations}
           error={registrationsRes.error?.message ?? null}
         />
-      ) : (
+      ) : activeTab === "passes" ? (
         <MyPassesSection
           registrations={registrations}
           error={registrationsRes.error?.message ?? null}
+        />
+      ) : (
+        <HostingSection
+          events={hostedEvents}
+          error={hostedEventsRes.error?.message ?? null}
         />
       )}
     </div>
@@ -506,5 +541,105 @@ function MyPassesSection({
         );
       })}
     </div>
+  );
+}
+
+const STATUS_BADGE: Record<string, { label: string; className: string }> = {
+  draft:     { label: "Draft",     className: "bg-secondary text-brand" },
+  published: { label: "Published", className: "bg-emerald-50 text-success" },
+  cancelled: { label: "Cancelled", className: "bg-destructive/10 text-destructive" },
+  completed: { label: "Completed", className: "bg-slate-100 text-muted-foreground" },
+  archived:  { label: "Archived",  className: "bg-slate-100 text-muted-foreground" },
+};
+
+function HostingSection({
+  events,
+  error,
+}: {
+  events: HostedEventRow[];
+  error: string | null;
+}) {
+  return (
+    <section className="grid gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          Your hosted events
+        </p>
+        <Link
+          href="/member/events/new"
+          className={cn(buttonVariants({ variant: "brand", size: "sm" }))}
+        >
+          <CalendarPlus className="size-4" aria-hidden="true" />
+          Create event
+        </Link>
+      </div>
+
+      {error ? (
+        <p className="text-sm font-semibold text-destructive">Failed to load: {error}</p>
+      ) : events.length === 0 ? (
+        <EmptyState
+          icon={CalendarDays}
+          title="No hosted events yet"
+          description="Create your first event to start sharing banners and inviting prospects."
+          className="border-dashed"
+        />
+      ) : (
+        <div className="grid gap-3">
+          {events.map((event) => {
+            const badge = STATUS_BADGE[event.status] ?? STATUS_BADGE.draft!;
+            const LocationIcon = event.mode === "online" ? Monitor : MapPin;
+            const location = event.mode === "online" ? "Online event" : event.venue_name ?? "Venue TBA";
+            return (
+              <Card key={event.id} className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-brand">
+                    <CalendarDays className="size-5" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span
+                        className={cn(
+                          "rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide",
+                          badge.className,
+                        )}
+                      >
+                        {badge.label}
+                      </span>
+                    </div>
+                    <h3 className="mt-1.5 text-sm font-black leading-5">{event.title}</h3>
+                    <div className="mt-1.5 grid gap-0.5 text-xs font-semibold text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <CalendarDays className="size-3.5" aria-hidden="true" />
+                        {formatEventDateTime(event.starts_at, event.timezone)}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <LocationIcon className="size-3.5" aria-hidden="true" />
+                        {location}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Link
+                        href={`/member/events/${event.id}/banner`}
+                        className={cn(buttonVariants({ variant: "brand", size: "sm" }))}
+                      >
+                        <Download className="size-4" aria-hidden="true" />
+                        Get banner
+                      </Link>
+                      <Link
+                        href={`/member/events/${event.id}/edit`}
+                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                      >
+                        <Pencil className="size-4" aria-hidden="true" />
+                        Edit
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
