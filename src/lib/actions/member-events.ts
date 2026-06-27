@@ -9,10 +9,47 @@ import { toEventRow } from "@/lib/database/mappers";
 import { eventFormSchema, type EventFormInput } from "@/lib/schemas/event";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureUniqueEventSlug } from "@/lib/utils/slug";
+import { asPosterTemplateId } from "@/components/event/posters/types";
 
 export type { ActionResult, FieldErrors };
 
 const PATH = "/member/events";
+
+type SpeakerSync = { name?: string; photoUrl?: string };
+
+/**
+ * Keeps a single primary speaker row (sort_order 0) in sync with the form's
+ * speaker name + photo. Inserts, updates, or removes it as needed. RLS lets the
+ * event's host manage speakers (can_manage_event).
+ */
+async function syncPrimarySpeaker(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  eventId: string,
+  { name, photoUrl }: SpeakerSync,
+) {
+  const trimmedName = name?.trim();
+  const hasData = Boolean(trimmedName || photoUrl);
+
+  const { data: existing } = await supabase
+    .from("event_speakers")
+    .select("id")
+    .eq("event_id", eventId)
+    .order("sort_order", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+
+  if (!hasData) {
+    if (existing) await supabase.from("event_speakers").delete().eq("id", existing.id);
+    return;
+  }
+
+  const row = { name: trimmedName || "Speaker", photo_url: photoUrl ?? null };
+  if (existing) {
+    await supabase.from("event_speakers").update(row).eq("id", existing.id);
+  } else {
+    await supabase.from("event_speakers").insert({ event_id: eventId, sort_order: 0, ...row });
+  }
+}
 
 export async function createMemberEvent(
   input: EventFormInput,
@@ -45,7 +82,10 @@ export async function createMemberEvent(
       status: "draft",
       created_by_profile_id: ctx.profile.id,
       host_member_id: ctx.member.id,
-      metadata: { speakerName: parsed.data.speakerName ?? null },
+      metadata: {
+        speakerName: parsed.data.speakerName ?? null,
+        poster_template: asPosterTemplateId(parsed.data.posterTemplate),
+      },
     })
     .select("id")
     .single();
@@ -53,6 +93,11 @@ export async function createMemberEvent(
   if (error || !data) {
     return { ok: false, error: error?.message ?? "Failed to create the event." };
   }
+
+  await syncPrimarySpeaker(supabase, data.id, {
+    name: parsed.data.speakerName,
+    photoUrl: parsed.data.speakerPhotoUrl,
+  });
 
   revalidatePath(PATH);
   return { ok: true, data: { id: data.id } };
@@ -77,7 +122,7 @@ export async function updateMemberEvent(
 
   const { data: existing, error: loadError } = await supabase
     .from("events")
-    .select("id, status, title, slug, host_member_id")
+    .select("id, status, title, slug, host_member_id, metadata")
     .eq("id", eventId)
     .maybeSingle();
 
@@ -104,11 +149,20 @@ export async function updateMemberEvent(
     .update({
       ...toEventRow(parsed.data),
       slug,
-      metadata: { speakerName: parsed.data.speakerName ?? null },
+      metadata: {
+        ...((existing.metadata as Record<string, unknown> | null) ?? {}),
+        speakerName: parsed.data.speakerName ?? null,
+        poster_template: asPosterTemplateId(parsed.data.posterTemplate),
+      },
     })
     .eq("id", eventId);
 
   if (error) return { ok: false, error: error.message };
+
+  await syncPrimarySpeaker(supabase, eventId, {
+    name: parsed.data.speakerName,
+    photoUrl: parsed.data.speakerPhotoUrl,
+  });
 
   revalidatePath(PATH);
   revalidatePath(`${PATH}/${eventId}`);

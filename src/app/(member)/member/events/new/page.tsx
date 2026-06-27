@@ -2,8 +2,12 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import { MemberEventForm } from "@/components/event/member-event-form";
+import { requireMember } from "@/lib/auth/require-member";
 
-export default function MemberNewEventPage() {
+export default async function MemberNewEventPage() {
+  const ctx = await requireMember();
+  const selfName = ctx.profile.fullName ?? ctx.profile.email ?? undefined;
+
   return (
     <div className="grid gap-4">
       <Link
@@ -19,7 +23,7 @@ export default function MemberNewEventPage() {
           New events start as a draft. Fill the details and download your banner to start sharing.
         </p>
       </div>
-      <MemberEventForm mode="create" />
+      <MemberEventForm mode="create" selfName={selfName} />
     </div>
   );
 }

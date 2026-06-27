@@ -3,6 +3,8 @@ import { CalendarDays, Clock, MapPin, Mic2, Monitor } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatEventDateTime } from "@/lib/utils/format";
+import { EventPoster } from "@/components/event/event-poster";
+import { asPosterTemplateId } from "@/components/event/posters/types";
 import type { Event } from "@/lib/database/types";
 
 export type InviteSpeaker = {
@@ -19,6 +21,18 @@ export function EventInviteDetails({
   event: Event;
   speakers: InviteSpeaker[];
 }) {
+  const primarySpeaker = speakers[0];
+  const posterData = {
+    title: event.title,
+    eventType: event.eventType,
+    mode: event.mode,
+    startsAt: event.startsAt,
+    venueName: event.venueName ?? undefined,
+    speakerName: (event.metadata?.speakerName as string | null) ?? primarySpeaker?.name,
+    speakerPhotoUrl: primarySpeaker?.photoUrl ?? undefined,
+  };
+  const template = asPosterTemplateId(event.metadata?.poster_template);
+
   return (
     <div className="grid gap-4">
       {event.bannerUrl ? (
@@ -30,7 +44,13 @@ export function EventInviteDetails({
             className="aspect-[16/9] w-full object-cover"
           />
         </div>
-      ) : null}
+      ) : (
+        <div className="flex justify-center overflow-hidden rounded-2xl border border-border/70 bg-secondary/40 p-4">
+          <div className="overflow-hidden rounded-xl shadow-md">
+            <EventPoster data={posterData} template={template} />
+          </div>
+        </div>
+      )}
 
       <div>
         <div className="flex flex-wrap items-center gap-2">

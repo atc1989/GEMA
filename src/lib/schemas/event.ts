@@ -102,6 +102,10 @@ export const eventFormSchema = z
     description: optionalText,
     bannerUrl: optionalLenientUrl,
     speakerName: optionalText,
+    // Banner design id; sanitized to a known template by the action.
+    posterTemplate: optionalText,
+    // Public URL of an uploaded speaker photo (Supabase Storage).
+    speakerPhotoUrl: optionalText,
   })
   .refine(
     (data) => data.endsAt === undefined || Date.parse(data.endsAt) > Date.parse(data.startsAt),

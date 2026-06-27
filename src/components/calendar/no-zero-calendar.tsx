@@ -26,14 +26,22 @@ import { TeamLeaderboard } from "@/components/calendar/team-leaderboard";
 
 const DOW = ["S", "M", "T", "W", "T", "F", "S"];
 
-const TYPE_META: Record<EventType, { label: string; dot: string }> = {
-  presentation: { label: "Presentation", dot: "bg-info" },
-  business: { label: "Business", dot: "bg-info" },
-  training: { label: "Training", dot: "bg-success" },
-  sizzle: { label: "Special", dot: "bg-gold-dark" },
-  mentoring: { label: "Mentoring", dot: "bg-gold-dark" },
-  fellowship: { label: "Fellowship", dot: "bg-gold-dark" },
-  other: { label: "Event", dot: "bg-muted-foreground" },
+type TypeStyle = {
+  label: string;
+  dot: string; // small swatch (legend + day modal)
+  solid: string; // filled cell background
+  border: string; // dashed cell border
+  text: string; // dashed cell text
+};
+
+const TYPE_META: Record<EventType, TypeStyle> = {
+  presentation: { label: "Presentation", dot: "bg-info", solid: "bg-info", border: "border-info", text: "text-info" },
+  business: { label: "Business", dot: "bg-info", solid: "bg-info", border: "border-info", text: "text-info" },
+  training: { label: "Training", dot: "bg-success", solid: "bg-success", border: "border-success", text: "text-success" },
+  sizzle: { label: "Special", dot: "bg-gold-dark", solid: "bg-gold-dark", border: "border-gold-dark", text: "text-gold-dark" },
+  mentoring: { label: "Mentoring", dot: "bg-gold-dark", solid: "bg-gold-dark", border: "border-gold-dark", text: "text-gold-dark" },
+  fellowship: { label: "Fellowship", dot: "bg-gold-dark", solid: "bg-gold-dark", border: "border-gold-dark", text: "text-gold-dark" },
+  other: { label: "Event", dot: "bg-muted-foreground", solid: "bg-muted-foreground", border: "border-muted-foreground", text: "text-muted-foreground" },
 };
 
 const REG_BADGE: Record<string, { label: string; className: string }> = {
@@ -212,47 +220,40 @@ function LegendItem({ swatch, label }: { swatch: React.ReactNode; label: string 
 
 function DayButton({ cell, onOpen }: { cell: DayCell; onOpen: () => void }) {
   const base =
-    "flex size-9 items-center justify-center text-[12.5px] font-bold transition-colors";
+    "mx-auto flex size-9 items-center justify-center text-[12.5px] font-bold transition-colors";
 
-  const styles =
-    cell.status === "done"
-      ? "rounded-[10px] bg-brand text-white"
-      : cell.status === "going"
-        ? "rounded-full border-2 border-dashed border-brand bg-card text-brand"
-        : cn(
-            "rounded-full border border-border bg-secondary text-muted-foreground",
-            cell.isFuture && "opacity-70",
-          );
+  // The event type that drives the cell colour (first event of the day, if any).
+  const meta = cell.events[0] ? TYPE_META[cell.events[0].type] ?? TYPE_META.other : null;
 
-  const firstEvent = cell.events[0];
-  const dotClass = firstEvent
-    ? cell.status === "done"
-      ? "bg-white"
-      : (TYPE_META[firstEvent.type] ?? TYPE_META.other).dot
-    : null;
+  let styles: string;
+  if (cell.status === "done") {
+    // A day that counts: solid fill, coloured by its event type (brand-blue if it
+    // was a prospect-only No-Zero day with no event).
+    styles = cn("rounded-[10px] text-white", meta ? meta.solid : "bg-brand");
+  } else if (cell.status === "going") {
+    // Upcoming RSVP: dashed outline in the event-type colour.
+    styles = cn(
+      "rounded-full border-2 border-dashed bg-card",
+      meta ? cn(meta.border, meta.text) : "border-brand text-brand",
+    );
+  } else {
+    styles = cn(
+      "rounded-full border border-border bg-secondary text-muted-foreground",
+      cell.isFuture && "opacity-70",
+    );
+  }
 
   return (
-    <div className="relative mx-auto w-fit">
-      <button
-        type="button"
-        onClick={onOpen}
-        aria-label={`${cell.iso}${cell.status === "done" ? " — No-Zero day" : ""}${
-          cell.events.length ? ` — ${cell.events.length} event(s)` : ""
-        }`}
-        className={cn(base, styles, cell.isToday && "cal-today-ring")}
-      >
-        {cell.day}
-      </button>
-      {dotClass ? (
-        <span
-          className={cn(
-            "absolute -bottom-1 left-1/2 size-1.5 -translate-x-1/2 rounded-full",
-            dotClass,
-          )}
-          aria-hidden="true"
-        />
-      ) : null}
-    </div>
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`${cell.iso}${cell.status === "done" ? " — No-Zero day" : ""}${
+        cell.events.length ? ` — ${cell.events.length} event(s)` : ""
+      }`}
+      className={cn(base, styles, cell.isToday && "cal-today-ring")}
+    >
+      {cell.day}
+    </button>
   );
 }
 

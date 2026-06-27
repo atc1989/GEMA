@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
-import { DownloadBannerButton } from "@/components/event/event-poster";
-import { EventPoster } from "@/components/event/event-poster";
+import { BannerTemplatePicker } from "@/components/event/banner-template-picker";
+import { asPosterTemplateId } from "@/components/event/posters/types";
 import { requireMember } from "@/lib/auth/require-member";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { EventMode } from "@/lib/database/types";
@@ -36,14 +36,25 @@ export default async function MemberEventBannerPage({
 
   if (!event || event.host_member_id !== ctx.member.id) notFound();
 
+  const { data: speaker } = await supabase
+    .from("event_speakers")
+    .select("name, photo_url")
+    .eq("event_id", eventId)
+    .order("sort_order", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ name: string; photo_url: string | null }>();
+
   const posterData = {
     title: event.title,
     eventType: event.event_type,
     mode: event.mode,
     startsAt: event.starts_at,
     venueName: event.venue_name ?? undefined,
-    speakerName: (event.metadata?.speakerName as string | null) ?? undefined,
+    speakerName: (event.metadata?.speakerName as string | null) ?? speaker?.name ?? undefined,
+    speakerPhotoUrl: speaker?.photo_url ?? undefined,
   };
+
+  const initialTemplate = asPosterTemplateId(event.metadata?.poster_template);
 
   return (
     <div className="mx-auto grid max-w-md gap-4">
@@ -58,15 +69,15 @@ export default async function MemberEventBannerPage({
       <div>
         <h2 className="text-lg font-black tracking-tight">Event banner</h2>
         <p className="mt-1 text-sm font-semibold text-muted-foreground">
-          Download your 1080 × 1350 poster for social media and Messenger.
+          Pick a design, then download your 1080 × 1350 poster for social media and Messenger.
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-2xl shadow-lg">
-        <EventPoster data={posterData} />
-      </div>
-
-      <DownloadBannerButton data={posterData} />
+      <BannerTemplatePicker
+        data={posterData}
+        eventId={eventId}
+        initialTemplate={initialTemplate}
+      />
 
       <Link
         href={`/member/events/${eventId}/edit`}

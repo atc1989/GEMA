@@ -42,6 +42,16 @@ export default async function MemberEditEventPage({
 
   if (!event || event.host_member_id !== ctx.member.id) notFound();
 
+  const { data: speaker } = await supabase
+    .from("event_speakers")
+    .select("name, photo_url")
+    .eq("event_id", eventId)
+    .order("sort_order", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ name: string; photo_url: string | null }>();
+
+  const selfName = ctx.profile.fullName ?? ctx.profile.email ?? undefined;
+
   const toLocalDT = (iso: string | null) => {
     if (!iso) return undefined;
     return iso.slice(0, 16); // "YYYY-MM-DDTHH:mm"
@@ -63,6 +73,7 @@ export default async function MemberEditEventPage({
       <MemberEventForm
         mode="edit"
         eventId={eventId}
+        selfName={selfName}
         defaultValues={{
           title: event.title,
           eventType: event.event_type as never,
@@ -77,7 +88,10 @@ export default async function MemberEditEventPage({
           onlineUrl: event.online_url ?? undefined,
           capacity: event.capacity ?? undefined,
           description: event.description ?? undefined,
-          speakerName: (event.metadata?.speakerName as string | null) ?? undefined,
+          speakerName:
+            (event.metadata?.speakerName as string | null) ?? speaker?.name ?? undefined,
+          posterTemplate: (event.metadata?.poster_template as string | null) ?? undefined,
+          speakerPhotoUrl: speaker?.photo_url ?? undefined,
         }}
       />
     </div>
