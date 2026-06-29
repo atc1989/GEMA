@@ -12,6 +12,7 @@ import {
   prospectNavigation,
   type NavigationItem,
 } from "@/components/shell/navigation";
+import { GemaWordmark } from "@/components/event/posters/gema-wordmark";
 import { cn } from "@/lib/utils";
 
 export type AppShellUser = {
@@ -176,7 +177,7 @@ export function AppShell({ role, eyebrow, title, subtitle, user, signOutSlot, ch
           {/* Mobile header */}
           <header className="bg-linear-to-br from-brand to-brand-dark px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] text-white lg:hidden">
             <div className="flex items-center gap-3">
-              <BrandMark />
+              <GemaWordmark height={20} color="#ffffff" />
               <div className="min-w-0 flex-1">
                 <div className="font-heading text-[10px] font-bold uppercase tracking-widest text-blue-200">
                   {eyebrow}
@@ -246,24 +247,11 @@ export function AppShell({ role, eyebrow, title, subtitle, user, signOutSlot, ch
 
 function BrandBlock() {
   return (
-    <div className="flex items-center gap-2.5 border-b border-sidebar-border pb-3">
-      <BrandMark />
-      <div>
-        <div className="font-heading text-[15px] font-extrabold leading-tight tracking-tight text-sidebar-foreground">
-          GEMA
-        </div>
-        <div className="text-[11px] font-semibold text-muted-foreground">
-          Event Management App
-        </div>
+    <div className="border-b border-sidebar-border pb-3">
+      <GemaWordmark height={22} color="var(--sidebar-foreground)" />
+      <div className="mt-1.5 text-[11px] font-semibold text-muted-foreground">
+        Event Management App
       </div>
-    </div>
-  );
-}
-
-function BrandMark() {
-  return (
-    <div className="font-heading flex size-9 shrink-0 items-center justify-center rounded-[8px_8px_14px_14px] border-2 border-gold bg-linear-to-br from-info to-brand-dark text-[15px] font-extrabold text-white">
-      G
     </div>
   );
 }
