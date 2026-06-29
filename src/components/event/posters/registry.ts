@@ -2,6 +2,9 @@ import { AuroraPoster } from "./aurora";
 import { BoldTypePoster } from "./bold-type";
 import { EditorialPoster } from "./editorial";
 import { SpotlightPoster } from "./spotlight";
+import { ShowcasePoster } from "./showcase";
+import { FramedPoster } from "./framed";
+import { PostcardPoster } from "./postcard";
 import {
   DEFAULT_POSTER_TEMPLATE,
   type PosterComponent,
@@ -38,8 +41,26 @@ export const POSTER_TEMPLATES: Partial<Record<PosterTemplateId, PosterTemplateMe
   spotlight: {
     id: "spotlight",
     label: "Spotlight",
-    description: "Speaker photo hero",
+    description: "Photo hero, uncropped",
     component: SpotlightPoster,
+  },
+  showcase: {
+    id: "showcase",
+    label: "Showcase",
+    description: "Full photo + details band",
+    component: ShowcasePoster,
+  },
+  framed: {
+    id: "framed",
+    label: "Framed",
+    description: "Photo in a white frame",
+    component: FramedPoster,
+  },
+  postcard: {
+    id: "postcard",
+    label: "Postcard",
+    description: "Photo top, big title",
+    component: PostcardPoster,
   },
 };
 
@@ -49,6 +70,9 @@ export const POSTER_TEMPLATE_LIST: PosterTemplateMeta[] = [
   POSTER_TEMPLATES.boldType!,
   POSTER_TEMPLATES.editorial!,
   POSTER_TEMPLATES.spotlight!,
+  POSTER_TEMPLATES.showcase!,
+  POSTER_TEMPLATES.framed!,
+  POSTER_TEMPLATES.postcard!,
 ];
 
 /** Resolves a template id to its component, falling back to the default. */

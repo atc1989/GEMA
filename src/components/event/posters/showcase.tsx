@@ -4,14 +4,14 @@ import { accentForType } from "./accent";
 import { POSTER_H, POSTER_W, posterDate, posterInitials, posterVenue } from "./shared";
 import type { EventPosterData } from "./types";
 
-/** Spotlight — speaker photo as the hero (falls back to a large monogram), with
- *  the title and details on a dark panel beneath. */
-export const SpotlightPoster = forwardRef<HTMLDivElement, { data: EventPosterData }>(
-  function SpotlightPoster({ data }, ref) {
+/** Showcase — full host photo (uncropped, contain) on an accent-gradient panel,
+ *  with a dark details band beneath. Spotlight's structure, never cropped. */
+export const ShowcasePoster = forwardRef<HTMLDivElement, { data: EventPosterData }>(
+  function ShowcasePoster({ data }, ref) {
     const ac = accentForType(data.eventType);
     const date = posterDate(data.startsAt);
     const venue = posterVenue(data);
-    const photoH = 248;
+    const photoH = 262;
 
     return (
       <div
@@ -30,7 +30,7 @@ export const SpotlightPoster = forwardRef<HTMLDivElement, { data: EventPosterDat
           flexShrink: 0,
         }}
       >
-        {/* Photo / monogram hero — uncropped (contain) on an accent-gradient letterbox */}
+        {/* Photo area — accent gradient letterbox, image contained */}
         <div
           style={{
             position: "relative",
@@ -56,19 +56,15 @@ export const SpotlightPoster = forwardRef<HTMLDivElement, { data: EventPosterDat
               {posterInitials(data.speakerName)}
             </span>
           )}
-          {/* bottom fade for legibility */}
-          <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom, transparent 60%, ${ac.deep} 100%)` }} />
-          {/* type tag */}
-          <div style={{ position: "absolute", top: 16, left: 16, fontSize: 8.5, fontWeight: 900, letterSpacing: 2, textTransform: "uppercase", background: ac.accent, borderRadius: 20, padding: "5px 11px" }}>
+          <div style={{ position: "absolute", top: 16, left: 16, fontSize: 8.5, fontWeight: 900, letterSpacing: 2, textTransform: "uppercase", background: ac.accent, borderRadius: 20, padding: "5px 11px", boxShadow: "0 1px 6px rgba(0,0,0,0.25)" }}>
             {ac.label}
           </div>
-          {/* brand */}
-          <div style={{ position: "absolute", top: 16, right: 16, fontSize: 12, fontWeight: 900, letterSpacing: 2, textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>
+          <div style={{ position: "absolute", top: 16, right: 16, fontSize: 12, fontWeight: 900, letterSpacing: 2, textShadow: "0 1px 4px rgba(0,0,0,0.45)" }}>
             GEMA
           </div>
         </div>
 
-        {/* Details panel */}
+        {/* Details */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "14px 22px 18px" }}>
           {data.speakerName ? (
             <div style={{ fontSize: 11, fontWeight: 700, color: ac.accent, marginBottom: 6 }}>

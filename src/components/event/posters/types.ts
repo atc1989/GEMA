@@ -13,7 +13,15 @@ export type EventPosterData = {
   speakerPhotoUrl?: string;
 };
 
-export const POSTER_TEMPLATE_IDS = ["aurora", "boldType", "editorial", "spotlight"] as const;
+export const POSTER_TEMPLATE_IDS = [
+  "aurora",
+  "boldType",
+  "editorial",
+  "spotlight",
+  "showcase",
+  "framed",
+  "postcard",
+] as const;
 export type PosterTemplateId = (typeof POSTER_TEMPLATE_IDS)[number];
 
 export const DEFAULT_POSTER_TEMPLATE: PosterTemplateId = "aurora";
