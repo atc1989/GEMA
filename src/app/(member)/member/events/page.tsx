@@ -102,7 +102,7 @@ const TABS: { key: EventsTab; label: string; description: string }[] = [
   },
   {
     key: "hosting",
-    label: "Hosting",
+    label: "My Events",
     description: "Events you created and host.",
   },
 ];

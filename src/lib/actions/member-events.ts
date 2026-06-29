@@ -3,15 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { type ActionResult, type FieldErrors } from "@/lib/actions/events";
+import { type ActionResult, type FieldErrors } from "@/lib/actions/types";
 import { requireMember } from "@/lib/auth/require-member";
 import { toEventRow } from "@/lib/database/mappers";
 import { eventFormSchema, type EventFormInput } from "@/lib/schemas/event";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureUniqueEventSlug } from "@/lib/utils/slug";
 import { asPosterTemplateId } from "@/components/event/posters/types";
-
-export type { ActionResult, FieldErrors };
 
 const PATH = "/member/events";
 

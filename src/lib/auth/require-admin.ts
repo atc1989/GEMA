@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -13,9 +14,10 @@ export type CurrentProfile = {
 
 /**
  * Resolves the logged-in user's profile, or null when there is no session or
- * no matching profiles row.
+ * no matching profiles row. Wrapped in React cache() so multiple calls within
+ * the same request share a single DB round-trip.
  */
-export async function getCurrentProfile(): Promise<CurrentProfile | null> {
+export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> => {
   const supabase = await createSupabaseServerClient();
 
   const {
@@ -39,7 +41,7 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
     role: data.role,
     isAdmin: data.is_admin,
   };
-}
+});
 
 /**
  * Guard for admin-only surfaces. Redirects to /login when unauthenticated and

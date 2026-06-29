@@ -15,11 +15,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureUniqueEventSlug } from "@/lib/utils/slug";
 import type { Event } from "@/lib/database/types";
 
-export type FieldErrors = Record<string, string[] | undefined>;
-
-export type ActionResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: string; fieldErrors?: FieldErrors };
+export type { FieldErrors, ActionResult } from "@/lib/actions/types";
 
 const EVENTS_PATH = "/admin/events";
 

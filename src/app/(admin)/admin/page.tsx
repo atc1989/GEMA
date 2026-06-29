@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 export default async function AdminPage() {
   const [profile, supabase] = await Promise.all([
-    getCurrentProfile(),
+    getCurrentProfile(), // deduplicated via React cache() — no extra DB call
     createSupabaseServerClient(),
   ]);
 
