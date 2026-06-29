@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { formatEventDateTime } from "@/lib/utils/format";
 import { EventPoster } from "@/components/event/event-poster";
 import { asPosterTemplateId } from "@/components/event/posters/types";
+import { asPhotoFocus } from "@/components/event/posters/shared";
 import type { Event } from "@/lib/database/types";
 
 export type InviteSpeaker = {
@@ -30,6 +31,7 @@ export function EventInviteDetails({
     venueName: event.venueName ?? undefined,
     speakerName: (event.metadata?.speakerName as string | null) ?? primarySpeaker?.name,
     speakerPhotoUrl: primarySpeaker?.photoUrl ?? undefined,
+    photoFocus: asPhotoFocus(event.metadata?.photo_focus),
   };
   const template = asPosterTemplateId(event.metadata?.poster_template);
 

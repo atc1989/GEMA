@@ -2,18 +2,41 @@ import type { CSSProperties } from "react";
 
 import type { EventPosterData } from "./types";
 
+/** Host-photo framing: pan (x/y %) + zoom, set by the host via the adjuster. */
+export type PhotoFocus = { x: number; y: number; zoom: number };
+
+/** Default framing = center-top cover (head-safe), no zoom. */
+export const DEFAULT_PHOTO_FOCUS: PhotoFocus = { x: 50, y: 0, zoom: 1 };
+
+const clamp = (n: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, Number.isFinite(n) ? n : min));
+
+/** Narrows arbitrary input (e.g. metadata) to a valid, clamped PhotoFocus. */
+export function asPhotoFocus(value: unknown): PhotoFocus {
+  const v = (value ?? {}) as Partial<PhotoFocus>;
+  return {
+    x: clamp(Number(v.x ?? 50), 0, 100),
+    y: clamp(Number(v.y ?? 0), 0, 100),
+    zoom: clamp(Number(v.zoom ?? 1), 1, 3),
+  };
+}
+
 /**
- * Placement for a full-bleed host photo: fills the whole panel (large, impactful)
- * but anchors to the top so a person's head is never cropped — only the lower
- * torso/background is trimmed. Tune image placement for all photo posters here.
+ * Style for a full-bleed host photo. Fills the panel (cover) and applies the
+ * host's chosen pan + zoom. Export-safe (plain CSS transforms, no library).
  */
-export const HOST_PHOTO_COVER: CSSProperties = {
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-  objectPosition: "center top",
-  display: "block",
-};
+export function hostPhotoStyle(focus?: PhotoFocus): CSSProperties {
+  const f = focus ?? DEFAULT_PHOTO_FOCUS;
+  return {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    objectPosition: `${f.x}% ${f.y}%`,
+    transform: f.zoom !== 1 ? `scale(${f.zoom})` : undefined,
+    transformOrigin: `${f.x}% ${f.y}%`,
+    display: "block",
+  };
+}
 
 const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 const DAYS = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];

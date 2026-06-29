@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { BannerTemplatePicker } from "@/components/event/banner-template-picker";
 import { asPosterTemplateId } from "@/components/event/posters/types";
+import { asPhotoFocus } from "@/components/event/posters/shared";
 import { requireMember } from "@/lib/auth/require-member";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { EventMode } from "@/lib/database/types";
@@ -55,6 +56,7 @@ export default async function MemberEventBannerPage({
   };
 
   const initialTemplate = asPosterTemplateId(event.metadata?.poster_template);
+  const initialFocus = asPhotoFocus(event.metadata?.photo_focus);
 
   return (
     <div className="mx-auto grid max-w-md gap-4">
@@ -77,6 +79,7 @@ export default async function MemberEventBannerPage({
         data={posterData}
         eventId={eventId}
         initialTemplate={initialTemplate}
+        initialFocus={initialFocus}
       />
 
       <Link

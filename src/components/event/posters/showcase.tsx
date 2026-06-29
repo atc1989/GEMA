@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
 
 import { accentForType } from "./accent";
-import { HOST_PHOTO_COVER, POSTER_H, POSTER_W, posterDate, posterInitials, posterVenue } from "./shared";
+import { hostPhotoStyle, POSTER_H, POSTER_W, posterDate, posterInitials, posterVenue } from "./shared";
 import type { EventPosterData } from "./types";
 
 /** Showcase — full host photo (uncropped, contain) on an accent-gradient panel,
@@ -49,7 +49,7 @@ export const ShowcasePoster = forwardRef<HTMLDivElement, { data: EventPosterData
               src={data.speakerPhotoUrl}
               alt={data.speakerName ?? "Speaker"}
               crossOrigin="anonymous"
-              style={HOST_PHOTO_COVER}
+              style={hostPhotoStyle(data.photoFocus)}
             />
           ) : (
             <span style={{ fontSize: 96, fontWeight: 900, color: "rgba(255,255,255,0.85)" }}>

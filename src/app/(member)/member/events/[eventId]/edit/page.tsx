@@ -92,6 +92,9 @@ export default async function MemberEditEventPage({
             (event.metadata?.speakerName as string | null) ?? speaker?.name ?? undefined,
           posterTemplate: (event.metadata?.poster_template as string | null) ?? undefined,
           speakerPhotoUrl: speaker?.photo_url ?? undefined,
+          photoFocus: event.metadata?.photo_focus as
+            | { x: number; y: number; zoom: number }
+            | undefined,
         }}
       />
     </div>

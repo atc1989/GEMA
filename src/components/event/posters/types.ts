@@ -11,6 +11,8 @@ export type EventPosterData = {
   venueName?: string;
   speakerName?: string;
   speakerPhotoUrl?: string;
+  /** Host-chosen pan/zoom framing for the photo (see shared.ts PhotoFocus). */
+  photoFocus?: { x: number; y: number; zoom: number };
 };
 
 export const POSTER_TEMPLATE_IDS = [

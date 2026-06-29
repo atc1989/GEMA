@@ -24,6 +24,8 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { EventPoster, DownloadBannerButton, type EventPosterData } from "@/components/event/event-poster";
 import { PosterTemplateThumbnails } from "@/components/event/posters/template-thumbnails";
 import { asPosterTemplateId, type PosterTemplateId } from "@/components/event/posters/types";
+import { PhotoAdjuster } from "@/components/event/posters/photo-adjuster";
+import { asPhotoFocus, type PhotoFocus } from "@/components/event/posters/shared";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
@@ -73,6 +75,7 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
   );
   const [uploading, setUploading] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [focus, setFocus] = useState<PhotoFocus>(asPhotoFocus(defaultValues?.photoFocus));
 
   const {
     register,
@@ -110,6 +113,7 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
     venueName: watch("venueName"),
     speakerName: watch("speakerName"),
     speakerPhotoUrl: photoUrl,
+    photoFocus: focus,
   };
 
   const pickName = (label: string, type: EventFormInput["eventType"]) => {
@@ -160,7 +164,7 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
 
   const onSubmit = handleSubmit((values) => {
     startTransition(async () => {
-      const payload = { ...values, posterTemplate: template, speakerPhotoUrl: photoUrl };
+      const payload = { ...values, posterTemplate: template, speakerPhotoUrl: photoUrl, photoFocus: focus };
       const result =
         mode === "create"
           ? await createMemberEvent(payload)
@@ -311,8 +315,17 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
             </div>
             {photoError ? <p className="mt-2 text-xs font-semibold text-destructive">{photoError}</p> : null}
             <p className="mt-1.5 text-[11px] font-semibold text-muted-foreground">
-              Shows on the Spotlight banner and the invite page. PNG/JPG up to 5 MB.
+              Shows on the photo banner designs and the invite page. PNG/JPG up to 5 MB.
             </p>
+
+            {photoUrl ? (
+              <div className="mt-3">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                  Adjust framing
+                </p>
+                <PhotoAdjuster url={photoUrl} focus={focus} onChange={setFocus} />
+              </div>
+            ) : null}
           </div>
 
           <Field label="Description" htmlFor="description" error={errors.description?.message}>

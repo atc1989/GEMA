@@ -106,6 +106,10 @@ export const eventFormSchema = z
     posterTemplate: optionalText,
     // Public URL of an uploaded speaker photo (Supabase Storage).
     speakerPhotoUrl: optionalText,
+    // Host-chosen photo framing (pan/zoom); clamped by the action.
+    photoFocus: z
+      .object({ x: z.number(), y: z.number(), zoom: z.number() })
+      .optional(),
   })
   .refine(
     (data) => data.endsAt === undefined || Date.parse(data.endsAt) > Date.parse(data.startsAt),

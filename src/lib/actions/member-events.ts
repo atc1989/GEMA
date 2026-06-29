@@ -10,6 +10,7 @@ import { eventFormSchema, type EventFormInput } from "@/lib/schemas/event";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureUniqueEventSlug } from "@/lib/utils/slug";
 import { asPosterTemplateId } from "@/components/event/posters/types";
+import { asPhotoFocus } from "@/components/event/posters/shared";
 
 const PATH = "/member/events";
 
@@ -83,6 +84,7 @@ export async function createMemberEvent(
       metadata: {
         speakerName: parsed.data.speakerName ?? null,
         poster_template: asPosterTemplateId(parsed.data.posterTemplate),
+        photo_focus: asPhotoFocus(parsed.data.photoFocus),
       },
     })
     .select("id")
@@ -151,6 +153,7 @@ export async function updateMemberEvent(
         ...((existing.metadata as Record<string, unknown> | null) ?? {}),
         speakerName: parsed.data.speakerName ?? null,
         poster_template: asPosterTemplateId(parsed.data.posterTemplate),
+        photo_focus: asPhotoFocus(parsed.data.photoFocus),
       },
     })
     .eq("id", eventId);
