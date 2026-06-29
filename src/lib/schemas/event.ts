@@ -142,7 +142,13 @@ export const publishReadinessSchema = z
     }),
     venueName: z.string().nullable().optional(),
     onlineUrl: z.string().nullable().optional(),
-    description: z.string().trim().min(1, "Add a description before publishing."),
+    description: z
+      .string()
+      .nullable()
+      .optional()
+      .refine((v) => Boolean(v?.trim()), {
+        message: "Add a description before publishing.",
+      }),
   })
   .refine((data) => data.mode === "online" || Boolean(data.venueName), {
     message: "A venue is required before publishing an in-person/hybrid event.",

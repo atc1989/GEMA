@@ -25,6 +25,14 @@ export default async function EditEventPage({
   if (error || !data) notFound();
   const event = mapEventRow(data);
 
+  const { data: speaker } = await supabase
+    .from("event_speakers")
+    .select("name, photo_url")
+    .eq("event_id", event.id)
+    .order("sort_order", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ name: string; photo_url: string | null }>();
+
   const defaultValues: Partial<EventFormInput> = {
     title: event.title,
     eventType: event.eventType,
@@ -40,6 +48,13 @@ export default async function EditEventPage({
     capacity: event.capacity ?? undefined,
     description: event.description ?? undefined,
     bannerUrl: event.bannerUrl ?? undefined,
+    speakerName:
+      (event.metadata?.speakerName as string | null) ?? speaker?.name ?? undefined,
+    speakerPhotoUrl: speaker?.photo_url ?? undefined,
+    posterTemplate: (event.metadata?.poster_template as string | null) ?? undefined,
+    photoFocus: event.metadata?.photo_focus as
+      | { x: number; y: number; zoom: number }
+      | undefined,
   };
 
   return (

@@ -14,11 +14,45 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureUniqueEventSlug } from "@/lib/utils/slug";
 import type { Event } from "@/lib/database/types";
+import { asPosterTemplateId } from "@/components/event/posters/types";
+import { asPhotoFocus } from "@/components/event/posters/shared";
 
 import { type ActionResult, type FieldErrors } from "@/lib/actions/types";
 export type { ActionResult, FieldErrors };
 
 const EVENTS_PATH = "/admin/events";
+
+type SpeakerSync = { name?: string; photoUrl?: string };
+
+async function syncPrimarySpeaker(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  eventId: string,
+  { name, photoUrl }: SpeakerSync,
+) {
+  const trimmedName = name?.trim();
+  const cleanPhotoUrl = photoUrl?.trim();
+  const hasData = Boolean(trimmedName || cleanPhotoUrl);
+
+  const { data: existing } = await supabase
+    .from("event_speakers")
+    .select("id")
+    .eq("event_id", eventId)
+    .order("sort_order", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+
+  if (!hasData) {
+    if (existing) await supabase.from("event_speakers").delete().eq("id", existing.id);
+    return;
+  }
+
+  const row = { name: trimmedName || "Speaker", photo_url: cleanPhotoUrl || null };
+  if (existing) {
+    await supabase.from("event_speakers").update(row).eq("id", existing.id);
+  } else {
+    await supabase.from("event_speakers").insert({ event_id: eventId, sort_order: 0, ...row });
+  }
+}
 
 /** Creates a draft event owned by the current admin. */
 export async function createEvent(
@@ -51,6 +85,11 @@ export async function createEvent(
       slug,
       status: "draft",
       created_by_profile_id: admin.id,
+      metadata: {
+        speakerName: parsed.data.speakerName ?? null,
+        poster_template: asPosterTemplateId(parsed.data.posterTemplate),
+        photo_focus: asPhotoFocus(parsed.data.photoFocus),
+      },
     })
     .select("id")
     .single();
@@ -58,6 +97,11 @@ export async function createEvent(
   if (error || !data) {
     return { ok: false, error: error?.message ?? "Failed to create the event." };
   }
+
+  await syncPrimarySpeaker(supabase, data.id, {
+    name: parsed.data.speakerName,
+    photoUrl: parsed.data.speakerPhotoUrl,
+  });
 
   revalidatePath(EVENTS_PATH);
   return { ok: true, data: { id: data.id } };
@@ -83,7 +127,7 @@ export async function updateEvent(
 
   const { data: existing, error: loadError } = await supabase
     .from("events")
-    .select("id, status, title, slug")
+    .select("id, status, title, slug, metadata")
     .eq("id", eventId)
     .maybeSingle();
 
@@ -105,10 +149,24 @@ export async function updateEvent(
 
   const { error } = await supabase
     .from("events")
-    .update({ ...toEventRow(parsed.data), slug })
+    .update({
+      ...toEventRow(parsed.data),
+      slug,
+      metadata: {
+        ...((existing.metadata as Record<string, unknown> | null) ?? {}),
+        speakerName: parsed.data.speakerName ?? null,
+        poster_template: asPosterTemplateId(parsed.data.posterTemplate),
+        photo_focus: asPhotoFocus(parsed.data.photoFocus),
+      },
+    })
     .eq("id", eventId);
 
   if (error) return { ok: false, error: error.message };
+
+  await syncPrimarySpeaker(supabase, eventId, {
+    name: parsed.data.speakerName,
+    photoUrl: parsed.data.speakerPhotoUrl,
+  });
 
   revalidatePath(EVENTS_PATH);
   revalidatePath(`${EVENTS_PATH}/${eventId}`);
