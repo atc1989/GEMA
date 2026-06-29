@@ -5,6 +5,7 @@ import { SpotlightPoster } from "./spotlight";
 import { ShowcasePoster } from "./showcase";
 import { FramedPoster } from "./framed";
 import { PostcardPoster } from "./postcard";
+import { GutguardClassicPoster } from "./gutguard-classic";
 import {
   DEFAULT_POSTER_TEMPLATE,
   type PosterComponent,
@@ -62,6 +63,12 @@ export const POSTER_TEMPLATES: Partial<Record<PosterTemplateId, PosterTemplateMe
     description: "Photo top, big title",
     component: PostcardPoster,
   },
+  gutguardClassic: {
+    id: "gutguardClassic",
+    label: "Classic",
+    description: "Light poster, framed photo",
+    component: GutguardClassicPoster,
+  },
 };
 
 /** Ordered list for the picker (only built templates). */
@@ -73,6 +80,7 @@ export const POSTER_TEMPLATE_LIST: PosterTemplateMeta[] = [
   POSTER_TEMPLATES.showcase!,
   POSTER_TEMPLATES.framed!,
   POSTER_TEMPLATES.postcard!,
+  POSTER_TEMPLATES.gutguardClassic!,
 ];
 
 /** Resolves a template id to its component, falling back to the default. */

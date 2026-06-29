@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 
 import { accentForType } from "./accent";
+import { GemaWordmark } from "./gema-wordmark";
 import { POSTER_H, POSTER_W, posterDate, posterVenue } from "./shared";
 import type { EventPosterData } from "./types";
 
@@ -42,7 +43,7 @@ export const EditorialPoster = forwardRef<HTMLDivElement, { data: EventPosterDat
         <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "24px 24px 20px" }}>
           {/* Brand + type */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
-            <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 2.5, color: ac.deep }}>GEMA</div>
+            <GemaWordmark height={16} color={ac.deep} />
             <div style={{ fontSize: 8, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: ac.accent, background: ac.soft, borderRadius: 20, padding: "4px 10px" }}>
               {ac.label}
             </div>

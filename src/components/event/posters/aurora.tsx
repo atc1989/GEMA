@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 
 import { accentForType } from "./accent";
+import { GemaWordmark } from "./gema-wordmark";
 import { POSTER_H, POSTER_W, posterDate, posterVenue } from "./shared";
 import type { EventPosterData } from "./types";
 
@@ -36,14 +37,9 @@ export const AuroraPoster = forwardRef<HTMLDivElement, { data: EventPosterData }
         <div style={{ position: "absolute", top: 160, left: -25, width: 130, height: 130, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
 
         {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
-          <div style={{ width: 30, height: 30, flexShrink: 0, background: "rgba(255,255,255,0.12)", borderRadius: "6px 6px 12px 12px", border: "1.5px solid #f5b716", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900 }}>
-            G
-          </div>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 2 }}>GEMA</div>
-            <div style={{ fontSize: 7.5, color: "rgba(255,255,255,0.55)", letterSpacing: 1, marginTop: 1 }}>GROUP EVENT MANAGEMENT APP</div>
-          </div>
+        <div style={{ marginBottom: 18 }}>
+          <GemaWordmark height={20} color="#ffffff" />
+          <div style={{ fontSize: 7.5, color: "rgba(255,255,255,0.55)", letterSpacing: 1, marginTop: 5 }}>GROUP EVENT MANAGEMENT APP</div>
         </div>
 
         <div style={{ fontSize: 8.5, fontWeight: 800, letterSpacing: 3, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", marginBottom: 10 }}>

@@ -23,6 +23,7 @@ export const POSTER_TEMPLATE_IDS = [
   "showcase",
   "framed",
   "postcard",
+  "gutguardClassic",
 ] as const;
 export type PosterTemplateId = (typeof POSTER_TEMPLATE_IDS)[number];
 
