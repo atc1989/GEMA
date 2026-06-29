@@ -53,7 +53,7 @@ async function syncPrimarySpeaker(
 export async function createMemberEvent(
   input: EventFormInput,
 ): Promise<ActionResult<{ id: string }>> {
-  const ctx = await requireMember();
+  await requireMember();
 
   const parsed = eventFormSchema.safeParse(input);
   if (!parsed.success) {
@@ -73,34 +73,35 @@ export async function createMemberEvent(
     return { ok: false, error: "Could not generate a unique slug. Try again." };
   }
 
-  const { data, error } = await supabase
-    .from("events")
-    .insert({
-      ...toEventRow(parsed.data),
-      slug,
-      status: "draft",
-      created_by_profile_id: ctx.profile.id,
-      host_member_id: ctx.member.id,
-      metadata: {
-        speakerName: parsed.data.speakerName ?? null,
-        poster_template: asPosterTemplateId(parsed.data.posterTemplate),
-        photo_focus: asPhotoFocus(parsed.data.photoFocus),
-      },
-    })
-    .select("id")
-    .single();
+  const row = toEventRow(parsed.data);
+  const { data, error } = await supabase.rpc("create_member_event", {
+    p_title: row.title,
+    p_slug: slug,
+    p_event_type: row.event_type,
+    p_visibility: row.visibility,
+    p_mode: row.mode,
+    p_starts_at: row.starts_at,
+    p_ends_at: row.ends_at,
+    p_timezone: row.timezone,
+    p_venue_name: row.venue_name,
+    p_venue_address: row.venue_address,
+    p_map_url: row.map_url,
+    p_online_url: row.online_url,
+    p_capacity: row.capacity,
+    p_description: row.description,
+    p_banner_url: row.banner_url,
+    p_speaker_name: parsed.data.speakerName ?? null,
+    p_speaker_photo_url: parsed.data.speakerPhotoUrl ?? null,
+    p_poster_template: asPosterTemplateId(parsed.data.posterTemplate),
+    p_photo_focus: asPhotoFocus(parsed.data.photoFocus),
+  });
 
   if (error || !data) {
     return { ok: false, error: error?.message ?? "Failed to create the event." };
   }
 
-  await syncPrimarySpeaker(supabase, data.id, {
-    name: parsed.data.speakerName,
-    photoUrl: parsed.data.speakerPhotoUrl,
-  });
-
   revalidatePath(PATH);
-  return { ok: true, data: { id: data.id } };
+  return { ok: true, data: { id: data } };
 }
 
 export async function updateMemberEvent(

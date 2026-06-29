@@ -423,6 +423,29 @@ as $$
     )
 $$;
 
+create or replace function public.can_write_event_row(
+  target_created_by_profile_id uuid,
+  target_host_member_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select auth.uid() is not null
+    and (
+      public.is_admin()
+      or target_created_by_profile_id = auth.uid()
+      or exists (
+        select 1
+        from public.members m
+        where m.id = target_host_member_id
+          and m.profile_id = auth.uid()
+      )
+    )
+$$;
+
 -- Enable RLS
 alter table public.profiles enable row level security;
 alter table public.ranks enable row level security;
@@ -527,12 +550,12 @@ using (
 
 create policy "events_insert_authenticated"
 on public.events for insert
-with check (auth.uid() is not null and created_by_profile_id = auth.uid());
+with check (public.can_write_event_row(created_by_profile_id, host_member_id));
 
 create policy "events_manage_owner_or_admin"
 on public.events for update
 using (public.can_manage_event(id))
-with check (public.can_manage_event(id));
+with check (public.can_write_event_row(created_by_profile_id, host_member_id));
 
 create policy "events_delete_admin"
 on public.events for delete
