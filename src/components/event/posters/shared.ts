@@ -1,4 +1,19 @@
+import type { CSSProperties } from "react";
+
 import type { EventPosterData } from "./types";
+
+/**
+ * Placement for a full-bleed host photo: fills the whole panel (large, impactful)
+ * but anchors to the top so a person's head is never cropped — only the lower
+ * torso/background is trimmed. Tune image placement for all photo posters here.
+ */
+export const HOST_PHOTO_COVER: CSSProperties = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  objectPosition: "center top",
+  display: "block",
+};
 
 const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 const DAYS = ["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];

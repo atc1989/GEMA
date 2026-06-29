@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
 
 import { accentForType } from "./accent";
-import { POSTER_H, POSTER_W, posterDate, posterInitials, posterVenue } from "./shared";
+import { HOST_PHOTO_COVER, POSTER_H, POSTER_W, posterDate, posterInitials, posterVenue } from "./shared";
 import type { EventPosterData } from "./types";
 
 /** Spotlight — speaker photo as the hero (falls back to a large monogram), with
@@ -49,7 +49,7 @@ export const SpotlightPoster = forwardRef<HTMLDivElement, { data: EventPosterDat
               src={data.speakerPhotoUrl}
               alt={data.speakerName ?? "Speaker"}
               crossOrigin="anonymous"
-              style={{ maxWidth: "100%", maxHeight: "100%", width: "auto", height: "auto", objectFit: "contain", display: "block" }}
+              style={HOST_PHOTO_COVER}
             />
           ) : (
             <span style={{ fontSize: 96, fontWeight: 900, color: "rgba(255,255,255,0.85)" }}>
