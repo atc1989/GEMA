@@ -6,6 +6,7 @@ import { z } from "zod";
 import { type ActionResult } from "@/lib/actions/types";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const ADMIN_EVENT_PERMISSIONS_PATH = "/admin/members/event-permissions";
 
@@ -35,9 +36,9 @@ export async function updateMemberEventPublishingPermission(
     return { ok: false, error: "Invalid permission update." };
   }
 
-  const supabase = createSupabaseAdminClient();
+  const admin = createSupabaseAdminClient();
 
-  const { data: member, error: memberError } = await supabase
+  const { data: member, error: memberError } = await admin
     .from("members")
     .select("id, profile_id, username, member_code")
     .eq("id", parsed.data.memberId)
@@ -51,7 +52,7 @@ export async function updateMemberEventPublishingPermission(
   if (memberError) return { ok: false, error: memberError.message };
   if (!member) return { ok: false, error: "Member not found." };
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile, error: profileError } = await admin
     .from("profiles")
     .select("id, email, full_name, role, is_admin")
     .eq("id", member.profile_id)
@@ -69,6 +70,7 @@ export async function updateMemberEventPublishingPermission(
     return { ok: false, error: "Administrator accounts are not eligible for member publishing access." };
   }
 
+  const supabase = await createSupabaseServerClient();
   const { error: updateError } = await supabase
     .from("profiles")
     .update({ can_publish_events: parsed.data.canPublishEvents })
