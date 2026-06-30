@@ -10,6 +10,7 @@ export type CurrentProfile = {
   fullName: string;
   role: AppRole;
   isAdmin: boolean;
+  canPublishEvents: boolean;
 };
 
 /**
@@ -28,7 +29,7 @@ export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> 
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, is_admin")
+    .select("id, email, full_name, role, is_admin, can_publish_events")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -40,6 +41,7 @@ export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> 
     fullName: data.full_name,
     role: data.role,
     isAdmin: data.is_admin,
+    canPublishEvents: data.can_publish_events ?? false,
   };
 });
 

@@ -10,6 +10,7 @@ import {
   PlayCircle,
   Settings,
   Ticket,
+  ToggleLeft,
   User,
   Users,
 } from "lucide-react";
@@ -43,7 +44,8 @@ export const adminNavigation: NavigationItem[] = [
   { href: "/admin/events", label: "Events", icon: CalendarDays },
   { href: "/admin/prospects", label: "Prospects", icon: Users },
   { href: "/admin/commissions", label: "Commissions", icon: Coins },
-  { href: "/admin/members", label: "Members", icon: IdCard },
+  { href: "/admin/members", label: "Members", icon: IdCard, exact: true },
+  { href: "/admin/members/event-permissions", label: "Event Permissions", icon: ToggleLeft },
 ];
 
 export const rootNavigation: NavigationItem[] = [

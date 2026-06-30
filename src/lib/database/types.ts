@@ -61,6 +61,7 @@ export interface Profile {
   avatarUrl: string | null;
   role: AppRole;
   isAdmin: boolean;
+  canPublishEvents: boolean;
   lastSeenAt: string | null;
   createdAt: string;
   updatedAt: string;

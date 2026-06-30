@@ -20,7 +20,9 @@ export default async function MemberNewEventPage() {
       <div>
         <h2 className="text-lg font-black tracking-tight">Create event</h2>
         <p className="mt-1 text-sm font-semibold text-muted-foreground">
-          New events start as a draft. Fill the details and download your banner to start sharing.
+          {ctx.profile.canPublishEvents
+            ? "Your event will be published after submission. Fill the details and download your banner to start sharing."
+            : "Your event will be submitted for administrator review. Fill the details and download your banner to start sharing."}
         </p>
       </div>
       <MemberEventForm mode="create" selfName={selfName} />
