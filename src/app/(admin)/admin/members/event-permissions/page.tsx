@@ -93,29 +93,30 @@ export default async function AdminMemberEventPermissionsPage({
   const profileIds = members.map((member) => member.profile_id);
   const profileById = new Map<string, ProfileRow>();
   if (profileIds.length > 0) {
-    const { data: profiles } = await supabase
+    const { data: profiles, error: profileError } = await supabase
       .from("profiles")
       .select("id, email, full_name, role, is_admin, can_publish_events")
       .in("id", profileIds)
       .returns<ProfileRow[]>();
+    if (profileError) loadError = profileError.message;
     for (const profile of profiles ?? []) profileById.set(profile.id, profile);
   }
 
   const rows: MemberPublishingPermissionRow[] = members
     .map((member) => {
       const profile = profileById.get(member.profile_id);
-      if (!profile || profile.is_admin || profile.role === "admin") return null;
+      if (profile?.is_admin || profile?.role === "admin") return null;
       return {
         id: member.id,
         fullName:
-          profile.full_name?.trim() ||
-          profile.email?.trim() ||
+          profile?.full_name?.trim() ||
+          profile?.email?.trim() ||
           member.username?.trim() ||
           member.member_code?.trim() ||
           "Member",
-        email: profile.email ?? "No email",
-        role: profile.role ?? member.status,
-        canPublishEvents: profile.can_publish_events === true,
+        email: profile?.email ?? "No email",
+        role: profile?.role ?? member.status,
+        canPublishEvents: profile?.can_publish_events === true,
       };
     })
     .filter((row): row is MemberPublishingPermissionRow => row !== null);
