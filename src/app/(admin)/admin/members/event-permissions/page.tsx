@@ -8,7 +8,8 @@ import {
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
@@ -53,7 +54,8 @@ export default async function AdminMemberEventPermissionsPage({
   const page = cleanPage(rawPage);
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
-  const supabase = await createSupabaseServerClient();
+  await requireAdmin();
+  const supabase = createSupabaseAdminClient();
 
   let matchingProfileIds: string[] | null = null;
   if (search) {

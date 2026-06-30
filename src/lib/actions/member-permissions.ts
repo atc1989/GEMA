@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { type ActionResult } from "@/lib/actions/types";
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const ADMIN_EVENT_PERMISSIONS_PATH = "/admin/members/event-permissions";
 
@@ -35,7 +35,7 @@ export async function updateMemberEventPublishingPermission(
     return { ok: false, error: "Invalid permission update." };
   }
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   const { data: member, error: memberError } = await supabase
     .from("members")
