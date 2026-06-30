@@ -11,6 +11,7 @@ export type MemberPublishingPermissionRow = {
   fullName: string;
   email: string;
   role: string;
+  hasProfile: boolean;
   canPublishEvents: boolean;
 };
 
@@ -30,6 +31,14 @@ export function MemberPublishingPermissionsTable({
   const [isPending, startTransition] = useTransition();
 
   const toggle = (member: MemberPublishingPermissionRow) => {
+    if (!member.hasProfile) {
+      setFeedback({
+        kind: "error",
+        text: `${member.fullName} does not have a profile record yet, so event publishing access cannot be changed.`,
+      });
+      return;
+    }
+
     const nextValue = !member.canPublishEvents;
     if (
       nextValue &&
@@ -106,6 +115,7 @@ export function MemberPublishingPermissionsTable({
         <ul className="divide-y divide-border/70">
           {rows.map((member) => {
             const saving = savingId === member.id || (isPending && savingId === member.id);
+            const disabled = !member.hasProfile || saving || (isPending && savingId !== null);
             return (
               <li
                 key={member.id}
@@ -126,7 +136,11 @@ export function MemberPublishingPermissionsTable({
                   </span>
                 </div>
                 <div className="text-sm font-semibold text-muted-foreground">
-                  {member.canPublishEvents ? "Can publish directly" : "Admin approval required"}
+                  {!member.hasProfile
+                    ? "Profile required"
+                    : member.canPublishEvents
+                      ? "Can publish directly"
+                      : "Admin approval required"}
                 </div>
                 <div className="flex items-center justify-between gap-3 md:justify-end">
                   {saving ? <Loader2 className="size-4 animate-spin text-muted-foreground" /> : null}
@@ -135,17 +149,23 @@ export function MemberPublishingPermissionsTable({
                     role="switch"
                     aria-checked={member.canPublishEvents}
                     aria-label={`Allow ${member.fullName} to publish events without administrator approval`}
-                    disabled={saving || (isPending && savingId !== null)}
+                    disabled={disabled}
                     onClick={() => toggle(member)}
+                    title={
+                      member.hasProfile
+                        ? undefined
+                        : "This member has no profile record, so this permission cannot be changed."
+                    }
                     className={cn(
-                      "relative h-7 w-12 rounded-full border border-transparent transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60",
+                      "relative h-7 w-12 rounded-full border border-transparent transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed",
                       member.canPublishEvents ? "bg-brand" : "bg-muted-foreground/30",
+                      !member.hasProfile && "bg-muted opacity-50",
                     )}
                   >
                     <span
                       className={cn(
-                        "absolute top-1 size-5 rounded-full bg-white shadow-sm transition-transform",
-                        member.canPublishEvents ? "translate-x-5" : "translate-x-1",
+                        "absolute left-1 top-1 size-5 rounded-full bg-white shadow-sm transition-transform",
+                        member.canPublishEvents ? "translate-x-5" : "translate-x-0",
                       )}
                     />
                   </button>

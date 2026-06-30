@@ -116,6 +116,7 @@ export default async function AdminMemberEventPermissionsPage({
           "Member",
         email: profile?.email ?? "No email",
         role: profile?.role ?? member.status,
+        hasProfile: Boolean(profile),
         canPublishEvents: profile?.can_publish_events === true,
       };
     })
