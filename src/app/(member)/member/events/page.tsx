@@ -236,6 +236,7 @@ export default async function MemberEventsPage({
         <HostingSection
           events={hostedEvents}
           error={hostedEventsRes.error?.message ?? null}
+          canPublishEvents={ctx.profile.canPublishEvents}
         />
       )}
     </div>
@@ -555,9 +556,11 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
 function HostingSection({
   events,
   error,
+  canPublishEvents,
 }: {
   events: HostedEventRow[];
   error: string | null;
+  canPublishEvents: boolean;
 }) {
   return (
     <section className="grid gap-3">
@@ -565,13 +568,25 @@ function HostingSection({
         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
           Your hosted events
         </p>
-        <Link
-          href="/member/events/new"
-          className={cn(buttonVariants({ variant: "brand", size: "sm" }))}
-        >
-          <CalendarPlus className="size-4" aria-hidden="true" />
-          Create event
-        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <span
+            className={cn(
+              "rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide",
+              canPublishEvents
+                ? "bg-emerald-50 text-success"
+                : "bg-secondary text-brand",
+            )}
+          >
+            {canPublishEvents ? "Direct publishing enabled" : "Admin review required"}
+          </span>
+          <Link
+            href="/member/events/new"
+            className={cn(buttonVariants({ variant: "brand", size: "sm" }))}
+          >
+            <CalendarPlus className="size-4" aria-hidden="true" />
+            Create event
+          </Link>
+        </div>
       </div>
 
       {error ? (

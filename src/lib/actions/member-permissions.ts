@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { type ActionResult } from "@/lib/actions/types";
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const ADMIN_EVENT_PERMISSIONS_PATH = "/admin/members/event-permissions";
 
@@ -35,67 +35,29 @@ export async function updateMemberEventPublishingPermission(
     return { ok: false, error: "Invalid permission update." };
   }
 
-  const admin = createSupabaseAdminClient();
-
-  const { data: member, error: memberError } = await admin
-    .from("members")
-    .select("id, profile_id, username, member_code")
-    .eq("id", parsed.data.memberId)
-    .maybeSingle<{
-      id: string;
-      profile_id: string;
-      username: string | null;
-      member_code: string | null;
-    }>();
-
-  if (memberError) return { ok: false, error: memberError.message };
-  if (!member) return { ok: false, error: "Member not found." };
-
-  const { data: profile, error: profileError } = await admin
-    .from("profiles")
-    .select("id, email, full_name, role, is_admin")
-    .eq("id", member.profile_id)
-    .maybeSingle<{
-      id: string;
-      email: string | null;
-      full_name: string | null;
-      role: string | null;
-      is_admin: boolean | null;
-    }>();
-
-  if (profileError) return { ok: false, error: profileError.message };
-  if (!profile) return { ok: false, error: "Member profile not found." };
-  if (profile.is_admin === true || profile.role === "admin") {
-    return { ok: false, error: "Administrator accounts are not eligible for member publishing access." };
-  }
-
-  const { data: updatedProfile, error: updateError } = await admin
-    .from("profiles")
-    .update({ can_publish_events: parsed.data.canPublishEvents })
-    .eq("id", profile.id)
-    .select("id, email, full_name, can_publish_events")
+  const supabase = await createSupabaseServerClient();
+  const { data, error: updateError } = await supabase
+    .rpc("update_member_event_publishing_permission", {
+      p_member_id: parsed.data.memberId,
+      p_can_publish_events: parsed.data.canPublishEvents,
+    })
     .single<{
-      id: string;
-      email: string | null;
-      full_name: string | null;
+      member_id: string;
+      member_name: string | null;
       can_publish_events: boolean;
     }>();
 
   if (updateError) return { ok: false, error: updateError.message };
+  if (!data) return { ok: false, error: "Member permission was not updated." };
 
   revalidatePath(ADMIN_EVENT_PERMISSIONS_PATH);
 
   return {
     ok: true,
     data: {
-      memberId: member.id,
-      memberName:
-        updatedProfile.full_name?.trim() ||
-        updatedProfile.email?.trim() ||
-        member.username?.trim() ||
-        member.member_code?.trim() ||
-        "Member",
-      canPublishEvents: updatedProfile.can_publish_events,
+      memberId: data.member_id,
+      memberName: data.member_name?.trim() || "Member",
+      canPublishEvents: data.can_publish_events,
     },
   };
 }

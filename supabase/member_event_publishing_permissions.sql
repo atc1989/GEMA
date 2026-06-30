@@ -40,6 +40,69 @@ on public.profiles for update
 using (id = auth.uid())
 with check (id = auth.uid() and is_admin = false);
 
+create or replace function public.update_member_event_publishing_permission(
+  p_member_id uuid,
+  p_can_publish_events boolean
+)
+returns table (
+  member_id uuid,
+  member_name text,
+  can_publish_events boolean
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_member public.members%rowtype;
+  v_profile public.profiles%rowtype;
+begin
+  if not public.is_admin() then
+    raise exception 'Only administrators can change event publishing permissions.';
+  end if;
+
+  select * into v_member
+  from public.members
+  where id = p_member_id
+  limit 1;
+
+  if v_member.id is null then
+    raise exception 'Member not found.';
+  end if;
+
+  select * into v_profile
+  from public.profiles
+  where id = v_member.profile_id
+  limit 1;
+
+  if v_profile.id is null then
+    raise exception 'Member profile not found.';
+  end if;
+
+  if v_profile.is_admin = true or v_profile.role = 'admin' then
+    raise exception 'Administrator accounts are not eligible for member publishing access.';
+  end if;
+
+  update public.profiles
+  set can_publish_events = p_can_publish_events
+  where id = v_profile.id
+  returning * into v_profile;
+
+  member_id := v_member.id;
+  member_name := coalesce(
+    nullif(btrim(v_profile.full_name), ''),
+    nullif(btrim(v_profile.email::text), ''),
+    nullif(btrim(v_member.username::text), ''),
+    nullif(btrim(v_member.member_code), ''),
+    'Member'
+  );
+  can_publish_events := v_profile.can_publish_events;
+  return next;
+end;
+$$;
+
+grant execute on function public.update_member_event_publishing_permission(uuid, boolean) to authenticated;
+
 create or replace function public.create_member_event(
   p_title text,
   p_slug text,
