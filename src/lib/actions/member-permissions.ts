@@ -6,7 +6,6 @@ import { z } from "zod";
 import { type ActionResult } from "@/lib/actions/types";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const ADMIN_EVENT_PERMISSIONS_PATH = "/admin/members/event-permissions";
 
@@ -52,15 +51,30 @@ export async function updateMemberEventPublishingPermission(
   if (memberError) return { ok: false, error: memberError.message };
   if (!member) return { ok: false, error: "Member not found." };
 
-  const supabase = await createSupabaseServerClient();
-  const { data: profile, error: updateError } = await supabase
+  const { data: profile, error: profileError } = await admin
+    .from("profiles")
+    .select("id, email, full_name, role, is_admin")
+    .eq("id", member.profile_id)
+    .maybeSingle<{
+      id: string;
+      email: string | null;
+      full_name: string | null;
+      role: string | null;
+      is_admin: boolean | null;
+    }>();
+
+  if (profileError) return { ok: false, error: profileError.message };
+  if (!profile) return { ok: false, error: "Member profile not found." };
+  if (profile.is_admin === true || profile.role === "admin") {
+    return { ok: false, error: "Administrator accounts are not eligible for member publishing access." };
+  }
+
+  const { data: updatedProfile, error: updateError } = await admin
     .from("profiles")
     .update({ can_publish_events: parsed.data.canPublishEvents })
-    .eq("id", member.profile_id)
-    .eq("is_admin", false)
-    .neq("role", "admin")
+    .eq("id", profile.id)
     .select("id, email, full_name, can_publish_events")
-    .maybeSingle<{
+    .single<{
       id: string;
       email: string | null;
       full_name: string | null;
@@ -68,9 +82,6 @@ export async function updateMemberEventPublishingPermission(
     }>();
 
   if (updateError) return { ok: false, error: updateError.message };
-  if (!profile) {
-    return { ok: false, error: "Member profile not found or is not eligible for event publishing access." };
-  }
 
   revalidatePath(ADMIN_EVENT_PERMISSIONS_PATH);
 
@@ -79,12 +90,12 @@ export async function updateMemberEventPublishingPermission(
     data: {
       memberId: member.id,
       memberName:
-        profile.full_name?.trim() ||
-        profile.email?.trim() ||
+        updatedProfile.full_name?.trim() ||
+        updatedProfile.email?.trim() ||
         member.username?.trim() ||
         member.member_code?.trim() ||
         "Member",
-      canPublishEvents: parsed.data.canPublishEvents,
+      canPublishEvents: updatedProfile.can_publish_events,
     },
   };
 }

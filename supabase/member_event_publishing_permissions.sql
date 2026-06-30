@@ -20,6 +20,7 @@ set search_path = public
 as $$
 begin
   if old.can_publish_events is distinct from new.can_publish_events
+     and auth.role() <> 'service_role'
      and not public.is_admin() then
     raise exception 'Only administrators can change event publishing permissions.';
   end if;
