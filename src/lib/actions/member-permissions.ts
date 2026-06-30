@@ -52,31 +52,25 @@ export async function updateMemberEventPublishingPermission(
   if (memberError) return { ok: false, error: memberError.message };
   if (!member) return { ok: false, error: "Member not found." };
 
-  const { data: profile, error: profileError } = await admin
+  const supabase = await createSupabaseServerClient();
+  const { data: profile, error: updateError } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, is_admin")
+    .update({ can_publish_events: parsed.data.canPublishEvents })
     .eq("id", member.profile_id)
+    .eq("is_admin", false)
+    .neq("role", "admin")
+    .select("id, email, full_name, can_publish_events")
     .maybeSingle<{
       id: string;
       email: string | null;
       full_name: string | null;
-      role: string | null;
-      is_admin: boolean | null;
+      can_publish_events: boolean;
     }>();
 
-  if (profileError) return { ok: false, error: profileError.message };
-  if (!profile) return { ok: false, error: "Member profile not found." };
-  if (profile.is_admin === true || profile.role === "admin") {
-    return { ok: false, error: "Administrator accounts are not eligible for member publishing access." };
-  }
-
-  const supabase = await createSupabaseServerClient();
-  const { error: updateError } = await supabase
-    .from("profiles")
-    .update({ can_publish_events: parsed.data.canPublishEvents })
-    .eq("id", profile.id);
-
   if (updateError) return { ok: false, error: updateError.message };
+  if (!profile) {
+    return { ok: false, error: "Member profile not found or is not eligible for event publishing access." };
+  }
 
   revalidatePath(ADMIN_EVENT_PERMISSIONS_PATH);
 

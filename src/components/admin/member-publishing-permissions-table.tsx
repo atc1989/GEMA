@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 
 import { updateMemberEventPublishingPermission } from "@/lib/actions/member-permissions";
@@ -29,6 +29,10 @@ export function MemberPublishingPermissionsTable({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setRows(members);
+  }, [members]);
 
   const toggle = (member: MemberPublishingPermissionRow) => {
     if (!member.hasProfile) {

@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { Search, ShieldCheck, Users } from "lucide-react";
+import { ShieldCheck, Users } from "lucide-react";
 
 import {
   MemberPublishingPermissionsTable,
   type MemberPublishingPermissionRow,
 } from "@/components/admin/member-publishing-permissions-table";
+import { MemberPermissionsSearch } from "@/components/admin/member-permissions-search";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Input } from "@/components/ui/input";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { cn } from "@/lib/utils";
@@ -141,18 +141,7 @@ export default async function AdminMemberEventPermissionsPage({
         </Card>
       </div>
 
-      <form action="/admin/members/event-permissions" className="relative max-w-lg">
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <Input
-          name="q"
-          defaultValue={search}
-          placeholder="Search members by name or email"
-          className="pl-9"
-        />
-      </form>
+      <MemberPermissionsSearch defaultValue={search} />
 
       {loadError ? (
         <p className="text-sm font-semibold text-destructive">Failed to load members: {loadError}</p>
