@@ -17,13 +17,13 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
     <form action={formAction} className="grid gap-4">
       {redirectTo ? <input type="hidden" name="redirectTo" value={redirectTo} /> : null}
 
-      <Field label="Email" htmlFor="email" required>
+      <Field label="Username or email" htmlFor="identifier" required>
         <Input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="you@example.com"
+          id="identifier"
+          name="identifier"
+          type="text"
+          autoComplete="username"
+          placeholder="johndoe or you@example.com"
           required
         />
       </Field>
@@ -45,7 +45,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
       ) : null}
 
       <Button type="submit" variant="brand" size="lg" className="w-full" disabled={pending}>
-        {pending ? "Signing in…" : "Sign in"}
+        {pending ? "Signing in..." : "Sign in"}
       </Button>
     </form>
   );

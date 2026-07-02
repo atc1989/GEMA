@@ -28,7 +28,7 @@ export default async function LoginPage({
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Sign in to your GEMA account to continue."
+      subtitle="Sign in with your GEMA email or One Grinders Guild username."
     >
       <LoginForm redirectTo={redirectTo} />
     </AuthLayout>

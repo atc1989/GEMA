@@ -15,6 +15,12 @@ QR_SIGNING_SECRET=<random-long-secret>
 # Service-role key (Supabase dashboard → Settings → API). Server-only; used to
 # create an auth account when converting a prospect into a member. Never expose.
 SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+
+# One Grinders Guild server-to-server login verification. Server-only; never
+# expose this key to browser code.
+ONEGRINDERS_API_KEY=<api-key-with-users.login-scope>
+# Optional override; defaults to the production endpoint from the API guide.
+ONEGRINDERS_LOGIN_URL=https://onegrindersguild.ph/api/v1/auth/login.php
 ```
 
 Apply these SQL files once (after `schema.sql`), in the Supabase SQL editor:

@@ -5,10 +5,14 @@ import { z } from "zod";
 
 import { getCurrentProfile } from "@/lib/auth/require-admin";
 import { getCurrentMember } from "@/lib/auth/require-member";
+import {
+  ExternalLoginError,
+  provisionOneGrindersLogin,
+} from "@/lib/integrations/onegrinders-login";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const loginSchema = z.object({
-  email: z.string().email("Enter a valid email address."),
+  identifier: z.string().min(1, "Username or email is required."),
   password: z.string().min(1, "Password is required."),
   redirectTo: z.string().optional(),
 });
@@ -16,16 +20,15 @@ const loginSchema = z.object({
 export type LoginResult = { ok: false; error: string } | undefined;
 
 /**
- * Signs an admin in with email + password. On success the session cookies are
- * written and the user is redirected; on failure an error message is returned
- * for the form to display.
+ * Signs a local email user or verified external username into the Supabase
+ * session used by the app's RLS policies and protected routes.
  */
 export async function loginAction(
   _prev: LoginResult,
   formData: FormData,
 ): Promise<LoginResult> {
   const parsed = loginSchema.safeParse({
-    email: formData.get("email"),
+    identifier: formData.get("identifier"),
     password: formData.get("password"),
     redirectTo: formData.get("redirectTo") ?? undefined,
   });
@@ -35,9 +38,26 @@ export async function loginAction(
   }
 
   const supabase = await createSupabaseServerClient();
+  let email = parsed.data.identifier.trim();
+  let password = parsed.data.password;
+
+  if (!email.includes("@")) {
+    try {
+      const provisioned = await provisionOneGrindersLogin(email, password);
+      email = provisioned.email;
+      password = provisioned.password;
+    } catch (error) {
+      if (error instanceof ExternalLoginError) {
+        return { ok: false, error: error.message };
+      }
+
+      return { ok: false, error: "Unable to verify this login right now." };
+    }
+  }
+
   const { error } = await supabase.auth.signInWithPassword({
-    email: parsed.data.email,
-    password: parsed.data.password,
+    email,
+    password,
   });
 
   if (error) {
