@@ -13,6 +13,7 @@ import {
 
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { DashboardTipsCard } from "@/components/dashboard/dashboard-tips-card";
+import { MusterReminder } from "@/components/dashboard/muster-reminder";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -20,6 +21,7 @@ import { getCurrentMember } from "@/lib/auth/require-member";
 import { buildNoZeroMonth, type DayCell } from "@/lib/calendar/no-zero-month";
 import { WEEK_GUIDE, WEEKDAY_LETTERS, WEEKDAY_NAMES } from "@/lib/calendar/weekly-guide";
 import type { EventMode, EventType, RegistrationStatus } from "@/lib/database/types";
+import { deriveMemberState, getMusterData, workingDaysThisMonth } from "@/lib/muster";
 import { updateNoZeroStreak, type NoZeroResult } from "@/lib/no-zero";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -36,6 +38,7 @@ type ProspectRow = {
 type MemberNoZeroRow = {
   no_zero_current_streak: number;
   no_zero_best_streak: number;
+  joined_at: string | null;
   metadata: Record<string, unknown>;
 };
 
@@ -122,7 +125,7 @@ export default async function MemberDashboardPage() {
       .returns<{ amount: string; status: string }[]>(),
     supabase
       .from("members")
-      .select("no_zero_current_streak, no_zero_best_streak, metadata")
+      .select("no_zero_current_streak, no_zero_best_streak, joined_at, metadata")
       .eq("id", member.id)
       .maybeSingle<MemberNoZeroRow>(),
     supabase
@@ -153,14 +156,23 @@ export default async function MemberDashboardPage() {
     memberNoZeroData.data ?? null,
   );
 
-  const month = await buildNoZeroMonth(
-    supabase,
-    {
-      id: member.id,
-      noZeroCurrentStreak: noZero.currentStreak,
-      noZeroBestStreak: noZero.bestStreak,
-    },
-    today.slice(0, 7),
+  const [month, muster] = await Promise.all([
+    buildNoZeroMonth(
+      supabase,
+      {
+        id: member.id,
+        noZeroCurrentStreak: noZero.currentStreak,
+        noZeroBestStreak: noZero.bestStreak,
+      },
+      today.slice(0, 7),
+    ),
+    getMusterData(supabase, member.id, todayProspects.count ?? 0),
+  ]);
+
+  const memberState = deriveMemberState(
+    noZero.currentStreak,
+    noZero.bestStreak,
+    memberNoZeroData.data?.joined_at ?? null,
   );
 
   const nextRegistration = (registrations.data ?? [])
@@ -176,6 +188,19 @@ export default async function MemberDashboardPage() {
 
   return (
     <div className="grid gap-4">
+      <MusterReminder
+        memberName={firstName(profile.fullName, member.username)}
+        state={memberState}
+        streak={noZero.currentStreak}
+        bestStreak={noZero.bestStreak}
+        monthNoZero={month.noZeroDays}
+        monthlyTarget={workingDaysThisMonth()}
+        today={muster.today}
+        epoints={muster.epoints}
+        dailyUrl={process.env.NEXT_PUBLIC_GUTGUARD_DAILY_URL ?? null}
+        bulletinUrl={process.env.NEXT_PUBLIC_TELEGRAM_BULLETIN_URL ?? null}
+      />
+
       <TodayHero
         displayName={firstName(profile.fullName, member.username)}
         memberCode={member.memberCode}

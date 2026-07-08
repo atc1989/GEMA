@@ -19,9 +19,12 @@ type MemberNoZeroRow = {
  * Rules:
  *  - A "No-Zero day" = at least 1 prospect with sponsor_member_id = member on that day.
  *  - Already counted today → no-op.
- *  - Active today + last date was yesterday → extend streak.
+ *  - Sundays are rest days and never break a streak: the streak survives when the
+ *    last active date is on/after the previous *working* day (Monday looks back to
+ *    Saturday; working a Sunday still counts as activity and never hurts).
+ *  - Active today + last date >= previous working day → extend streak.
  *  - Active today + gap → reset streak to 1.
- *  - Not active today + last date < yesterday + streak > 0 → streak broken, reset to 0.
+ *  - Not active today + last date < previous working day + streak > 0 → broken, reset to 0.
  */
 export async function updateNoZeroStreak(
   supabase: SupabaseClient,
@@ -35,7 +38,11 @@ export async function updateNoZeroStreak(
   const lastDate = (metadata.no_zero_last_date ?? null) as string | null;
 
   const today = new Date().toISOString().split("T")[0]!;
-  const yesterday = new Date(Date.now() - 86_400_000).toISOString().split("T")[0]!;
+  // Previous working day: yesterday, or Saturday when today is Monday (Sunday rest).
+  const todayWeekday = new Date(`${today}T00:00:00.000Z`).getUTCDay();
+  const prevWorkingDay = new Date(Date.now() - (todayWeekday === 1 ? 2 : 1) * 86_400_000)
+    .toISOString()
+    .split("T")[0]!;
 
   const isActiveToday = todayProspectCount > 0;
 
@@ -48,10 +55,10 @@ export async function updateNoZeroStreak(
   let shouldUpdate = false;
 
   if (isActiveToday) {
-    newStreak = lastDate === yesterday ? currentStreak + 1 : 1;
+    newStreak = lastDate && lastDate >= prevWorkingDay ? currentStreak + 1 : 1;
     newBest = Math.max(bestStreak, newStreak);
     shouldUpdate = true;
-  } else if (currentStreak > 0 && lastDate && lastDate < yesterday) {
+  } else if (currentStreak > 0 && lastDate && lastDate < prevWorkingDay) {
     newStreak = 0;
     shouldUpdate = true;
   }
