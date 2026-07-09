@@ -17,13 +17,15 @@ export default async function RegisterPage({
   const { ref } = await searchParams;
 
   const supabase = await createSupabaseServerClient();
-  const { data: event } = await supabase
-    .from("events")
-    .select("id, title, starts_at, timezone, status, visibility")
-    .eq("id", eventId)
-    .maybeSingle();
+  // Single gate for public + referral-unlocked private events.
+  const { data } = await supabase.rpc("get_invite_event", {
+    p_event_id: eventId,
+    p_ref_code: ref ?? null,
+  });
+  const event = (data as { event: { title: string; starts_at: string; timezone: string } } | null)
+    ?.event;
 
-  if (!event || event.status !== "published" || event.visibility !== "public") {
+  if (!event) {
     return (
       <EmptyState
         icon={CalendarX}

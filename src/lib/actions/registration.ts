@@ -57,14 +57,18 @@ export async function registerProspectForEvent(
 
   const supabase = await createSupabaseServerClient();
 
-  const { data: event, error: eventError } = await supabase
-    .from("events")
-    .select("id, title, starts_at, timezone, status, visibility")
-    .eq("id", values.eventId)
-    .maybeSingle();
+  // Single gate for public + referral-unlocked private events; the
+  // register_prospect_for_event RPC re-validates the same rule atomically.
+  const { data: inviteData, error: eventError } = await supabase.rpc("get_invite_event", {
+    p_event_id: values.eventId,
+    p_ref_code: values.refCode ?? null,
+  });
 
   if (eventError) return { ok: false, error: eventError.message };
-  if (!event || event.status !== "published" || event.visibility !== "public") {
+  const event = (
+    inviteData as { event: { title: string; starts_at: string; timezone: string } } | null
+  )?.event;
+  if (!event) {
     return { ok: false, error: "This event is not open for registration." };
   }
 

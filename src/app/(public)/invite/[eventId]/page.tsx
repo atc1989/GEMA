@@ -28,14 +28,39 @@ export default async function InviteLandingPage({
 
   const supabase = await createSupabaseServerClient();
 
-  // RLS returns the row only when it is published + public.
+  // RLS returns the row for published+public events (and private ones for
+  // authenticated members).
   const { data: row } = await supabase
     .from("events")
     .select("*")
     .eq("id", eventId)
     .maybeSingle<EventRow>();
 
-  if (!row) {
+  let event = row ? mapEventRow(row) : null;
+  let speakerRows: SpeakerRow[] = [];
+
+  if (row) {
+    const { data } = await supabase
+      .from("event_speakers")
+      .select("id, name, role_title, photo_url")
+      .eq("event_id", eventId)
+      .order("sort_order", { ascending: true })
+      .returns<SpeakerRow[]>();
+    speakerRows = data ?? [];
+  } else if (ref) {
+    // Private events open through a valid member referral link.
+    const { data } = await supabase.rpc("get_invite_event", {
+      p_event_id: eventId,
+      p_ref_code: ref,
+    });
+    const invite = data as { event: EventRow; speakers: SpeakerRow[] } | null;
+    if (invite?.event) {
+      event = mapEventRow(invite.event);
+      speakerRows = invite.speakers ?? [];
+    }
+  }
+
+  if (!event) {
     return (
       <EmptyState
         icon={CalendarX}
@@ -45,21 +70,11 @@ export default async function InviteLandingPage({
     );
   }
 
-  const event = mapEventRow(row);
-
-  const [{ data: speakerRows }, inviter] = await Promise.all([
-    supabase
-      .from("event_speakers")
-      .select("id, name, role_title, photo_url")
-      .eq("event_id", eventId)
-      .order("sort_order", { ascending: true })
-      .returns<SpeakerRow[]>(),
-    ref
-      ? supabase
-          .rpc("resolve_invite_referral", { p_ref_code: ref })
-          .then(({ data }) => data as { valid: boolean; inviter_name: string | null } | null)
-      : Promise.resolve(null),
-  ]);
+  const inviter = ref
+    ? await supabase
+        .rpc("resolve_invite_referral", { p_ref_code: ref })
+        .then(({ data }) => data as { valid: boolean; inviter_name: string | null } | null)
+    : null;
 
   const speakers: InviteSpeaker[] = (speakerRows ?? []).map((s) => ({
     id: s.id,
