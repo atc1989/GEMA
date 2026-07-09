@@ -3,67 +3,26 @@ import {
   CalendarDays,
   CalendarPlus,
   CheckCircle2,
-  Download,
   MapPin,
   Monitor,
-  Pencil,
   QrCode,
-  Search,
   Ticket,
-  UserCheck,
-  Users,
 } from "lucide-react";
 
-import { MemberRsvpButton } from "@/components/event/member-rsvp-button";
 import { QRCodeCard } from "@/components/qr/qr-code-card";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { requireMember } from "@/lib/auth/require-member";
-import type {
-  EventMode,
-  EventStatus,
-  EventType,
-  EventVisibility,
-  RegistrationStatus,
-} from "@/lib/database/types";
+import type { EventMode, EventStatus, EventType, RegistrationStatus } from "@/lib/database/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { formatEventDateTime } from "@/lib/utils/format";
 
-type HostedEventRow = {
-  id: string;
-  title: string;
-  event_type: EventType;
-  status: EventStatus;
-  mode: EventMode;
-  starts_at: string;
-  timezone: string;
-  venue_name: string | null;
-};
+import { REG_STATUS, type HostedEventRow, type MemberEventCardRow } from "./event-meta";
+import { AllEventsList, HostedEventsList } from "./events-lists";
 
 type EventsTab = "all" | "mine" | "passes" | "hosting";
-
-type MemberEventCardRow = {
-  id: string;
-  title: string;
-  event_type: EventType;
-  visibility: EventVisibility;
-  mode: EventMode;
-  status: EventStatus;
-  starts_at: string;
-  timezone: string;
-  venue_name: string | null;
-  online_url: string | null;
-  capacity: number | null;
-  description: string | null;
-  speaker_name: string | null;
-  registered_count: number;
-  member_registration_id: string | null;
-  member_registration_status: RegistrationStatus | null;
-  member_pass_code: string | null;
-  member_qr_payload: string | null;
-};
 
 type RegistrationRow = {
   id: string;
@@ -108,85 +67,18 @@ const TABS: { key: EventsTab; label: string; description: string }[] = [
   },
 ];
 
-const TYPE_META: Record<EventType, { label: string; className: string }> = {
-  presentation: { label: "Presentation", className: "bg-sky-50 text-sky-700" },
-  business: { label: "Business", className: "bg-sky-50 text-sky-700" },
-  training: { label: "Training", className: "bg-emerald-50 text-success" },
-  sizzle: { label: "Special", className: "bg-amber-50 text-gold-dark" },
-  mentoring: { label: "Mentoring", className: "bg-amber-50 text-gold-dark" },
-  fellowship: { label: "Fellowship", className: "bg-amber-50 text-gold-dark" },
-  other: { label: "Event", className: "bg-slate-100 text-muted-foreground" },
-};
-
-const REG_STATUS: Record<RegistrationStatus, { label: string; className: string }> = {
-  registered: { label: "Registered", className: "bg-sky-50 text-sky-700" },
-  attended: { label: "Attended", className: "bg-emerald-50 text-success" },
-  cancelled: { label: "Cancelled", className: "bg-destructive/10 text-destructive" },
-  no_show: { label: "No-show", className: "bg-slate-100 text-muted-foreground" },
-  converted: { label: "Converted", className: "bg-purple-50 text-purple" },
-};
-
 function normalizeTab(tab?: string): EventsTab {
   if (tab === "mine" || tab === "passes" || tab === "hosting") return tab;
   return "all";
 }
 
-function normalizeType(type?: string): EventType | null {
-  return type && type in TYPE_META ? (type as EventType) : null;
-}
-
-function eventsHref(tab: EventsTab, search: string, type: EventType | null) {
-  const params = new URLSearchParams({ tab });
-  if (tab === "all" && search) params.set("q", search);
-  if (type) params.set("type", type);
-  return `/member/events?${params.toString()}`;
-}
-
-function CategoryChips({
-  tab,
-  search,
-  active,
-}: {
-  tab: EventsTab;
-  search: string;
-  active: EventType | null;
-}) {
-  const chips: { type: EventType | null; label: string }[] = [
-    { type: null, label: "All" },
-    ...(Object.keys(TYPE_META) as EventType[]).map((type) => ({
-      type: type as EventType | null,
-      label: TYPE_META[type].label,
-    })),
-  ];
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {chips.map((chip) => (
-        <Link
-          key={chip.label}
-          href={eventsHref(tab, search, chip.type)}
-          className={cn(
-            "rounded-full px-3 py-1.5 text-[11px] font-black transition-colors",
-            active === chip.type
-              ? "bg-brand text-white"
-              : "bg-secondary text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {chip.label}
-        </Link>
-      ))}
-    </div>
-  );
-}
-
 export default async function MemberEventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; type?: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const params = await searchParams;
   const activeTab = normalizeTab(params.tab);
-  const search = params.q?.trim() ?? "";
-  const typeFilter = normalizeType(params.type);
 
   const ctx = await requireMember();
   const supabase = await createSupabaseServerClient();
@@ -195,7 +87,7 @@ export default async function MemberEventsPage({
     activeTab === "all"
       ? supabase
           .rpc("get_member_event_cards", {
-            p_search: search || null,
+            p_search: null,
             p_limit: 50,
           })
           .returns<MemberEventCardRow[]>()
@@ -222,18 +114,11 @@ export default async function MemberEventsPage({
       : Promise.resolve({ data: [] as HostedEventRow[], error: null }),
   ]);
 
-  const allCards = Array.isArray(eventCardsRes.data)
+  const eventCards = Array.isArray(eventCardsRes.data)
     ? (eventCardsRes.data as MemberEventCardRow[])
     : [];
-  const eventCards = typeFilter
-    ? allCards.filter((e) => e.event_type === typeFilter)
-    : allCards;
-  const registrations = (registrationsRes.data ?? []).filter(
-    (r) => !typeFilter || r.events.event_type === typeFilter,
-  );
-  const hostedEvents = (hostedEventsRes.data ?? []).filter(
-    (e) => !typeFilter || e.event_type === typeFilter,
-  );
+  const registrations = registrationsRes.data ?? [];
+  const hostedEvents = hostedEventsRes.data ?? [];
 
   return (
     <div className="grid gap-4">
@@ -249,7 +134,7 @@ export default async function MemberEventsPage({
           {TABS.map((tab) => (
             <Link
               key={tab.key}
-              href={eventsHref(tab.key, search, typeFilter)}
+              href={`/member/events?tab=${tab.key}`}
               className={cn(
                 "rounded-lg px-2 py-2 text-center text-[11px] font-black transition-colors sm:text-xs",
                 activeTab === tab.key
@@ -264,16 +149,10 @@ export default async function MemberEventsPage({
         <p className="px-1 text-xs font-semibold text-muted-foreground">
           {TABS.find((tab) => tab.key === activeTab)?.description}
         </p>
-        <CategoryChips tab={activeTab} search={search} active={typeFilter} />
       </div>
 
       {activeTab === "all" ? (
-        <AllEventsSection
-          events={eventCards}
-          error={eventCardsRes.error?.message ?? null}
-          search={search}
-          typeFilter={typeFilter}
-        />
+        <AllEventsSection events={eventCards} error={eventCardsRes.error?.message ?? null} />
       ) : activeTab === "mine" ? (
         <MyEventsSection
           registrations={registrations}
@@ -298,162 +177,25 @@ export default async function MemberEventsPage({
 function AllEventsSection({
   events,
   error,
-  search,
-  typeFilter,
 }: {
   events: MemberEventCardRow[];
   error: string | null;
-  search: string;
-  typeFilter: EventType | null;
 }) {
-  return (
-    <section className="grid gap-3">
-      <form action="/member/events" className="relative">
-        <input type="hidden" name="tab" value="all" />
-        {typeFilter ? <input type="hidden" name="type" value={typeFilter} /> : null}
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <input
-          name="q"
-          defaultValue={search}
-          placeholder="Search events or venues"
-          className="h-11 w-full rounded-xl border border-border bg-card pl-9 pr-3 text-sm font-semibold outline-none transition-colors placeholder:text-muted-foreground focus:border-brand"
-        />
-      </form>
+  if (error) {
+    return <p className="text-sm font-semibold text-destructive">Failed to load events: {error}</p>;
+  }
 
-      {error ? (
-        <p className="text-sm font-semibold text-destructive">Failed to load events: {error}</p>
-      ) : events.length === 0 ? (
-        <EmptyState
-          icon={CalendarDays}
-          title={search || typeFilter ? "No matching events" : "No upcoming events"}
-          description={
-            search || typeFilter
-              ? "Try a different search or category."
-              : "Published events will appear here once they are available."
-          }
-        />
-      ) : (
-        <div className="grid gap-3">
-          {events.map((event) => (
-            <AllEventCard key={event.id} event={event} />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
+  if (events.length === 0) {
+    return (
+      <EmptyState
+        icon={CalendarDays}
+        title="No upcoming events"
+        description="Published events will appear here once they are available."
+      />
+    );
+  }
 
-function AllEventCard({ event }: { event: MemberEventCardRow }) {
-  const typeMeta = TYPE_META[event.event_type] ?? TYPE_META.other;
-  const LocationIcon = event.mode === "online" ? Monitor : MapPin;
-  const location = event.mode === "online" ? "Online event" : event.venue_name ?? "Venue TBA";
-  const seatsLeft = event.capacity == null ? null : Math.max(event.capacity - event.registered_count, 0);
-  const isFull = seatsLeft === 0;
-  const isRegistered = Boolean(event.member_registration_id);
-  const registrationTone = event.member_registration_status
-    ? REG_STATUS[event.member_registration_status]
-    : null;
-  const canRsvp = event.visibility === "public" && !isFull && !isRegistered;
-
-  return (
-    <Card className="p-4 transition-colors hover:border-brand/40">
-      <div className="flex items-start gap-3">
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-cream text-brand">
-          <CalendarDays className="size-5" aria-hidden="true" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span
-              className={cn(
-                "rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide",
-                typeMeta.className,
-              )}
-            >
-              {typeMeta.label}
-            </span>
-            <span className="rounded-lg bg-secondary px-2 py-1 text-[10px] font-black uppercase tracking-wide text-brand">
-              {event.visibility === "public" ? "Public" : "Invite-only"}
-            </span>
-            {registrationTone ? (
-              <span
-                className={cn(
-                  "rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide",
-                  registrationTone.className,
-                )}
-              >
-                {registrationTone.label}
-              </span>
-            ) : null}
-          </div>
-
-          <h3 className="mt-2 text-sm font-black leading-5">{event.title}</h3>
-
-          <div className="mt-2 grid gap-1 text-xs font-semibold text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <CalendarDays className="size-3.5" aria-hidden="true" />
-              {formatEventDateTime(event.starts_at, event.timezone)}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <LocationIcon className="size-3.5" aria-hidden="true" />
-              {location}
-            </span>
-            {event.speaker_name ? (
-              <span className="flex items-center gap-1.5">
-                <Users className="size-3.5" aria-hidden="true" />
-                {event.speaker_name}
-              </span>
-            ) : null}
-          </div>
-
-          {event.description ? (
-            <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
-              {event.description}
-            </p>
-          ) : null}
-
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="text-xs font-bold text-muted-foreground">
-              {event.capacity == null ? (
-                <span>Open seating</span>
-              ) : (
-                <span>
-                  {seatsLeft} left - {event.registered_count}/{event.capacity} registered
-                </span>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href={`/member/events/${event.id}`}
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-              >
-                View details
-              </Link>
-              {isRegistered ? (
-                <Link
-                  href={`/member/events/${event.id}`}
-                  className={cn(buttonVariants({ variant: "brand", size: "sm" }))}
-                >
-                  <QrCode aria-hidden="true" />
-                  View pass
-                </Link>
-              ) : (
-                <MemberRsvpButton
-                  eventId={event.id}
-                  disabled={!canRsvp}
-                  disabledLabel={
-                    event.visibility !== "public" ? "Invite-only" : isFull ? "Full" : "Unavailable"
-                  }
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
+  return <AllEventsList events={events} />;
 }
 
 function MyEventsSection({
@@ -600,14 +342,6 @@ function MyPassesSection({
   );
 }
 
-const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  draft:     { label: "Draft",     className: "bg-secondary text-brand" },
-  published: { label: "Published", className: "bg-emerald-50 text-success" },
-  cancelled: { label: "Cancelled", className: "bg-destructive/10 text-destructive" },
-  completed: { label: "Completed", className: "bg-slate-100 text-muted-foreground" },
-  archived:  { label: "Archived",  className: "bg-slate-100 text-muted-foreground" },
-};
-
 function HostingSection({
   events,
   error,
@@ -627,9 +361,7 @@ function HostingSection({
           <span
             className={cn(
               "rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide",
-              canPublishEvents
-                ? "bg-emerald-50 text-success"
-                : "bg-secondary text-brand",
+              canPublishEvents ? "bg-emerald-50 text-success" : "bg-secondary text-brand",
             )}
           >
             {canPublishEvents ? "Direct publishing enabled" : "Admin review required"}
@@ -654,68 +386,7 @@ function HostingSection({
           className="border-dashed"
         />
       ) : (
-        <div className="grid gap-3">
-          {events.map((event) => {
-            const badge = STATUS_BADGE[event.status] ?? STATUS_BADGE.draft!;
-            const LocationIcon = event.mode === "online" ? Monitor : MapPin;
-            const location = event.mode === "online" ? "Online event" : event.venue_name ?? "Venue TBA";
-            return (
-              <Card key={event.id} className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-brand">
-                    <CalendarDays className="size-5" aria-hidden="true" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span
-                        className={cn(
-                          "rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide",
-                          badge.className,
-                        )}
-                      >
-                        {badge.label}
-                      </span>
-                    </div>
-                    <h3 className="mt-1.5 text-sm font-black leading-5">{event.title}</h3>
-                    <div className="mt-1.5 grid gap-0.5 text-xs font-semibold text-muted-foreground">
-                      <span className="flex items-center gap-1.5">
-                        <CalendarDays className="size-3.5" aria-hidden="true" />
-                        {formatEventDateTime(event.starts_at, event.timezone)}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <LocationIcon className="size-3.5" aria-hidden="true" />
-                        {location}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Link
-                        href={`/member/events/${event.id}/banner`}
-                        className={cn(buttonVariants({ variant: "brand", size: "sm" }))}
-                      >
-                        <Download className="size-4" aria-hidden="true" />
-                        Get banner
-                      </Link>
-                      <Link
-                        href={`/member/events/${event.id}/edit`}
-                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                      >
-                        <Pencil className="size-4" aria-hidden="true" />
-                        Edit
-                      </Link>
-                      <Link
-                        href={`/member/events/${event.id}/attendance`}
-                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                      >
-                        <UserCheck className="size-4" aria-hidden="true" />
-                        Attendance
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+        <HostedEventsList events={events} />
       )}
     </section>
   );
