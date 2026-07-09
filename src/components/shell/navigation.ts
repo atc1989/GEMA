@@ -43,6 +43,7 @@ export const memberNavigation: NavigationItem[] = [
 
 export const adminNavigation: NavigationItem[] = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
+  { href: "/admin/gutguard", label: "GutGuard", icon: HeartPulse },
   { href: "/admin/events", label: "Events", icon: CalendarDays },
   { href: "/admin/prospects", label: "Prospects", icon: Users },
   { href: "/admin/commissions", label: "Commissions", icon: Coins },
