@@ -1,25 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, MapPin, Monitor } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
+import {
+  EventInviteDetails,
+  type InviteSpeaker,
+} from "@/components/event/event-invite-details";
+import { MemberRsvpButton } from "@/components/event/member-rsvp-button";
 import { QRCodeCard } from "@/components/qr/qr-code-card";
 import { Card } from "@/components/ui/card";
 import { getCurrentMember } from "@/lib/auth/require-member";
+import { mapEventRow, type EventRow } from "@/lib/database/mappers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { formatEventDateTime } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
-
-type EventRow = {
-  id: string;
-  title: string;
-  starts_at: string;
-  timezone: string;
-  venue_name: string | null;
-  online_url: string | null;
-  mode: string;
-  status: string;
-  description: string | null;
-};
 
 type RegistrationRow = {
   id: string;
@@ -27,6 +20,13 @@ type RegistrationRow = {
   pass_code: string;
   status: string;
   attendee_name: string;
+};
+
+type SpeakerRow = {
+  id: string;
+  name: string;
+  role_title: string | null;
+  photo_url: string | null;
 };
 
 const REG_STATUS: Record<string, { label: string; className: string }> = {
@@ -37,7 +37,12 @@ const REG_STATUS: Record<string, { label: string; className: string }> = {
   converted: { label: "Converted", className: "bg-purple-50 text-purple" },
 };
 
-export default async function MemberEventPassPage({
+/**
+ * Member-side event page: full event details inside the member shell, with the
+ * QR pass when registered and an in-place RSVP when not. Members never get
+ * routed through the public prospect invite/registration flow.
+ */
+export default async function MemberEventPage({
   params,
 }: {
   params: Promise<{ eventId: string }>;
@@ -47,31 +52,49 @@ export default async function MemberEventPassPage({
   const member = ctx!.member;
 
   const supabase = await createSupabaseServerClient();
-  const [{ data: event }, { data: registration }] = await Promise.all([
-    supabase
-      .from("events")
-      .select("id, title, starts_at, timezone, venue_name, online_url, mode, status, description")
-      .eq("id", eventId)
-      .maybeSingle<EventRow>(),
-    supabase
-      .from("event_registrations")
-      .select("id, qr_payload, pass_code, status, attendee_name")
-      .eq("event_id", eventId)
-      .eq("member_id", member.id)
-      .maybeSingle<RegistrationRow>(),
-  ]);
+  const [{ data: row }, { data: registration }, { data: speakerRows }, regCount] =
+    await Promise.all([
+      supabase.from("events").select("*").eq("id", eventId).maybeSingle<EventRow>(),
+      supabase
+        .from("event_registrations")
+        .select("id, qr_payload, pass_code, status, attendee_name")
+        .eq("event_id", eventId)
+        .eq("member_id", member.id)
+        .neq("status", "cancelled")
+        .maybeSingle<RegistrationRow>(),
+      supabase
+        .from("event_speakers")
+        .select("id, name, role_title, photo_url")
+        .eq("event_id", eventId)
+        .order("sort_order", { ascending: true })
+        .returns<SpeakerRow[]>(),
+      supabase
+        .from("event_registrations")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .neq("status", "cancelled"),
+    ]);
 
-  if (!event || !registration) notFound();
+  if (!row) notFound();
+  const event = mapEventRow(row);
 
-  const tone = REG_STATUS[registration.status] ?? REG_STATUS.registered;
-  const LocationIcon = event.mode === "online" ? Monitor : MapPin;
-  const location =
-    event.mode === "online"
-      ? event.online_url ?? "Online event"
-      : event.venue_name ?? "Venue to be announced";
+  const speakers: InviteSpeaker[] = (speakerRows ?? []).map((s) => ({
+    id: s.id,
+    name: s.name,
+    roleTitle: s.role_title,
+    photoUrl: s.photo_url,
+  }));
+
+  const isFull =
+    event.capacity != null && (regCount.count ?? 0) >= event.capacity;
+  const canRsvp =
+    event.visibility === "public" && event.status === "published" && !isFull;
+  const tone = registration
+    ? REG_STATUS[registration.status] ?? REG_STATUS.registered
+    : null;
 
   return (
-    <div className="mx-auto grid max-w-md gap-4">
+    <div className="mx-auto grid max-w-2xl gap-4">
       <Link
         href="/member/events"
         className="inline-flex items-center gap-1.5 text-sm font-bold text-muted-foreground hover:text-foreground"
@@ -80,48 +103,60 @@ export default async function MemberEventPassPage({
         My events
       </Link>
 
-      <div>
-        <h2 className="text-lg font-black tracking-tight">{event.title}</h2>
-        <div className="mt-2 grid gap-1 text-xs font-semibold text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <CalendarDays className="size-3.5" aria-hidden="true" />
-            {formatEventDateTime(event.starts_at, event.timezone)}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <LocationIcon className="size-3.5" aria-hidden="true" />
-            {location}
-          </span>
-        </div>
-      </div>
+      {registration ? (
+        <>
+          <QRCodeCard
+            value={registration.qr_payload}
+            code={registration.pass_code}
+            title="Your event pass"
+            description="Show this QR code at the check-in desk."
+          />
 
-      <QRCodeCard
-        value={registration.qr_payload}
-        code={registration.pass_code}
-        title="Your event pass"
-        description="Show this QR code at the check-in desk."
-      />
+          <Card className="grid gap-3 p-4 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-muted-foreground">Attendee</span>
+              <span className="font-bold">{registration.attendee_name}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-muted-foreground">Pass code</span>
+              <span className="font-mono font-bold">{registration.pass_code}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-muted-foreground">Status</span>
+              <span
+                className={cn(
+                  "rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide",
+                  tone!.className,
+                )}
+              >
+                {tone!.label}
+              </span>
+            </div>
+          </Card>
+        </>
+      ) : (
+        <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <div>
+            <p className="text-sm font-bold">You&apos;re not registered yet</p>
+            <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+              Reserve a seat to get your QR pass for check-in.
+            </p>
+          </div>
+          <MemberRsvpButton
+            eventId={eventId}
+            disabled={!canRsvp}
+            disabledLabel={
+              event.visibility !== "public"
+                ? "Invite-only"
+                : isFull
+                  ? "Full"
+                  : "Unavailable"
+            }
+          />
+        </Card>
+      )}
 
-      <Card className="grid gap-3 p-4 text-sm">
-        <div className="flex items-center justify-between">
-          <span className="font-semibold text-muted-foreground">Attendee</span>
-          <span className="font-bold">{registration.attendee_name}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="font-semibold text-muted-foreground">Pass code</span>
-          <span className="font-mono font-bold">{registration.pass_code}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="font-semibold text-muted-foreground">Status</span>
-          <span
-            className={cn(
-              "rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide",
-              tone.className,
-            )}
-          >
-            {tone.label}
-          </span>
-        </div>
-      </Card>
+      <EventInviteDetails event={event} speakers={speakers} />
     </div>
   );
 }

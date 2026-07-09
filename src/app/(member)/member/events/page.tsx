@@ -131,20 +131,62 @@ function normalizeTab(tab?: string): EventsTab {
   return "all";
 }
 
-function tabHref(tab: EventsTab, search: string) {
+function normalizeType(type?: string): EventType | null {
+  return type && type in TYPE_META ? (type as EventType) : null;
+}
+
+function eventsHref(tab: EventsTab, search: string, type: EventType | null) {
   const params = new URLSearchParams({ tab });
   if (tab === "all" && search) params.set("q", search);
+  if (type) params.set("type", type);
   return `/member/events?${params.toString()}`;
+}
+
+function CategoryChips({
+  tab,
+  search,
+  active,
+}: {
+  tab: EventsTab;
+  search: string;
+  active: EventType | null;
+}) {
+  const chips: { type: EventType | null; label: string }[] = [
+    { type: null, label: "All" },
+    ...(Object.keys(TYPE_META) as EventType[]).map((type) => ({
+      type: type as EventType | null,
+      label: TYPE_META[type].label,
+    })),
+  ];
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {chips.map((chip) => (
+        <Link
+          key={chip.label}
+          href={eventsHref(tab, search, chip.type)}
+          className={cn(
+            "rounded-full px-3 py-1.5 text-[11px] font-black transition-colors",
+            active === chip.type
+              ? "bg-brand text-white"
+              : "bg-secondary text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {chip.label}
+        </Link>
+      ))}
+    </div>
+  );
 }
 
 export default async function MemberEventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; type?: string }>;
 }) {
   const params = await searchParams;
   const activeTab = normalizeTab(params.tab);
   const search = params.q?.trim() ?? "";
+  const typeFilter = normalizeType(params.type);
 
   const ctx = await requireMember();
   const supabase = await createSupabaseServerClient();
@@ -180,11 +222,18 @@ export default async function MemberEventsPage({
       : Promise.resolve({ data: [] as HostedEventRow[], error: null }),
   ]);
 
-  const eventCards = Array.isArray(eventCardsRes.data)
+  const allCards = Array.isArray(eventCardsRes.data)
     ? (eventCardsRes.data as MemberEventCardRow[])
     : [];
-  const registrations = registrationsRes.data ?? [];
-  const hostedEvents  = hostedEventsRes.data ?? [];
+  const eventCards = typeFilter
+    ? allCards.filter((e) => e.event_type === typeFilter)
+    : allCards;
+  const registrations = (registrationsRes.data ?? []).filter(
+    (r) => !typeFilter || r.events.event_type === typeFilter,
+  );
+  const hostedEvents = (hostedEventsRes.data ?? []).filter(
+    (e) => !typeFilter || e.event_type === typeFilter,
+  );
 
   return (
     <div className="grid gap-4">
@@ -200,7 +249,7 @@ export default async function MemberEventsPage({
           {TABS.map((tab) => (
             <Link
               key={tab.key}
-              href={tabHref(tab.key, search)}
+              href={eventsHref(tab.key, search, typeFilter)}
               className={cn(
                 "rounded-lg px-2 py-2 text-center text-[11px] font-black transition-colors sm:text-xs",
                 activeTab === tab.key
@@ -215,6 +264,7 @@ export default async function MemberEventsPage({
         <p className="px-1 text-xs font-semibold text-muted-foreground">
           {TABS.find((tab) => tab.key === activeTab)?.description}
         </p>
+        <CategoryChips tab={activeTab} search={search} active={typeFilter} />
       </div>
 
       {activeTab === "all" ? (
@@ -222,6 +272,7 @@ export default async function MemberEventsPage({
           events={eventCards}
           error={eventCardsRes.error?.message ?? null}
           search={search}
+          typeFilter={typeFilter}
         />
       ) : activeTab === "mine" ? (
         <MyEventsSection
@@ -248,15 +299,18 @@ function AllEventsSection({
   events,
   error,
   search,
+  typeFilter,
 }: {
   events: MemberEventCardRow[];
   error: string | null;
   search: string;
+  typeFilter: EventType | null;
 }) {
   return (
     <section className="grid gap-3">
       <form action="/member/events" className="relative">
         <input type="hidden" name="tab" value="all" />
+        {typeFilter ? <input type="hidden" name="type" value={typeFilter} /> : null}
         <Search
           className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
           aria-hidden="true"
@@ -274,10 +328,10 @@ function AllEventsSection({
       ) : events.length === 0 ? (
         <EmptyState
           icon={CalendarDays}
-          title={search ? "No matching events" : "No upcoming events"}
+          title={search || typeFilter ? "No matching events" : "No upcoming events"}
           description={
-            search
-              ? "Try a different event title or venue."
+            search || typeFilter
+              ? "Try a different search or category."
               : "Published events will appear here once they are available."
           }
         />
@@ -372,7 +426,7 @@ function AllEventCard({ event }: { event: MemberEventCardRow }) {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Link
-                href={`/invite/${event.id}`}
+                href={`/member/events/${event.id}`}
                 className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
               >
                 View details

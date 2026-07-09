@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Coins,
   Gift,
+  HeartPulse,
   Home,
   IdCard,
   LayoutDashboard,
@@ -31,6 +32,7 @@ export const prospectNavigation: NavigationItem[] = [
 
 export const memberNavigation: NavigationItem[] = [
   { href: "/dashboard", label: "Home", icon: Home, exact: true },
+  { href: "/gutguard-daily", label: "GutGuard", icon: HeartPulse },
   { href: "/member/profile", label: "Profile", icon: User, exact: true },
   { href: "/member/events", label: "Events", icon: CalendarDays },
   { href: "/member/calendar", label: "Calendar", icon: CalendarCheck },

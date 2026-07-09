@@ -47,10 +47,11 @@ export async function getCurrentMember(): Promise<CurrentMemberContext | null> {
  * Guard for the member workspace. Redirects to /login when unauthenticated and
  * to /onboarding when signed in without a member row.
  */
-export async function requireMember(): Promise<CurrentMemberContext> {
+export async function requireMember(redirectTo?: string): Promise<CurrentMemberContext> {
   const profile = await getCurrentProfile();
   if (!profile) {
-    redirect("/login");
+    const target = redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : "";
+    redirect(`/login${target}`);
   }
 
   const ctx = await getCurrentMember();
