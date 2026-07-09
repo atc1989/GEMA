@@ -16,7 +16,15 @@ type RegRow = {
   id: string;
   attendee_name: string;
   attendee_email: string | null;
+  attendee_phone: string | null;
+  registered_at: string;
   registration_kind: RegistrationKind;
+};
+
+type SponsorRow = {
+  registration_id: string;
+  ref_code: string | null;
+  sponsor_name: string | null;
 };
 
 export default async function EventAttendancePage({
@@ -35,10 +43,10 @@ export default async function EventAttendancePage({
     .maybeSingle();
   if (!event) notFound();
 
-  const [{ data: regs }, { data: atts }] = await Promise.all([
+  const [{ data: regs }, { data: atts }, { data: sponsors }] = await Promise.all([
     supabase
       .from("event_registrations")
-      .select("id, attendee_name, attendee_email, registration_kind")
+      .select("id, attendee_name, attendee_email, attendee_phone, registered_at, registration_kind")
       .eq("event_id", id)
       .neq("status", "cancelled")
       .order("registered_at", { ascending: true })
@@ -48,11 +56,15 @@ export default async function EventAttendancePage({
       .select("registration_id, checked_in_at")
       .eq("event_id", id)
       .returns<{ registration_id: string; checked_in_at: string }[]>(),
+    supabase.rpc("get_event_attendee_sponsors", { p_event_id: id }),
   ]);
 
   const registrations = regs ?? [];
   const checkedInAtById = new Map(
     (atts ?? []).map((a) => [a.registration_id, a.checked_in_at]),
+  );
+  const sponsorById = new Map(
+    ((sponsors ?? []) as SponsorRow[]).map((s) => [s.registration_id, s]),
   );
 
   const toRow = (r: RegRow): AttendanceRow => ({
@@ -60,6 +72,10 @@ export default async function EventAttendancePage({
     name: r.attendee_name,
     kind: r.registration_kind,
     email: r.attendee_email,
+    phone: r.attendee_phone,
+    invitedBy: sponsorById.get(r.id)?.sponsor_name ?? null,
+    refCode: sponsorById.get(r.id)?.ref_code ?? null,
+    registeredAt: r.registered_at,
     checkedInAt: checkedInAtById.get(r.id) ?? null,
   });
 

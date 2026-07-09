@@ -10,6 +10,12 @@ export type AttendanceRow = {
   name: string;
   kind: RegistrationKind;
   email: string | null;
+  phone: string | null;
+  /** Name of the member whose referral link brought this attendee in. */
+  invitedBy: string | null;
+  /** The referral code they registered through. */
+  refCode: string | null;
+  registeredAt: string | null;
   checkedInAt: string | null;
 };
 
@@ -61,8 +67,16 @@ export function AttendanceTable({
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold">{row.name}</p>
                 <p className="truncate text-xs font-semibold text-muted-foreground">
-                  {row.email ?? "—"}
+                  {[row.email, row.phone].filter(Boolean).join(" · ") || "—"}
                 </p>
+                {row.invitedBy ? (
+                  <p className="truncate text-[11px] font-semibold text-brand">
+                    Invited by {row.invitedBy}
+                    {row.refCode ? (
+                      <span className="font-mono text-muted-foreground"> · {row.refCode}</span>
+                    ) : null}
+                  </p>
+                ) : null}
               </div>
               <div className="shrink-0 text-right">
                 <span className="block text-[10px] font-black uppercase tracking-wide text-muted-foreground">
@@ -71,6 +85,10 @@ export function AttendanceTable({
                 {variant === "checked" && row.checkedInAt ? (
                   <span className="text-xs font-semibold text-success">
                     {formatEventDateTime(row.checkedInAt)}
+                  </span>
+                ) : row.registeredAt ? (
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    Reg. {formatEventDateTime(row.registeredAt)}
                   </span>
                 ) : null}
               </div>

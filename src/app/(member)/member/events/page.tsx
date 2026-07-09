@@ -10,6 +10,7 @@ import {
   QrCode,
   Search,
   Ticket,
+  UserCheck,
   Users,
 } from "lucide-react";
 
@@ -646,6 +647,13 @@ function HostingSection({
                       >
                         <Pencil className="size-4" aria-hidden="true" />
                         Edit
+                      </Link>
+                      <Link
+                        href={`/member/events/${event.id}/attendance`}
+                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                      >
+                        <UserCheck className="size-4" aria-hidden="true" />
+                        Attendance
                       </Link>
                     </div>
                   </div>
