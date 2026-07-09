@@ -94,6 +94,8 @@ export default async function MemberDashboardPage() {
     memberNoZeroData,
     todayProspects,
     registrations,
+    month,
+    muster,
   ] = await Promise.all([
     supabase
       .from("referrals")
@@ -143,6 +145,14 @@ export default async function MemberDashboardPage() {
       .gte("events.starts_at", `${today}T00:00:00.000Z`)
       .limit(20)
       .returns<RegistrationEventRow[]>(),
+    // Runs in the same round-trip wave: its queries don't depend on the streak
+    // values, which are patched onto the result below once computed.
+    buildNoZeroMonth(
+      supabase,
+      { id: member.id, noZeroCurrentStreak: 0, noZeroBestStreak: 0 },
+      today.slice(0, 7),
+    ),
+    getMusterData(supabase, member.id),
   ]);
 
   const pendingEarnings = (myCommissions.data ?? [])
@@ -156,18 +166,9 @@ export default async function MemberDashboardPage() {
     memberNoZeroData.data ?? null,
   );
 
-  const [month, muster] = await Promise.all([
-    buildNoZeroMonth(
-      supabase,
-      {
-        id: member.id,
-        noZeroCurrentStreak: noZero.currentStreak,
-        noZeroBestStreak: noZero.bestStreak,
-      },
-      today.slice(0, 7),
-    ),
-    getMusterData(supabase, member.id, todayProspects.count ?? 0),
-  ]);
+  month.currentStreak = noZero.currentStreak;
+  month.bestStreak = noZero.bestStreak;
+  muster.today.prospects = todayProspects.count ?? 0;
 
   const memberState = deriveMemberState(
     noZero.currentStreak,

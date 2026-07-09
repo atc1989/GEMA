@@ -57,7 +57,6 @@ function weekStartIso(now = new Date()): string {
 export async function getMusterData(
   supabase: SupabaseClient,
   memberId: string,
-  todayProspectCount: number,
 ): Promise<{ today: MusterToday; epoints: EpointParamStatus[] }> {
   const todayIso = new Date().toISOString().slice(0, 10);
 
@@ -84,7 +83,8 @@ export async function getMusterData(
 
   return {
     today: {
-      prospects: todayProspectCount,
+      // Patched in by the caller (the dashboard already counts today's prospects).
+      prospects: 0,
       invited: row?.invited ?? 0,
       presentations: row?.presentations ?? 0,
       baseActivations: row?.base_activations ?? 0,

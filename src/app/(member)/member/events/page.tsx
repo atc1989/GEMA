@@ -13,6 +13,7 @@ import { QRCodeCard } from "@/components/qr/qr-code-card";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { LinkSpinner } from "@/components/ui/link-pending";
 import { requireMember } from "@/lib/auth/require-member";
 import type { EventMode, EventStatus, EventType, RegistrationStatus } from "@/lib/database/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -142,7 +143,10 @@ export default async function MemberEventsPage({
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {tab.label}
+              <span className="inline-flex items-center justify-center gap-1">
+                {tab.label}
+                <LinkSpinner className="size-3" />
+              </span>
             </Link>
           ))}
         </div>

@@ -13,6 +13,7 @@ import {
   type NavigationItem,
 } from "@/components/shell/navigation";
 import { GemaWordmark } from "@/components/event/posters/gema-wordmark";
+import { LinkPendingIcon } from "@/components/ui/link-pending";
 import { cn } from "@/lib/utils";
 
 export type AppShellUser = {
@@ -270,7 +271,7 @@ function NavLink({
       )}
       href={href}
     >
-      <Icon className="size-[18px] shrink-0" aria-hidden="true" />
+      <LinkPendingIcon icon={Icon} className="size-[18px] shrink-0" />
       <span>{label}</span>
     </Link>
   );
@@ -290,7 +291,7 @@ function BottomNavLink({
       )}
       href={href}
     >
-      <Icon className="size-[18px]" aria-hidden="true" />
+      <LinkPendingIcon icon={Icon} className="size-[18px]" />
       <span className="max-w-full truncate">{label}</span>
     </Link>
   );
