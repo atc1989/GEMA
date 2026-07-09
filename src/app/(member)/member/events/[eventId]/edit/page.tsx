@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { MemberEventForm } from "@/components/event/member-event-form";
 import { requireMember } from "@/lib/auth/require-member";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { toDateTimeLocalValue } from "@/lib/utils/format";
 
 type EventEditRow = {
   id: string;
@@ -52,10 +53,8 @@ export default async function MemberEditEventPage({
 
   const selfName = ctx.profile.fullName ?? ctx.profile.email ?? undefined;
 
-  const toLocalDT = (iso: string | null) => {
-    if (!iso) return undefined;
-    return iso.slice(0, 16); // "YYYY-MM-DDTHH:mm"
-  };
+  const toLocalDT = (iso: string | null) =>
+    iso ? toDateTimeLocalValue(iso, event.timezone) : undefined;
 
   return (
     <div className="grid gap-4">

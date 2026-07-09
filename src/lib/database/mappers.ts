@@ -1,5 +1,6 @@
 import type { Event } from "@/lib/database/types";
 import type { EventFormValues } from "@/lib/schemas/event";
+import { zonedDateTimeToIso } from "@/lib/utils/format";
 
 /** Raw shape of a `public.events` row as returned by Supabase (snake_case). */
 export type EventRow = {
@@ -68,8 +69,10 @@ export function toEventRow(values: EventFormValues) {
     event_type: values.eventType,
     visibility: values.visibility,
     mode: values.mode,
-    starts_at: new Date(values.startsAt).toISOString(),
-    ends_at: values.endsAt ? new Date(values.endsAt).toISOString() : null,
+    // datetime-local values are wall-clock time in the event's timezone; parsing
+    // them with new Date() would use the server's timezone and shift the date.
+    starts_at: zonedDateTimeToIso(values.startsAt, values.timezone),
+    ends_at: values.endsAt ? zonedDateTimeToIso(values.endsAt, values.timezone) : null,
     timezone: values.timezone,
     venue_name: values.venueName ?? null,
     venue_address: values.venueAddress ?? null,
