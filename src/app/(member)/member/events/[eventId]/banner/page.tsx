@@ -16,6 +16,7 @@ type BannerEventRow = {
   mode: EventMode;
   starts_at: string;
   venue_name: string | null;
+  venue_address: string | null;
   host_member_id: string | null;
   metadata: Record<string, unknown>;
 };
@@ -31,7 +32,7 @@ export default async function MemberEventBannerPage({
   const supabase = await createSupabaseServerClient();
   const { data: event } = await supabase
     .from("events")
-    .select("id, title, event_type, mode, starts_at, venue_name, host_member_id, metadata")
+    .select("id, title, event_type, mode, starts_at, venue_name, venue_address, host_member_id, metadata")
     .eq("id", eventId)
     .maybeSingle<BannerEventRow>();
 
@@ -51,6 +52,7 @@ export default async function MemberEventBannerPage({
     mode: event.mode,
     startsAt: event.starts_at,
     venueName: event.venue_name ?? undefined,
+    venueAddress: event.venue_address ?? undefined,
     speakerName: (event.metadata?.speakerName as string | null) ?? speaker?.name ?? undefined,
     speakerPhotoUrl: speaker?.photo_url ?? undefined,
   };

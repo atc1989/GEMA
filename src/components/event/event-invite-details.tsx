@@ -29,6 +29,7 @@ export function EventInviteDetails({
     mode: event.mode,
     startsAt: event.startsAt,
     venueName: event.venueName ?? undefined,
+    venueAddress: event.venueAddress ?? undefined,
     speakerName: (event.metadata?.speakerName as string | null) ?? primarySpeaker?.name,
     speakerPhotoUrl: primarySpeaker?.photoUrl ?? undefined,
     photoFocus: asPhotoFocus(event.metadata?.photo_focus),

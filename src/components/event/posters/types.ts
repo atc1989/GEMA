@@ -9,6 +9,7 @@ export type EventPosterData = {
   mode: "in_person" | "online" | "hybrid";
   startsAt?: string;
   venueName?: string;
+  venueAddress?: string;
   speakerName?: string;
   speakerPhotoUrl?: string;
   /** Host-chosen pan/zoom framing for the photo (see shared.ts PhotoFocus). */

@@ -79,6 +79,7 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
     mode: selectedMode,
     startsAt: watch("startsAt"),
     venueName: watch("venueName"),
+    venueAddress: watch("venueAddress"),
     speakerName: watch("speakerName"),
     speakerPhotoUrl: photoUrl,
     photoFocus: focus,

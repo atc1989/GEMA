@@ -49,7 +49,7 @@ export const GutguardClassicPoster = forwardRef<HTMLDivElement, { data: EventPos
         <div
           style={{
             marginTop: 12,
-            fontSize: 30,
+            fontSize: data.title.length > 24 ? 24 : 30,
             fontWeight: 900,
             lineHeight: 0.95,
             letterSpacing: -0.5,
@@ -66,7 +66,7 @@ export const GutguardClassicPoster = forwardRef<HTMLDivElement, { data: EventPos
         {/* Framed photo */}
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 0, marginTop: 12 }}>
           <div style={{ background: "#ffffff", borderRadius: 6, padding: 6, boxShadow: "0 10px 26px rgba(20,40,80,0.22)" }}>
-            <div style={{ width: 158, height: 178, overflow: "hidden", background: "#eef1f6", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 3 }}>
+            <div style={{ width: 134, height: 150, overflow: "hidden", background: "#eef1f6", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 3 }}>
               {data.speakerPhotoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -105,6 +105,11 @@ export const GutguardClassicPoster = forwardRef<HTMLDivElement, { data: EventPos
             {venue.toUpperCase()}
           </span>
         </div>
+        {data.mode !== "online" && data.venueAddress ? (
+          <div style={{ marginTop: 3, fontSize: 8.5, fontWeight: 600, color: "#5a6a85", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {data.venueAddress}
+          </div>
+        ) : null}
       </div>
     );
   },

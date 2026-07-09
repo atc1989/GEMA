@@ -61,6 +61,7 @@ export default async function EventDetailPage({
     mode: event.mode,
     startsAt: event.startsAt,
     venueName: event.venueName ?? undefined,
+    venueAddress: event.venueAddress ?? undefined,
     speakerName,
     speakerPhotoUrl: speaker?.photo_url ?? undefined,
     photoFocus: asPhotoFocus(event.metadata?.photo_focus),

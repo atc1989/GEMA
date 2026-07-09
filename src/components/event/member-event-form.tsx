@@ -111,6 +111,7 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
     mode: selectedMode ?? "in_person",
     startsAt: watch("startsAt"),
     venueName: watch("venueName"),
+    venueAddress: watch("venueAddress"),
     speakerName: watch("speakerName"),
     speakerPhotoUrl: photoUrl,
     photoFocus: focus,
