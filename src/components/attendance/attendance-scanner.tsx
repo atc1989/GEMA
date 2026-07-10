@@ -4,7 +4,7 @@ import { BrowserQRCodeReader } from "@zxing/browser";
 import type { IScannerControls } from "@zxing/browser";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CameraOff, Keyboard, RefreshCw, ScanLine } from "lucide-react";
+import { CameraOff, CheckCircle2, Keyboard, RefreshCw, ScanLine } from "lucide-react";
 
 import {
   AttendanceConfirmationDialog,
@@ -38,6 +38,7 @@ export function AttendanceScanner({ eventId }: { eventId: string }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [phase, setPhase] = useState<ConfirmPhase>("review");
   const [dialogMessage, setDialogMessage] = useState<string | null>(null);
+  const [lastCheckedIn, setLastCheckedIn] = useState<string | null>(null);
 
   const [deviceId] = useState(() =>
     typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -47,10 +48,17 @@ export function AttendanceScanner({ eventId }: { eventId: string }) {
 
   const openPreview = useCallback((data: AttendeePreview) => {
     setPreview(data);
-    setDialogMessage(
-      data.alreadyCheckedIn ? "This attendee is already checked in." : null,
-    );
-    setPhase(data.alreadyCheckedIn ? "already" : "review");
+    if (data.registrationStatus === "cancelled") {
+      // The record_attendance RPC would reject this anyway; surface it before
+      // the confirm button instead of after.
+      setDialogMessage("This registration was cancelled.");
+      setPhase("error");
+    } else {
+      setDialogMessage(
+        data.alreadyCheckedIn ? "This attendee is already checked in." : null,
+      );
+      setPhase(data.alreadyCheckedIn ? "already" : "review");
+    }
     setDialogOpen(true);
   }, []);
 
@@ -59,14 +67,21 @@ export function AttendanceScanner({ eventId }: { eventId: string }) {
       busyRef.current = true;
       setLookingUp(true);
       setLookupError(null);
-      const result = await lookupRegistrationForCheckIn({ eventId, ...args });
-      setLookingUp(false);
-      if (!result.ok) {
-        setLookupError(result.error);
+      try {
+        const result = await lookupRegistrationForCheckIn({ eventId, ...args });
+        if (!result.ok) {
+          setLookupError(result.error);
+          busyRef.current = false;
+          return;
+        }
+        openPreview(result.data);
+      } catch {
+        // Network/server failure must never leave the scanner stuck busy.
+        setLookupError("Connection problem. Check your network and scan again.");
         busyRef.current = false;
-        return;
+      } finally {
+        setLookingUp(false);
       }
-      openPreview(result.data);
     },
     [eventId, openPreview],
   );
@@ -86,6 +101,13 @@ export function AttendanceScanner({ eventId }: { eventId: string }) {
     [dialogOpen, runLookup],
   );
 
+  // Keep the zxing callback identity stable so the camera stream survives
+  // re-renders (dialog open/close) instead of restarting on every scan.
+  const detectRef = useRef(handleDetected);
+  useEffect(() => {
+    detectRef.current = handleDetected;
+  }, [handleDetected]);
+
   const startCamera = useCallback(async () => {
     const video = videoRef.current;
     if (!video || controlsRef.current || startingRef.current) return;
@@ -97,7 +119,7 @@ export function AttendanceScanner({ eventId }: { eventId: string }) {
         { video: { facingMode: { ideal: "environment" } } },
         video,
         (result) => {
-          if (result) handleDetected(result.getText());
+          if (result) detectRef.current(result.getText());
         },
       );
       if (stoppedRef.current) {
@@ -110,7 +132,7 @@ export function AttendanceScanner({ eventId }: { eventId: string }) {
     } finally {
       startingRef.current = false;
     }
-  }, [handleDetected]);
+  }, []);
 
   const restartCamera = useCallback(() => {
     controlsRef.current?.stop();
@@ -139,11 +161,20 @@ export function AttendanceScanner({ eventId }: { eventId: string }) {
     if (!preview) return;
     setPhase("saving");
     setDialogMessage(null);
-    const result = await recordAttendance({
-      eventId,
-      registrationId: preview.registrationId,
-      deviceId,
-    });
+    let result: Awaited<ReturnType<typeof recordAttendance>>;
+    try {
+      result = await recordAttendance({
+        eventId,
+        registrationId: preview.registrationId,
+        deviceId,
+      });
+    } catch {
+      setPhase("error");
+      setDialogMessage(
+        "Connection problem — the check-in may not have saved. Scan again to verify.",
+      );
+      return;
+    }
     if (!result.ok) {
       setPhase("error");
       setDialogMessage(result.error);
@@ -155,6 +186,7 @@ export function AttendanceScanner({ eventId }: { eventId: string }) {
     } else {
       setPhase("success");
       setDialogMessage(`${preview.attendeeName} is checked in.`);
+      setLastCheckedIn(preview.attendeeName);
       router.refresh();
     }
   };
@@ -208,6 +240,15 @@ export function AttendanceScanner({ eventId }: { eventId: string }) {
             Restart
           </Button>
         </div>
+        {lastCheckedIn ? (
+          <p
+            className="flex items-center gap-2 border-t border-border/70 px-4 py-2.5 text-sm font-bold text-success"
+            aria-live="polite"
+          >
+            <CheckCircle2 className="size-4" aria-hidden="true" />
+            Last checked in: {lastCheckedIn}
+          </p>
+        ) : null}
       </Card>
 
       <Card className="p-4">

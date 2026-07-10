@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState, type ReactNode } from "react";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Monitor, MoreHorizontal, Moon, Sun } from "lucide-react";
 
 import {
   adminNavigation,
@@ -146,6 +146,23 @@ export function AppShell({ role, eyebrow, title, subtitle, user, signOutSlot, ch
         ? memberNavigation
         : prospectNavigation;
 
+  const isItemActive = (item: NavigationItem) =>
+    pathname === item.href ||
+    (!item.exact && item.href !== "/" && pathname.startsWith(item.href + "/"));
+
+  // Bottom bars hold 5 slots max: 4 primary destinations + "More" for the rest.
+  const primaryItems = navigation.filter((item) => item.mobilePrimary);
+  const useOverflow = navigation.length > 5 && primaryItems.length > 0;
+  const bottomItems = useOverflow ? primaryItems : navigation;
+  const overflowItems = useOverflow
+    ? navigation.filter((item) => !item.mobilePrimary)
+    : [];
+
+  const [moreOpen, setMoreOpen] = useState(false);
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [pathname]);
+
   return (
     <div className="min-h-dvh bg-background text-foreground lg:bg-[#dce3ee] dark:lg:bg-[#0a1220]">
       <div className="flex min-h-dvh w-full lg:items-stretch">
@@ -160,10 +177,7 @@ export function AppShell({ role, eyebrow, title, subtitle, user, signOutSlot, ch
                 <NavLink
                   href={item.href}
                   icon={item.icon}
-                  isActive={
-                    pathname === item.href ||
-                    (!item.exact && item.href !== "/" && pathname.startsWith(item.href + "/"))
-                  }
+                  isActive={isItemActive(item)}
                   key={`${item.href}-${item.label}`}
                   label={item.label}
                 />
@@ -218,26 +232,65 @@ export function AppShell({ role, eyebrow, title, subtitle, user, signOutSlot, ch
           </main>
 
           {/* Mobile bottom nav */}
+          {moreOpen ? (
+            <div
+              className="fixed inset-0 z-10 bg-black/30 lg:hidden"
+              onClick={() => setMoreOpen(false)}
+              aria-hidden="true"
+            />
+          ) : null}
           <nav
-            className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-[600px] border-t border-border bg-white/96 px-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-6px_20px_rgb(14_34_73/8%)] backdrop-blur-md dark:bg-sidebar/95 lg:hidden"
+            className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-white/96 px-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-6px_20px_rgb(14_34_73/8%)] backdrop-blur-md dark:bg-sidebar/95 lg:hidden"
             aria-label={`${role} bottom navigation`}
           >
+            {moreOpen ? (
+              <div
+                className="mb-1.5 grid gap-0.5 border-b border-border/70 pb-1.5"
+                style={{
+                  gridTemplateColumns: `repeat(${overflowItems.length}, minmax(0, 1fr))`,
+                }}
+              >
+                {overflowItems.map((item) => (
+                  <BottomNavLink
+                    href={item.href}
+                    icon={item.icon}
+                    isActive={isItemActive(item)}
+                    key={`${item.href}-${item.label}`}
+                    label={item.label}
+                  />
+                ))}
+              </div>
+            ) : null}
             <div
               className="grid gap-0.5"
-              style={{ gridTemplateColumns: `repeat(${navigation.length}, minmax(0, 1fr))` }}
+              style={{
+                gridTemplateColumns: `repeat(${bottomItems.length + (useOverflow ? 1 : 0)}, minmax(0, 1fr))`,
+              }}
             >
-              {navigation.map((item) => (
+              {bottomItems.map((item) => (
                 <BottomNavLink
                   href={item.href}
                   icon={item.icon}
-                  isActive={
-                    pathname === item.href ||
-                    (!item.exact && item.href !== "/" && pathname.startsWith(item.href + "/"))
-                  }
+                  isActive={isItemActive(item)}
                   key={`${item.href}-${item.label}`}
                   label={item.label}
                 />
               ))}
+              {useOverflow ? (
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen((v) => !v)}
+                  aria-expanded={moreOpen}
+                  className={cn(
+                    "font-heading flex h-[52px] flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-bold text-muted-foreground transition-colors",
+                    (moreOpen || overflowItems.some(isItemActive)) &&
+                      "bg-secondary text-brand",
+                  )}
+                >
+                  <MoreHorizontal className="size-[18px]" aria-hidden="true" />
+                  <span>More</span>
+                </button>
+              ) : null}
             </div>
           </nav>
         </div>

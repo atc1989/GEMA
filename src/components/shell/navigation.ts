@@ -21,6 +21,8 @@ export type NavigationItem = {
   label: string;
   icon: LucideIcon;
   exact?: boolean;
+  /** Shown directly on the mobile bottom bar; unmarked items go under "More". */
+  mobilePrimary?: boolean;
 };
 
 export const prospectNavigation: NavigationItem[] = [
@@ -31,23 +33,23 @@ export const prospectNavigation: NavigationItem[] = [
 ];
 
 export const memberNavigation: NavigationItem[] = [
-  { href: "/dashboard", label: "Home", icon: Home, exact: true },
+  { href: "/dashboard", label: "Home", icon: Home, exact: true, mobilePrimary: true },
   { href: "/gutguard-daily", label: "GutGuard", icon: HeartPulse },
   { href: "/member/profile", label: "Profile", icon: User, exact: true },
-  { href: "/member/events", label: "Events", icon: CalendarDays },
+  { href: "/member/events", label: "Events", icon: CalendarDays, mobilePrimary: true },
   { href: "/member/calendar", label: "Calendar", icon: CalendarCheck },
   { href: "/member/referrals", label: "Referrals", icon: Gift },
-  { href: "/member/prospects", label: "Prospects", icon: Users },
-  { href: "/member/earnings", label: "Earnings", icon: Coins },
+  { href: "/member/prospects", label: "Prospects", icon: Users, mobilePrimary: true },
+  { href: "/member/earnings", label: "Earnings", icon: Coins, mobilePrimary: true },
 ];
 
 export const adminNavigation: NavigationItem[] = [
-  { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
+  { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true, mobilePrimary: true },
   { href: "/admin/gutguard", label: "GutGuard", icon: HeartPulse },
-  { href: "/admin/events", label: "Events", icon: CalendarDays },
-  { href: "/admin/prospects", label: "Prospects", icon: Users },
+  { href: "/admin/events", label: "Events", icon: CalendarDays, mobilePrimary: true },
+  { href: "/admin/prospects", label: "Prospects", icon: Users, mobilePrimary: true },
   { href: "/admin/commissions", label: "Commissions", icon: Coins },
-  { href: "/admin/members", label: "Members", icon: IdCard, exact: true },
+  { href: "/admin/members", label: "Members", icon: IdCard, exact: true, mobilePrimary: true },
   { href: "/admin/members/event-permissions", label: "Event Permissions", icon: ToggleLeft },
 ];
 
