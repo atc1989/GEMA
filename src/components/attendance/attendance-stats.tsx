@@ -1,23 +1,26 @@
-import { CheckCircle2, Percent, Users } from "lucide-react";
+import { CheckCircle2, Percent, UserCheck, Users } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 
 type AttendanceStatsProps = {
   totalRegistrations: number;
-  totalAttendees: number;
+  membersCheckedIn: number;
+  prospectsCheckedIn: number;
 };
 
 export function AttendanceStats({
   totalRegistrations,
-  totalAttendees,
+  membersCheckedIn,
+  prospectsCheckedIn,
 }: AttendanceStatsProps) {
+  const totalAttendees = membersCheckedIn + prospectsCheckedIn;
   const rate =
     totalRegistrations > 0
       ? Math.round((totalAttendees / totalRegistrations) * 100)
       : 0;
 
   return (
-    <section className="grid gap-3 sm:grid-cols-3">
+    <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <Stat
         icon={<Users className="size-5" aria-hidden="true" />}
         tone="bg-secondary text-brand"
@@ -25,10 +28,16 @@ export function AttendanceStats({
         value={String(totalRegistrations)}
       />
       <Stat
-        icon={<CheckCircle2 className="size-5" aria-hidden="true" />}
+        icon={<UserCheck className="size-5" aria-hidden="true" />}
         tone="bg-emerald-50 text-success"
-        label="Checked in"
-        value={String(totalAttendees)}
+        label="Members checked in"
+        value={String(membersCheckedIn)}
+      />
+      <Stat
+        icon={<CheckCircle2 className="size-5" aria-hidden="true" />}
+        tone="bg-purple-50 text-purple"
+        label="Prospects checked in"
+        value={String(prospectsCheckedIn)}
       />
       <Stat
         icon={<Percent className="size-5" aria-hidden="true" />}

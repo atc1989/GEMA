@@ -9,6 +9,7 @@ import {
   Ticket,
 } from "lucide-react";
 
+import { ExportReportMenu } from "@/components/event/export-report-menu";
 import { QRCodeCard } from "@/components/qr/qr-code-card";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,7 +21,11 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { formatEventDateTime } from "@/lib/utils/format";
 
-import { REG_STATUS, type HostedEventRow, type MemberEventCardRow } from "./event-meta";
+import {
+  REG_STATUS,
+  type HostedEventRow,
+  type MemberEventCardRow,
+} from "@/components/event/event-meta";
 import { AllEventsList, HostedEventsList } from "./events-lists";
 
 type EventsTab = "all" | "mine" | "passes" | "hosting";
@@ -370,6 +375,7 @@ function HostingSection({
           >
             {canPublishEvents ? "Direct publishing enabled" : "Admin review required"}
           </span>
+          <ExportReportMenu href="/api/events-report" />
           <Link
             href="/member/events/new"
             className={cn(buttonVariants({ variant: "brand", size: "sm" }))}

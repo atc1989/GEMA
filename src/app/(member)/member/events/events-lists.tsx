@@ -9,80 +9,28 @@ import {
   Monitor,
   Pencil,
   QrCode,
-  Search,
   UserCheck,
   Users,
 } from "lucide-react";
 
-import { MemberRsvpButton } from "@/components/event/member-rsvp-button";
-import { buttonVariants } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import type { EventType } from "@/lib/database/types";
-import { cn } from "@/lib/utils";
-import { formatEventDateTime } from "@/lib/utils/format";
-
+import { EventFilterBar, matchesSearch as matches } from "@/components/event/event-filter-bar";
 import {
   REG_STATUS,
   STATUS_BADGE,
   TYPE_META,
   type HostedEventRow,
   type MemberEventCardRow,
-} from "./event-meta";
+} from "@/components/event/event-meta";
+import { MemberRsvpButton } from "@/components/event/member-rsvp-button";
+import { buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { formatEventDateTime } from "@/lib/utils/format";
 
 /**
  * Client-side event lists with instant filtering: the page fetches the rows
  * once, then search + category filter as you type — no submit, no reload.
  */
-
-function matches(q: string, ...fields: (string | null | undefined)[]) {
-  const needle = q.trim().toLowerCase();
-  if (!needle) return true;
-  return fields.some((f) => f?.toLowerCase().includes(needle));
-}
-
-function FilterBar({
-  q,
-  onQ,
-  type,
-  onType,
-}: {
-  q: string;
-  onQ: (v: string) => void;
-  type: string;
-  onType: (v: string) => void;
-}) {
-  return (
-    <div className="flex gap-2">
-      <div className="relative flex-1">
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <input
-          type="search"
-          value={q}
-          onChange={(e) => onQ(e.target.value)}
-          placeholder="Search events or venues"
-          aria-label="Search events"
-          className="h-11 w-full rounded-xl border border-border bg-card pl-9 pr-3 text-sm font-semibold outline-none transition-colors placeholder:text-muted-foreground focus:border-brand"
-        />
-      </div>
-      <select
-        value={type}
-        onChange={(e) => onType(e.target.value)}
-        aria-label="Filter by category"
-        className="h-11 shrink-0 rounded-xl border border-border bg-card px-3 text-sm font-semibold outline-none transition-colors focus:border-brand"
-      >
-        <option value="">All categories</option>
-        {(Object.keys(TYPE_META) as EventType[]).map((t) => (
-          <option key={t} value={t}>
-            {TYPE_META[t].label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
 
 function NoMatches() {
   return (
@@ -108,7 +56,7 @@ export function AllEventsList({ events }: { events: MemberEventCardRow[] }) {
 
   return (
     <section className="grid gap-3">
-      <FilterBar q={q} onQ={setQ} type={type} onType={setType} />
+      <EventFilterBar q={q} onQ={setQ} type={type} onType={setType} />
       {filtered.length === 0 ? (
         <NoMatches />
       ) : (
@@ -136,7 +84,7 @@ export function HostedEventsList({ events }: { events: HostedEventRow[] }) {
 
   return (
     <div className="grid gap-3">
-      <FilterBar q={q} onQ={setQ} type={type} onType={setType} />
+      <EventFilterBar q={q} onQ={setQ} type={type} onType={setType} />
       {filtered.length === 0 ? (
         <NoMatches />
       ) : (

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CalendarPlus, CalendarX } from "lucide-react";
 
 import { EventListItem } from "@/components/event/event-list-item";
+import { ExportReportMenu } from "@/components/event/export-report-menu";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
@@ -53,13 +54,16 @@ export default async function AdminEventsPage({
             </Link>
           ))}
         </div>
-        <Link
-          href="/admin/events/new"
-          className={cn(buttonVariants({ variant: "brand", size: "sm" }))}
-        >
-          <CalendarPlus aria-hidden="true" />
-          Create Event
-        </Link>
+        <div className="flex items-center gap-2">
+          <ExportReportMenu href="/api/events-report" />
+          <Link
+            href="/admin/events/new"
+            className={cn(buttonVariants({ variant: "brand", size: "sm" }))}
+          >
+            <CalendarPlus aria-hidden="true" />
+            Create Event
+          </Link>
+        </div>
       </div>
 
       {error ? (

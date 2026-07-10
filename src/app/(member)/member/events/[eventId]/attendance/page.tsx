@@ -7,6 +7,11 @@ import {
   AttendanceTable,
   type AttendanceRow,
 } from "@/components/attendance/attendance-table";
+import {
+  InviterLeaderboard,
+  type InviterRow,
+} from "@/components/attendance/inviter-leaderboard";
+import { ExportReportMenu } from "@/components/event/export-report-menu";
 import { buttonVariants } from "@/components/ui/button";
 import { requireEventManager } from "@/lib/auth/require-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -90,6 +95,30 @@ export default async function MemberEventAttendancePage({
     .filter((r) => !checkedInAtById.has(r.id))
     .map(toRow);
 
+  const membersCheckedIn = checkedRows.filter((r) => r.kind === "member").length;
+  const prospectsCheckedIn = checkedRows.length - membersCheckedIn;
+
+  // Recruiting leaderboard: invited counts per sponsor, ranked by total.
+  const inviterAgg = new Map<string, InviterRow>();
+  for (const r of registrations) {
+    const sponsor = sponsorById.get(r.id)?.sponsor_name;
+    if (!sponsor) continue;
+    const agg = inviterAgg.get(sponsor) ?? {
+      name: sponsor,
+      membersInvited: 0,
+      prospectsInvited: 0,
+      checkedIn: 0,
+    };
+    if (r.registration_kind === "member") agg.membersInvited++;
+    else agg.prospectsInvited++;
+    if (checkedInAtById.has(r.id)) agg.checkedIn++;
+    inviterAgg.set(sponsor, agg);
+  }
+  const inviters = [...inviterAgg.values()].sort(
+    (a, b) =>
+      b.membersInvited + b.prospectsInvited - (a.membersInvited + a.prospectsInvited),
+  );
+
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -100,13 +129,16 @@ export default async function MemberEventAttendancePage({
           <ArrowLeft className="size-4" aria-hidden="true" />
           My hosted events
         </Link>
-        <Link
-          href={`/member/events/${eventId}/scan`}
-          className={cn(buttonVariants({ variant: "brand", size: "sm" }))}
-        >
-          <ScanLine aria-hidden="true" />
-          Open scanner
-        </Link>
+        <div className="flex items-center gap-2">
+          <ExportReportMenu href={`/api/events/${eventId}/report`} />
+          <Link
+            href={`/member/events/${eventId}/scan`}
+            className={cn(buttonVariants({ variant: "brand", size: "sm" }))}
+          >
+            <ScanLine aria-hidden="true" />
+            Open scanner
+          </Link>
+        </div>
       </div>
 
       <div>
@@ -118,8 +150,11 @@ export default async function MemberEventAttendancePage({
 
       <AttendanceStats
         totalRegistrations={registrations.length}
-        totalAttendees={checkedRows.length}
+        membersCheckedIn={membersCheckedIn}
+        prospectsCheckedIn={prospectsCheckedIn}
       />
+
+      <InviterLeaderboard rows={inviters} />
 
       <AttendanceTable
         title="Checked in"
