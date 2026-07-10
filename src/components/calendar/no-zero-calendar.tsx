@@ -219,8 +219,8 @@ function LegendItem({ swatch, label }: { swatch: React.ReactNode; label: string 
 }
 
 function DayButton({ cell, onOpen }: { cell: DayCell; onOpen: () => void }) {
-  const base =
-    "mx-auto flex size-9 items-center justify-center text-[12.5px] font-bold transition-colors";
+  const circle =
+    "flex size-9 items-center justify-center text-[12.5px] font-bold transition-colors";
 
   // The event type that drives the cell colour (first event of the day, if any).
   const meta = cell.events[0] ? TYPE_META[cell.events[0].type] ?? TYPE_META.other : null;
@@ -250,9 +250,23 @@ function DayButton({ cell, onOpen }: { cell: DayCell; onOpen: () => void }) {
       aria-label={`${cell.iso}${cell.status === "done" ? " — No-Zero day" : ""}${
         cell.events.length ? ` — ${cell.events.length} event(s)` : ""
       }`}
-      className={cn(base, styles, cell.isToday && "cal-today-ring")}
+      className="mx-auto flex flex-col items-center gap-0.5"
     >
-      {cell.day}
+      <span className={cn(circle, styles, cell.isToday && "cal-today-ring")}>{cell.day}</span>
+      {/* Event-type dots for days whose circle isn't already event-coloured. */}
+      <span className="flex h-1.5 items-center gap-0.5">
+        {cell.status === "zero"
+          ? cell.events.slice(0, 3).map((ev) => (
+              <span
+                key={ev.id}
+                className={cn(
+                  "size-1.5 rounded-full",
+                  (TYPE_META[ev.type] ?? TYPE_META.other).dot,
+                )}
+              />
+            ))
+          : null}
+      </span>
     </button>
   );
 }
@@ -333,11 +347,11 @@ function DayDetailDialog({ cell, onClose }: { cell: DayCell; onClose: () => void
         <section>
           <h3 className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-wide text-muted-foreground">
             <CalendarDays className="size-3.5" aria-hidden="true" />
-            Your events
+            Events this day
           </h3>
           {cell.events.length === 0 ? (
             <p className="text-sm font-semibold text-muted-foreground">
-              No events you&apos;re registered for on this day.
+              No events on this day.
             </p>
           ) : (
             <ul className="grid gap-2">
@@ -380,7 +394,7 @@ function DayDetailDialog({ cell, onClose }: { cell: DayCell; onClose: () => void
                       className="mt-2 inline-flex items-center gap-1.5 pl-[18px] text-xs font-bold text-brand hover:underline"
                     >
                       <Ticket className="size-3.5" aria-hidden="true" />
-                      View my pass
+                      {ev.registrationStatus ? "View my pass" : "View & RSVP"}
                     </Link>
                   </li>
                 );

@@ -7,8 +7,9 @@ import type { EventMode, EventType } from "@/lib/database/types";
  *
  * A "No-Zero day" uses the same definition as the dashboard streak
  * (see {@link file://./../no-zero.ts}): a day on which the member sponsored at
- * least one prospect. The grid also surfaces the member's own event RSVPs so a
- * day can read as "going" even before it counts as No-Zero.
+ * least one prospect. The grid surfaces ALL published events the member can
+ * see (RLS scopes visibility), with the member's own registration status
+ * layered on top — an RSVP makes the day read as "going".
  *
  * All date bucketing is done in UTC to stay consistent with `updateNoZeroStreak`,
  * which derives "today" from `toISOString()`. (Same timezone caveat applies.)
@@ -91,6 +92,16 @@ type RegistrationRow = {
   } | null;
 };
 
+type MonthEventRow = {
+  id: string;
+  title: string;
+  event_type: EventType;
+  mode: EventMode;
+  starts_at: string;
+  venue_name: string | null;
+  capacity: number | null;
+};
+
 export async function buildNoZeroMonth(
   supabase: SupabaseClient,
   member: { id: string; noZeroCurrentStreak: number; noZeroBestStreak: number },
@@ -116,7 +127,7 @@ export async function buildNoZeroMonth(
 
   const todayIso = new Date().toISOString().slice(0, 10);
 
-  const [prospectsRes, registrationsRes] = await Promise.all([
+  const [prospectsRes, registrationsRes, monthEventsRes] = await Promise.all([
     supabase
       .from("prospects")
       .select("id, full_name, stage, created_at")
@@ -134,6 +145,14 @@ export async function buildNoZeroMonth(
       .gte("events.starts_at", monthStart.toISOString())
       .lt("events.starts_at", monthEnd.toISOString())
       .returns<RegistrationRow[]>(),
+    supabase
+      .from("events")
+      .select("id, title, event_type, mode, starts_at, venue_name, capacity")
+      .eq("status", "published")
+      .gte("starts_at", monthStart.toISOString())
+      .lt("starts_at", monthEnd.toISOString())
+      .order("starts_at", { ascending: true })
+      .returns<MonthEventRow[]>(),
   ]);
 
   const prospectsByDay = new Map<string, DayProspect[]>();
@@ -144,10 +163,13 @@ export async function buildNoZeroMonth(
     prospectsByDay.set(key, list);
   }
 
-  const eventsByDay = new Map<string, DayEvent[]>();
+  const regStatusByEventId = new Map<string, string>();
   for (const r of registrationsRes.data ?? []) {
-    const ev = r.events;
-    if (!ev) continue;
+    if (r.events) regStatusByEventId.set(r.events.id, r.status);
+  }
+
+  const eventsByDay = new Map<string, DayEvent[]>();
+  for (const ev of monthEventsRes.data ?? []) {
     const key = ev.starts_at.slice(0, 10);
     const list = eventsByDay.get(key) ?? [];
     list.push({
@@ -158,7 +180,7 @@ export async function buildNoZeroMonth(
       startsAt: ev.starts_at,
       venueName: ev.venue_name,
       capacity: ev.capacity,
-      registrationStatus: r.status,
+      registrationStatus: regStatusByEventId.get(ev.id) ?? null,
     });
     eventsByDay.set(key, list);
   }
