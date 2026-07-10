@@ -236,6 +236,9 @@ function DayButton({ cell, onOpen }: { cell: DayCell; onOpen: () => void }) {
       "rounded-full border-2 border-dashed bg-card",
       meta ? cn(meta.border, meta.text) : "border-brand text-brand",
     );
+  } else if (meta) {
+    // Day with events the member hasn't RSVP'd to: solid outline in the type colour.
+    styles = cn("rounded-full border-2 bg-card", meta.border, meta.text);
   } else {
     styles = cn(
       "rounded-full border border-border bg-secondary text-muted-foreground",
@@ -250,23 +253,9 @@ function DayButton({ cell, onOpen }: { cell: DayCell; onOpen: () => void }) {
       aria-label={`${cell.iso}${cell.status === "done" ? " — No-Zero day" : ""}${
         cell.events.length ? ` — ${cell.events.length} event(s)` : ""
       }`}
-      className="mx-auto flex flex-col items-center gap-0.5"
+      className={cn("mx-auto", circle, styles, cell.isToday && "cal-today-ring")}
     >
-      <span className={cn(circle, styles, cell.isToday && "cal-today-ring")}>{cell.day}</span>
-      {/* Event-type dots for days whose circle isn't already event-coloured. */}
-      <span className="flex h-1.5 items-center gap-0.5">
-        {cell.status === "zero"
-          ? cell.events.slice(0, 3).map((ev) => (
-              <span
-                key={ev.id}
-                className={cn(
-                  "size-1.5 rounded-full",
-                  (TYPE_META[ev.type] ?? TYPE_META.other).dot,
-                )}
-              />
-            ))
-          : null}
-      </span>
+      {cell.day}
     </button>
   );
 }

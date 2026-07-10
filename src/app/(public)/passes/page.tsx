@@ -33,30 +33,57 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   converted: { label: "Converted", className: "bg-purple-50 text-purple" },
 };
 
+/**
+ * Candidate strings a stored PH mobile number may have been saved as, so
+ * "09..." finds "+639..." registrations and vice versa.
+ * ponytail: covers 0/63/+63 prefixes; stored numbers with spaces or dashes
+ * won't match — normalize at registration write time if that shows up.
+ */
+function phoneVariants(input: string): string[] {
+  const digits = input.replace(/\D/g, "");
+  const variants = new Set([input, digits]);
+  if (digits.startsWith("0")) {
+    variants.add(`+63${digits.slice(1)}`);
+    variants.add(`63${digits.slice(1)}`);
+  } else if (digits.startsWith("63")) {
+    variants.add(`+${digits}`);
+    variants.add(`0${digits.slice(2)}`);
+  } else if (digits.length === 10 && digits.startsWith("9")) {
+    variants.add(`0${digits}`);
+    variants.add(`+63${digits}`);
+  }
+  return [...variants].filter(Boolean);
+}
+
 export default async function PassesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ email?: string }>;
+  searchParams: Promise<{ q?: string; email?: string }>;
 }) {
-  const { email } = await searchParams;
-  const trimmedEmail = email?.trim().toLowerCase();
+  const params = await searchParams;
+  // `email` kept for old bookmarked links.
+  const query = (params.q ?? params.email)?.trim();
 
   let passes: PassRow[] = [];
   let lookupError: string | null = null;
 
-  if (trimmedEmail) {
+  if (query) {
     const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase
+    let dbQuery = supabase
       .from("event_registrations")
       .select(
         "id, qr_payload, pass_code, status, attendee_name, registered_at, events!inner(id, title, starts_at, timezone, venue_name, mode)",
       )
-      .eq("attendee_email", trimmedEmail)
       .eq("registration_kind", "prospect")
       .neq("status", "cancelled")
       .order("registered_at", { ascending: false })
-      .limit(20)
-      .returns<PassRow[]>();
+      .limit(20);
+
+    dbQuery = query.includes("@")
+      ? dbQuery.eq("attendee_email", query.toLowerCase())
+      : dbQuery.in("attendee_phone", phoneVariants(query));
+
+    const { data, error } = await dbQuery.returns<PassRow[]>();
 
     if (error) {
       lookupError = "Could not retrieve passes. Please try again.";
@@ -70,23 +97,23 @@ export default async function PassesPage({
       <div>
         <h2 className="text-lg font-black tracking-tight">My Passes</h2>
         <p className="mt-1 text-sm font-semibold text-muted-foreground">
-          Enter the email you registered with to view your event QR passes.
+          Enter the email or mobile number you registered with to view your event QR passes.
         </p>
       </div>
 
       <Card className="p-4">
-        <PassLookupForm defaultEmail={trimmedEmail} />
+        <PassLookupForm defaultQuery={query} />
         {lookupError ? (
           <p className="mt-3 text-sm font-semibold text-destructive">{lookupError}</p>
         ) : null}
       </Card>
 
-      {trimmedEmail && !lookupError ? (
+      {query && !lookupError ? (
         passes.length === 0 ? (
           <EmptyState
             icon={Ticket}
             title="No passes found"
-            description="No registrations found for this email. Make sure you use the same email you registered with."
+            description="No registrations found. Make sure you use the same email or mobile number you registered with."
           />
         ) : (
           <div className="grid gap-6">
