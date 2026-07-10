@@ -101,17 +101,22 @@ export default async function MemberEventAttendancePage({
   // Recruiting leaderboard: invited counts per sponsor, ranked by total.
   const inviterAgg = new Map<string, InviterRow>();
   for (const r of registrations) {
-    const sponsor = sponsorById.get(r.id)?.sponsor_name;
+    const sponsorInfo = sponsorById.get(r.id);
+    const sponsor = sponsorInfo?.sponsor_name;
     if (!sponsor) continue;
     const agg = inviterAgg.get(sponsor) ?? {
       name: sponsor,
       membersInvited: 0,
       prospectsInvited: 0,
       checkedIn: 0,
+      refCodes: [],
     };
     if (r.registration_kind === "member") agg.membersInvited++;
     else agg.prospectsInvited++;
     if (checkedInAtById.has(r.id)) agg.checkedIn++;
+    if (sponsorInfo.ref_code && !agg.refCodes.includes(sponsorInfo.ref_code)) {
+      agg.refCodes.push(sponsorInfo.ref_code);
+    }
     inviterAgg.set(sponsor, agg);
   }
   const inviters = [...inviterAgg.values()].sort(

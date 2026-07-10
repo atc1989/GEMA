@@ -9,6 +9,8 @@ export type InviterRow = {
   prospectsInvited: number;
   /** How many of their invitees have checked in. */
   checkedIn: number;
+  /** Referral codes this inviter's registrations came through. */
+  refCodes: string[];
 };
 
 /**
@@ -44,6 +46,18 @@ export function InviterLeaderboard({ rows }: { rows: InviterRow[] }) {
                   {row.prospectsInvited} prospect{row.prospectsInvited === 1 ? "" : "s"} ·{" "}
                   {row.checkedIn} checked in
                 </p>
+                {row.refCodes.length > 0 ? (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {row.refCodes.map((code) => (
+                      <span
+                        key={code}
+                        className="rounded-md bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-bold text-brand"
+                      >
+                        {code}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
               <span className="shrink-0 font-heading text-lg font-black text-brand">
                 {total}
