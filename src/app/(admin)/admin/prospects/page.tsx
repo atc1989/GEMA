@@ -13,17 +13,29 @@ type ProspectRow = {
   stage: string;
   created_at: string;
   converted_member_id: string | null;
+  sponsor_member_id: string | null;
 };
 
 export default async function AdminProspectsPage() {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("prospects")
-    .select("id, full_name, email, stage, created_at, converted_member_id")
+    .select("id, full_name, email, stage, created_at, converted_member_id, sponsor_member_id")
     .order("created_at", { ascending: false })
     .returns<ProspectRow[]>();
 
   const rows = data ?? [];
+
+  const sponsorIds = [...new Set(rows.map((p) => p.sponsor_member_id).filter(Boolean))] as string[];
+  const sponsorById = new Map<string, string>();
+  if (sponsorIds.length > 0) {
+    const { data: sponsors } = await supabase
+      .from("members")
+      .select("id, username")
+      .in("id", sponsorIds)
+      .returns<{ id: string; username: string }[]>();
+    for (const s of sponsors ?? []) sponsorById.set(s.id, s.username);
+  }
 
   return (
     <div className="grid gap-4">
@@ -50,6 +62,11 @@ export default async function AdminProspectsPage() {
                   <p className="truncate text-xs font-semibold text-muted-foreground">
                     {p.email ?? "—"} · registered {formatEventDateTime(p.created_at)}
                   </p>
+                  {p.sponsor_member_id && sponsorById.has(p.sponsor_member_id) ? (
+                    <p className="mt-0.5 truncate text-[11px] font-bold text-brand">
+                      Invited by @{sponsorById.get(p.sponsor_member_id)}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <span className="rounded-lg bg-secondary px-2 py-1 text-[10px] font-black uppercase tracking-wide text-brand">
