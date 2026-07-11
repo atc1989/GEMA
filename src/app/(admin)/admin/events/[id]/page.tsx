@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 import { EventActions } from "@/components/event/event-actions";
-import { EventPoster, type EventPosterData } from "@/components/event/event-poster";
+import { ScaledPoster, type EventPosterData } from "@/components/event/event-poster";
 import { EventStatusBadge } from "@/components/event/event-status-badge";
 import { asPhotoFocus } from "@/components/event/posters/shared";
 import { asPosterTemplateId } from "@/components/event/posters/types";
@@ -187,12 +187,11 @@ export default async function EventDetailPage({
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-        <Card className="overflow-hidden p-0">
-          <EventPoster
-            data={posterData}
-            template={asPosterTemplateId(event.metadata?.poster_template)}
-          />
-        </Card>
+        <ScaledPoster
+          data={posterData}
+          template={asPosterTemplateId(event.metadata?.poster_template)}
+          className="rounded-xl border border-border/70 shadow-sm"
+        />
 
         <Card className="grid content-start gap-4 p-5">
           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">

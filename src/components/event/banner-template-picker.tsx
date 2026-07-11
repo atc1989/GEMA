@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Check, Loader2 } from "lucide-react";
 
-import { EventPoster, DownloadBannerButton } from "@/components/event/event-poster";
+import { ScaledPoster, DownloadBannerButton } from "@/components/event/event-poster";
 import { PosterTemplateThumbnails } from "@/components/event/posters/template-thumbnails";
 import { PhotoAdjuster } from "@/components/event/posters/photo-adjuster";
 import { asPhotoFocus, type PhotoFocus } from "@/components/event/posters/shared";
@@ -49,9 +49,7 @@ export function BannerTemplatePicker({
   return (
     <div className="grid gap-4">
       {/* Main preview */}
-      <div className="overflow-hidden rounded-2xl shadow-lg">
-        <EventPoster data={previewData} template={selected} />
-      </div>
+      <ScaledPoster data={previewData} template={selected} className="rounded-2xl shadow-lg" />
 
       <div className="flex items-center justify-end text-[11px] font-bold text-muted-foreground">
         {pending ? (

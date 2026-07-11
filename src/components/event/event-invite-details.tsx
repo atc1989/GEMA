@@ -3,7 +3,7 @@ import { CalendarDays, Clock, MapPin, Mic2, Monitor } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatEventDateTime } from "@/lib/utils/format";
-import { EventPoster } from "@/components/event/event-poster";
+import { ScaledPoster } from "@/components/event/event-poster";
 import { asPosterTemplateId } from "@/components/event/posters/types";
 import { asPhotoFocus } from "@/components/event/posters/shared";
 import type { Event } from "@/lib/database/types";
@@ -48,10 +48,8 @@ export function EventInviteDetails({
           />
         </div>
       ) : (
-        <div className="flex justify-center overflow-hidden rounded-2xl border border-border/70 bg-secondary/40 p-4">
-          <div className="overflow-hidden rounded-xl shadow-md">
-            <EventPoster data={posterData} template={template} />
-          </div>
+        <div className="rounded-2xl border border-border/70 bg-secondary/40 p-4">
+          <ScaledPoster data={posterData} template={template} className="rounded-xl shadow-md" />
         </div>
       )}
 

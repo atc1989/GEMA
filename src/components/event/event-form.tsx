@@ -7,7 +7,7 @@ import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 
 import { createEvent, updateEvent, type FieldErrors } from "@/lib/actions/events";
-import { DownloadBannerButton, EventPoster, type EventPosterData } from "@/components/event/event-poster";
+import { DownloadBannerButton, ScaledPoster, type EventPosterData } from "@/components/event/event-poster";
 import { PhotoAdjuster } from "@/components/event/posters/photo-adjuster";
 import { asPhotoFocus, type PhotoFocus } from "@/components/event/posters/shared";
 import { PosterTemplateThumbnails } from "@/components/event/posters/template-thumbnails";
@@ -344,9 +344,7 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
             Live banner preview
           </p>
-          <div className="overflow-hidden rounded-2xl shadow-lg">
-            <EventPoster data={posterData} template={template} />
-          </div>
+          <ScaledPoster data={posterData} template={template} className="rounded-2xl shadow-lg" />
           <div className="mt-3">
             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Design</p>
             <PosterTemplateThumbnails data={posterData} selected={template} onSelect={setTemplate} />

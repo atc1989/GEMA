@@ -21,7 +21,7 @@ import {
 import { createMemberEvent, updateMemberEvent } from "@/lib/actions/member-events";
 import { eventFormSchema, type EventFormInput } from "@/lib/schemas/event";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { EventPoster, DownloadBannerButton, type EventPosterData } from "@/components/event/event-poster";
+import { ScaledPoster, DownloadBannerButton, type EventPosterData } from "@/components/event/event-poster";
 import { PosterTemplateThumbnails } from "@/components/event/posters/template-thumbnails";
 import { asPosterTemplateId, type PosterTemplateId } from "@/components/event/posters/types";
 import { PhotoAdjuster } from "@/components/event/posters/photo-adjuster";
@@ -387,9 +387,7 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
             Live banner preview
           </p>
-          <div className="overflow-hidden rounded-2xl shadow-lg">
-            <EventPoster data={posterData} template={template} />
-          </div>
+          <ScaledPoster data={posterData} template={template} className="rounded-2xl shadow-lg" />
           <div className="mt-3">
             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Design</p>
             <PosterTemplateThumbnails data={posterData} selected={template} onSelect={setTemplate} />
