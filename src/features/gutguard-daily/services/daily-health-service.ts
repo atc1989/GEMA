@@ -2,6 +2,7 @@ import type {
   CareRelationshipRow,
   DailyDoseRow,
   DailyHealthRepository,
+  DosingConfigRow,
   JourneyMessageRow,
   OnboardingProgressRow,
   ReminderRow,
@@ -38,6 +39,14 @@ export class DailyHealthService {
 
   deleteReminder(id: string) {
     return this.repository.deleteReminder(id);
+  }
+
+  getDosingConfig(patientId: string) {
+    return this.repository.getDosingConfig(patientId);
+  }
+
+  saveDosingConfig(input: Partial<DosingConfigRow>) {
+    return this.repository.upsertDosingConfig(input);
   }
 
   getOnboardingProgress(patientId: string) {

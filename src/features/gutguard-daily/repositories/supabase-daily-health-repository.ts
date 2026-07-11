@@ -5,6 +5,7 @@ import type {
   CareRelationshipRow,
   DailyDoseRow,
   DailyHealthRepository,
+  DosingConfigRow,
   JourneyMessageRow,
   OnboardingProgressRow,
   ReminderRow,
@@ -84,6 +85,29 @@ export class SupabaseDailyHealthRepository implements DailyHealthRepository {
   async deleteReminder(id: string): Promise<RepositoryResult<void>> {
     const { error } = await this.supabase.from("gutguard_reminders").delete().eq("id", id);
     return { data: null, error };
+  }
+
+  async getDosingConfig(patientId: string) {
+    const { data, error } = await this.supabase
+      .from("gutguard_dosing_config")
+      .select("*")
+      .eq("patient_id", patientId)
+      .maybeSingle();
+
+    // ponytail: tolerate a missing table so pages keep working before the
+    // gutguard_dosing_config.sql migration has been applied.
+    if (error && error.code === "42P01") return { data: null, error: null };
+    return { data: data as DosingConfigRow | null, error };
+  }
+
+  async upsertDosingConfig(input: Partial<DosingConfigRow>) {
+    const { data, error } = await this.supabase
+      .from("gutguard_dosing_config")
+      .upsert(input, { onConflict: "patient_id" })
+      .select("*")
+      .single();
+
+    return { data: data as DosingConfigRow | null, error };
   }
 
   async getOnboardingProgress(patientId: string) {

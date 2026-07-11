@@ -29,12 +29,13 @@ export async function loadGutGuardPageData(profileId: string): Promise<GutGuardP
   const service = createDailyHealthService(supabase);
   const range = getGutGuardMonthRange();
 
-  const [doses, reminders, onboarding, journeyMessages, community] = await Promise.all([
+  const [doses, reminders, onboarding, journeyMessages, community, dosingConfig] = await Promise.all([
     service.getDoses(profileId, range.from, range.to),
     service.getReminders(profileId),
     service.getOnboardingProgress(profileId),
     service.getJourneyMessages(profileId),
     service.getCommunityOverview(profileId),
+    service.getDosingConfig(profileId),
   ]);
 
   const error =
@@ -42,7 +43,8 @@ export async function loadGutGuardPageData(profileId: string): Promise<GutGuardP
     reminders.error ??
     onboarding.error ??
     journeyMessages.error ??
-    community.error;
+    community.error ??
+    dosingConfig.error;
 
   if (error) throw error;
 
@@ -50,6 +52,7 @@ export async function loadGutGuardPageData(profileId: string): Promise<GutGuardP
     doses: doses.data ?? [],
     reminders: reminders.data ?? [],
     onboarding: onboarding.data ?? null,
+    dosingConfig: dosingConfig.data ?? null,
     journeyMessages: journeyMessages.data ?? [],
     careRelationships: community.data?.careRelationships ?? [],
     teams: community.data?.teams ?? [],

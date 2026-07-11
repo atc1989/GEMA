@@ -28,14 +28,19 @@ import {
   dismissGutGuardJourneyMessageAction,
   recordGutGuardDoseAction,
   saveGutGuardJourneyMessageAction,
-  saveGutGuardOnboardingAction,
   saveGutGuardReminderAction,
 } from "@/lib/actions/gutguard-daily";
+import {
+  GutGuardOnboardingFlow,
+  GutGuardReminderSettings,
+  GutGuardSupplyPanel,
+} from "@/features/gutguard-daily/components/gutguard-member-screens";
 import { cn } from "@/lib/utils";
 import type {
   AdminOverview,
   CareRelationshipRow,
   DailyDoseRow,
+  DosingConfigRow,
   GutGuardDoseStatus,
   JourneyMessageRow,
   OnboardingProgressRow,
@@ -48,6 +53,7 @@ export type GutGuardPageData = {
   doses: DailyDoseRow[];
   reminders: ReminderRow[];
   onboarding: OnboardingProgressRow | null;
+  dosingConfig: DosingConfigRow | null;
   journeyMessages: JourneyMessageRow[];
   careRelationships: CareRelationshipRow[];
   teams: TeamRow[];
@@ -129,7 +135,7 @@ export function GutGuardOverview({ data }: { data: GutGuardPageData }) {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <TrackerPanel doses={data.doses.slice(0, 6)} />
+        <CalendarPanel data={data} />
         <div className="grid gap-4">
           <ReminderPanel reminders={data.reminders.slice(0, 4)} />
           <OnboardingStatus progress={data.onboarding} />
@@ -150,45 +156,49 @@ export function GutGuardTracker({ data }: { data: GutGuardPageData }) {
   const grouped = groupDosesByDate(data.doses);
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[360px_1fr]">
-      <Card>
-        <h2 className="font-heading text-lg font-black">Record dose</h2>
-        <p className="mt-1 text-sm font-semibold leading-6 text-muted-foreground">
-          Creates or updates the selected day/slot for your signed-in profile.
-        </p>
-        <form action={recordGutGuardDoseAction} className="mt-4 grid gap-3">
-          <Field label="Date">
-            <Input name="doseDate" type="date" defaultValue={data.today} required />
-          </Field>
-          <Field label="Slot">
-            <Select name="slot" defaultValue="morning">
-              <option value="morning">Morning</option>
-              <option value="midday">Midday</option>
-              <option value="dreams">Dreams</option>
-            </Select>
-          </Field>
-          <Field label="Status">
-            <Select name="status" defaultValue="taken">
-              <option value="scheduled">Scheduled</option>
-              <option value="taken">Taken</option>
-              <option value="skipped">Skipped</option>
-              <option value="missed">Missed</option>
-            </Select>
-          </Field>
-          <Field label="Capsules">
-            <Input name="capsules" type="number" min="0" max="3" defaultValue="1" required />
-          </Field>
-          <Field label="Notes">
-            <Textarea name="notes" placeholder="Optional proof, symptom, or helper note" />
-          </Field>
-          <Button type="submit" variant="brand">
-            <Plus aria-hidden="true" />
-            Save dose
-          </Button>
-        </form>
-      </Card>
+    <div className="grid gap-4 xl:grid-cols-[380px_1fr]">
+      <GutGuardSupplyPanel config={data.dosingConfig} today={data.today} />
 
       <section className="grid gap-3">
+        <Card>
+          <h2 className="font-heading text-lg font-black">Record dose</h2>
+          <p className="mt-1 text-sm font-semibold leading-6 text-muted-foreground">
+            Creates or updates the selected day/slot for your signed-in profile.
+          </p>
+          <form
+            action={recordGutGuardDoseAction}
+            className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          >
+            <Field label="Date">
+              <Input name="doseDate" type="date" defaultValue={data.today} required />
+            </Field>
+            <Field label="Slot">
+              <Select name="slot" defaultValue="morning">
+                <option value="morning">Morning</option>
+                <option value="midday">Midday</option>
+                <option value="dreams">Dreams</option>
+              </Select>
+            </Field>
+            <Field label="Status">
+              <Select name="status" defaultValue="taken">
+                <option value="scheduled">Scheduled</option>
+                <option value="taken">Taken</option>
+                <option value="skipped">Skipped</option>
+                <option value="missed">Missed</option>
+              </Select>
+            </Field>
+            <Field label="Capsules">
+              <Input name="capsules" type="number" min="0" max="3" defaultValue="1" required />
+            </Field>
+            <Field className="sm:col-span-2 lg:col-span-3" label="Notes">
+              <Textarea name="notes" placeholder="Optional proof, symptom, or helper note" />
+            </Field>
+            <Button className="self-end" type="submit" variant="brand">
+              <Plus aria-hidden="true" />
+              Save dose
+            </Button>
+          </form>
+        </Card>
         {data.doses.length ? (
           Object.entries(grouped).map(([date, dayDoses]) => (
             <Card key={date}>
@@ -213,92 +223,51 @@ export function GutGuardTracker({ data }: { data: GutGuardPageData }) {
 }
 
 export function GutGuardReminders({ reminders }: { reminders: ReminderRow[] }) {
+  const slotReminders = reminders.filter((reminder) => reminder.slot !== null);
+
   return (
-    <div className="grid gap-4 xl:grid-cols-[360px_1fr]">
-      <ReminderForm />
-      <section className="grid gap-3">
-        {reminders.length ? (
-          reminders.map((reminder) => (
-            <Card className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" key={reminder.id}>
-              <div>
-                <h2 className="font-heading text-base font-black capitalize">
-                  {reminder.slot ?? "General"} · {formatTime(reminder.local_time)}
-                </h2>
-                <p className="mt-1 text-sm font-semibold text-muted-foreground">
-                  {reminder.channel.replace("_", " ")} · {reminder.timezone} ·{" "}
-                  {reminder.enabled ? "enabled" : "paused"}
-                </p>
-              </div>
-              <form action={deleteGutGuardReminderAction}>
-                <input type="hidden" name="id" value={reminder.id} />
-                <Button type="submit" variant="destructive" size="sm">
-                  Delete
-                </Button>
-              </form>
-            </Card>
-          ))
-        ) : (
-          <EmptyState
-            description="Create your first reminder. RLS keeps reminder rows tied to your GEMA profile."
-            icon={Bell}
-            title="No reminders yet"
-          />
-        )}
-      </section>
+    <div className="grid gap-4 xl:grid-cols-[420px_1fr]">
+      <GutGuardReminderSettings reminders={reminders} />
+      <div className="grid content-start gap-4">
+        <ReminderForm />
+        <section className="grid gap-3">
+          {slotReminders.length ? (
+            slotReminders.map((reminder) => (
+              <Card className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" key={reminder.id}>
+                <div>
+                  <h2 className="font-heading text-base font-black capitalize">
+                    {reminder.slot ?? "General"} · {formatTime(reminder.local_time)}
+                  </h2>
+                  <p className="mt-1 text-sm font-semibold text-muted-foreground">
+                    {reminder.channel.replace("_", " ")} · {reminder.timezone} ·{" "}
+                    {reminder.enabled ? "enabled" : "paused"}
+                  </p>
+                </div>
+                <form action={deleteGutGuardReminderAction}>
+                  <input type="hidden" name="id" value={reminder.id} />
+                  <Button type="submit" variant="destructive" size="sm">
+                    Delete
+                  </Button>
+                </form>
+              </Card>
+            ))
+          ) : (
+            <EmptyState
+              description="Slot reminders (Morning Habit, Midday Boost, Sweet Dreams) created here or during onboarding show up in this list."
+              icon={Bell}
+              title="No slot reminders yet"
+            />
+          )}
+        </section>
+      </div>
     </div>
   );
 }
 
 export function GutGuardOnboarding({ progress }: { progress: OnboardingProgressRow | null }) {
-  const completed = new Set(progress?.completed_steps ?? []);
-
   return (
-    <div className="grid gap-4 xl:grid-cols-[420px_1fr]">
-      <Card>
-        <h2 className="font-heading text-lg font-black">Onboarding progress</h2>
-        <p className="mt-1 text-sm font-semibold leading-6 text-muted-foreground">
-          Capture the GutGuard readiness flow without creating a second user account.
-        </p>
-        <form action={saveGutGuardOnboardingAction} className="mt-4 grid gap-3">
-          <Field label="Current step">
-            <Select name="currentStep" defaultValue={progress?.current_step ?? "profile"}>
-              <option value="profile">Profile</option>
-              <option value="dosing">Dosing</option>
-              <option value="reminders">Reminders</option>
-              <option value="consent">Consent</option>
-              <option value="complete">Complete</option>
-            </Select>
-          </Field>
-          <Field label="Tier">
-            <Select name="tier" defaultValue={String(progress?.tier ?? 1)}>
-              <option value="1">Tier 1</option>
-              <option value="2">Tier 2</option>
-              <option value="3">Tier 3</option>
-              <option value="4">Tier 4</option>
-            </Select>
-          </Field>
-          <Field label="Default channel">
-            <Select name="defaultChannel" defaultValue={progress?.default_channel ?? "in_app"}>
-              <option value="in_app">In app</option>
-              <option value="push">Push</option>
-              <option value="sms">SMS</option>
-              <option value="messenger">Messenger</option>
-              <option value="viber">Viber</option>
-              <option value="call">Call</option>
-            </Select>
-          </Field>
-          <div className="grid gap-2 rounded-xl border border-border/70 p-3">
-            {["profile", "dosing", "reminders", "consent"].map((step) => (
-              <label className="flex items-center gap-2 text-sm font-bold capitalize" key={step}>
-                <Checkbox name="completedSteps" value={step} defaultChecked={completed.has(step)} />
-                {step}
-              </label>
-            ))}
-          </div>
-          <Button type="submit" variant="brand">Save onboarding</Button>
-        </form>
-      </Card>
-
+    <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
+      <GutGuardOnboardingFlow progress={progress} />
       <OnboardingStatus progress={progress} large />
     </div>
   );
@@ -516,21 +485,142 @@ function QuickLink({ href, icon: Icon, label }: { href: string; icon: LucideIcon
   );
 }
 
-function TrackerPanel({ doses }: { doses: DailyDoseRow[] }) {
+type CalendarDayState = "complete" | "partial" | "missed" | "today" | "upcoming" | "idle";
+
+const calendarCellTone: Record<CalendarDayState, string> = {
+  complete: "bg-success text-white",
+  partial: "border border-gold/60 bg-gold/15 text-foreground",
+  missed: "bg-destructive/10 text-destructive",
+  today: "border-2 border-brand font-black text-brand",
+  upcoming: "bg-secondary/40 text-muted-foreground",
+  idle: "bg-secondary/40 text-muted-foreground",
+};
+
+const calendarLegend: Array<[CalendarDayState, string]> = [
+  ["complete", "Complete"],
+  ["partial", "Partial"],
+  ["missed", "Missed"],
+  ["today", "Today"],
+  ["upcoming", "Upcoming"],
+];
+
+// ponytail: read-only month view; day drill-down lives on the tracker page.
+function CalendarPanel({ data }: { data: GutGuardPageData }) {
+  const [year, month, todayDay] = data.today.split("-").map(Number);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const firstWeekday = new Date(year, month - 1, 1).getDay();
+  const dateOf = (day: number) =>
+    `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const byDate = groupDosesByDate(data.doses);
+
+  const takenCount = (day: number) =>
+    (byDate[dateOf(day)] ?? []).filter((dose) => dose.status === "taken").length;
+
+  const stateOf = (day: number): CalendarDayState => {
+    const rows = byDate[dateOf(day)] ?? [];
+    const taken = takenCount(day);
+    if (rows.length && taken === rows.length) return "complete";
+    if (taken > 0) return "partial";
+    if (day === todayDay) return "today";
+    if (day > todayDay) return "upcoming";
+    if (data.dosingConfig && dateOf(day) >= data.dosingConfig.start_date) return "missed";
+    return "idle";
+  };
+
+  let streak = 0;
+  let cursor = takenCount(todayDay) > 0 ? todayDay : todayDay - 1;
+  while (cursor >= 1 && takenCount(cursor) > 0) {
+    streak += 1;
+    cursor -= 1;
+  }
+  const takenDays = Array.from({ length: todayDay }, (_, i) => i + 1).filter(
+    (day) => takenCount(day) > 0,
+  ).length;
+  const adherence = Math.round((takenDays / todayDay) * 100);
+
   return (
     <Card>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="font-heading text-lg font-black">Recent doses</h2>
+        <h2 className="font-heading text-lg font-black">{data.monthLabel}</h2>
         <Link href="/gutguard-daily/tracker" className="text-xs font-black text-brand">Open tracker</Link>
       </div>
-      {doses.length ? (
-        <div className="grid gap-2">
-          {doses.map((dose) => <DoseRow dose={dose} key={dose.id} />)}
-        </div>
-      ) : (
-        <p className="text-sm font-semibold text-muted-foreground">No dose rows yet.</p>
-      )}
+
+      <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-bold text-muted-foreground">
+        {calendarLegend.map(([state, label]) => (
+          <span className="inline-flex items-center gap-1.5" key={state}>
+            <i className={cn("size-2.5 rounded-sm", calendarCellTone[state])} />
+            {label}
+          </span>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1.5">
+        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((weekday) => (
+          <div className="text-center text-[10px] font-black text-muted-foreground" key={weekday}>
+            {weekday}
+          </div>
+        ))}
+        {Array.from({ length: firstWeekday }, (_, index) => (
+          <div key={`blank-${index}`} />
+        ))}
+        {Array.from({ length: daysInMonth }, (_, index) => {
+          const day = index + 1;
+          const state = stateOf(day);
+          const rows = byDate[dateOf(day)] ?? [];
+          return (
+            <div
+              className={cn(
+                "relative flex min-h-11 items-center justify-center rounded-lg text-sm font-bold",
+                calendarCellTone[state],
+              )}
+              key={day}
+              title={`${data.monthLabel.split(" ")[0]} ${day}: ${state}`}
+            >
+              {state === "complete" ? (
+                <>
+                  <span className="absolute left-1 top-0.5 text-[9px] opacity-85">{day}</span>
+                  <span className="text-base font-black">✓</span>
+                </>
+              ) : state === "partial" ? (
+                <>
+                  <span className="absolute left-1 top-0.5 text-[9px] opacity-85">{day}</span>
+                  <span className="text-xs font-black">
+                    {takenCount(day)}/{rows.length}
+                  </span>
+                </>
+              ) : (
+                day
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <CalendarStat label="Day streak" value={streak} tone="text-success" />
+        <CalendarStat label="Days taken" value={takenDays} tone="text-brand" />
+        <CalendarStat label="Adherence" value={`${adherence}%`} tone="text-gold" />
+      </div>
     </Card>
+  );
+}
+
+function CalendarStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number | string;
+  tone: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border/70 px-2 py-3 text-center">
+      <div className={cn("font-heading text-xl font-black leading-none", tone)}>{value}</div>
+      <div className="mt-1 text-[9px] font-black uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+    </div>
   );
 }
 

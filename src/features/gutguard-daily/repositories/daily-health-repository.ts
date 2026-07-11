@@ -73,6 +73,17 @@ export type OnboardingProgressRow = {
   updated_at: string;
 };
 
+export type DosingConfigRow = {
+  patient_id: string;
+  product: string;
+  total_capsules: number;
+  capsules_per_day: number;
+  start_date: string;
+  locale: "en" | "tl" | "bis";
+  created_at: string;
+  updated_at: string;
+};
+
 export type CareRelationshipRow = {
   id: string;
   patient_id: string;
@@ -149,6 +160,8 @@ export interface DailyHealthRepository {
   createReminder(input: Partial<ReminderRow>): Promise<RepositoryResult<ReminderRow>>;
   updateReminder(id: string, input: Partial<ReminderRow>): Promise<RepositoryResult<ReminderRow>>;
   deleteReminder(id: string): Promise<RepositoryResult<void>>;
+  getDosingConfig(patientId: string): Promise<RepositoryResult<DosingConfigRow | null>>;
+  upsertDosingConfig(input: Partial<DosingConfigRow>): Promise<RepositoryResult<DosingConfigRow>>;
   getOnboardingProgress(patientId: string): Promise<RepositoryResult<OnboardingProgressRow | null>>;
   upsertOnboardingProgress(input: Partial<OnboardingProgressRow>): Promise<RepositoryResult<OnboardingProgressRow>>;
   listJourneyMessages(patientId: string): Promise<RepositoryResult<JourneyMessageRow[]>>;
