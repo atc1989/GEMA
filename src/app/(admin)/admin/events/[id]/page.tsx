@@ -202,12 +202,12 @@ export default async function EventDetailPage({
           className="rounded-xl border border-border/70 shadow-sm"
         />
 
-        <div className="grid content-start gap-4">
-          <Card className="grid content-start gap-4 p-5">
+        <Card className="flex flex-col gap-4 p-5">
+          <div>
             <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
               Speaker
             </p>
-            <div className="flex items-center gap-3">
+            <div className="mt-3 flex items-center gap-3">
               <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-secondary text-brand">
                 {speaker?.photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -229,24 +229,24 @@ export default async function EventDetailPage({
                 </p>
               </div>
             </div>
-          </Card>
+          </div>
 
-          <Card className="grid gap-3 p-5">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                Event QR code
-              </p>
-              <p className="mt-1 text-sm font-semibold text-muted-foreground">
-                Scans to the public invite page. Download for flyers and
-                posters.
-              </p>
+          <div className="flex flex-1 flex-col border-t border-border pt-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              Event QR code
+            </p>
+            <p className="mt-1 text-sm font-semibold text-muted-foreground">
+              Scans to the public invite page. Download for flyers and posters.
+            </p>
+            <div className="flex flex-1 items-center pt-4">
+              <QrDownload
+                path={`/invite/${event.id}`}
+                fileName={`${slugify(event.title)}-qr`}
+                className="w-full"
+              />
             </div>
-            <QrDownload
-              path={`/invite/${event.id}`}
-              fileName={`${slugify(event.title)}-qr`}
-            />
-          </Card>
-        </div>
+          </div>
+        </Card>
       </div>
 
       {event.description ? (
