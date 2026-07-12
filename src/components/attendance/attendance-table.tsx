@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
+import { RemoveRegistrationButton } from "@/components/attendance/remove-registration-button";
 import { Card } from "@/components/ui/card";
 import { formatEventDateTime } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,8 @@ type AttendanceTableProps = {
   rows: AttendanceRow[];
   emptyLabel: string;
   variant?: "checked" | "pending";
+  /** When set, each row gets a remove button that cancels the registration for this event. */
+  removableEventId?: string;
 };
 
 export function AttendanceTable({
@@ -33,6 +36,7 @@ export function AttendanceTable({
   rows,
   emptyLabel,
   variant = "pending",
+  removableEventId,
 }: AttendanceTableProps) {
   return (
     <Card className="p-0">
@@ -92,6 +96,13 @@ export function AttendanceTable({
                   </span>
                 ) : null}
               </div>
+              {removableEventId ? (
+                <RemoveRegistrationButton
+                  eventId={removableEventId}
+                  registrationId={row.id}
+                  attendeeName={row.name}
+                />
+              ) : null}
             </li>
           ))}
         </ul>

@@ -8,7 +8,15 @@ export const prospectRegistrationSchema = z.object({
     .trim()
     .min(7, "Enter a valid mobile number.")
     .max(20)
-    .regex(/^[0-9+()\-\s]+$/, "Mobile number contains invalid characters."),
+    .regex(/^[0-9+()\-\s]+$/, "Mobile number contains invalid characters.")
+    // ponytail: PH-only normalization to +639…; other countries pass through as typed.
+    .transform((v) => {
+      const digits = v.replace(/[^\d+]/g, "");
+      if (/^09\d{9}$/.test(digits)) return `+63${digits.slice(1)}`;
+      if (/^9\d{9}$/.test(digits)) return `+63${digits}`;
+      if (/^639\d{9}$/.test(digits)) return `+${digits}`;
+      return digits;
+    }),
   email: z.string().trim().email("Enter a valid email address.").max(160),
   city: z.string().trim().min(2, "Enter your city.").max(120),
   consentPrivacy: z

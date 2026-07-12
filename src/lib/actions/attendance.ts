@@ -165,6 +165,44 @@ export async function recordAttendance(input: {
   };
 }
 
+/**
+ * Soft-removes a registration (status -> cancelled). Cancelled registrations
+ * disappear from attendance lists, free up capacity, and their QR pass is
+ * rejected at check-in. RLS (registrations_manage_event) enforces the same
+ * can_manage_event gate server-side.
+ */
+export async function cancelRegistration(input: {
+  eventId: string;
+  registrationId: string;
+}): Promise<ActionResult<null>> {
+  const parsed = z
+    .object({ eventId: z.string().uuid(), registrationId: z.string().uuid() })
+    .safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid input." };
+  }
+
+  const perm = await canManage(parsed.data.eventId);
+  if (!perm.ok) return perm;
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("event_registrations")
+    .update({ status: "cancelled" })
+    .eq("id", parsed.data.registrationId)
+    .eq("event_id", parsed.data.eventId)
+    .neq("status", "cancelled")
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { ok: false, error: friendlyDbError(error.message) };
+  if (!data) return { ok: false, error: "Registration not found or already removed." };
+
+  revalidatePath(`/admin/events/${parsed.data.eventId}/attendance`);
+  revalidatePath(`/member/events/${parsed.data.eventId}/attendance`);
+  return { ok: true, data: null };
+}
+
 function friendlyDbError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("not authorized")) return "You are not authorized to manage this event.";

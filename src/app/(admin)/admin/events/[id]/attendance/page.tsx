@@ -171,6 +171,7 @@ export default async function EventAttendancePage({
         rows={pendingRows}
         emptyLabel="Everyone registered has checked in."
         variant="pending"
+        removableEventId={id}
       />
     </div>
   );

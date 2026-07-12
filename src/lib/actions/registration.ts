@@ -115,6 +115,12 @@ export async function registerProspectForEvent(
 
     // Retry once only on a pass-code/qr collision; otherwise surface a message.
     const message = error.message.toLowerCase();
+    if (message.includes("uniq_event_registration_attendee")) {
+      return {
+        ok: false,
+        error: "This name and email are already registered for this event.",
+      };
+    }
     const isCollision =
       message.includes("duplicate") ||
       message.includes("unique") ||
