@@ -7,15 +7,23 @@ import type { EventMode, EventType } from "@/lib/database/types";
  *
  * A "No-Zero day" uses the same definition as the dashboard streak
  * (see {@link file://./../no-zero.ts}): a day on which the member sponsored at
- * least one prospect. The grid surfaces ALL published events the member can
- * see (RLS scopes visibility), with the member's own registration status
- * layered on top — an RSVP makes the day read as "going".
+ * least one prospect. The grid surfaces only events personally relevant to the
+ * member: events they host/created, events they generated a referral link for,
+ * and events they RSVP'd to — with their own registration status layered on
+ * top (an RSVP makes the day read as "going"). Each event also carries its
+ * attended people (RLS scopes this to everyone for events the member manages,
+ * and to their own guests otherwise).
  *
  * All date bucketing is done in UTC to stay consistent with `updateNoZeroStreak`,
  * which derives "today" from `toISOString()`. (Same timezone caveat applies.)
  */
 
 export type DayStatus = "done" | "going" | "zero";
+
+export type DayAttendee = {
+  name: string;
+  kind: "member" | "prospect";
+};
 
 export type DayEvent = {
   id: string;
@@ -28,6 +36,8 @@ export type DayEvent = {
   capacity: number | null;
   /** This member's registration status for the event, if any. */
   registrationStatus: string | null;
+  /** People who attended (checked in), scoped by RLS to what the member may see. */
+  attendees: DayAttendee[];
 };
 
 export type DayProspect = {
@@ -102,9 +112,24 @@ type MonthEventRow = {
   capacity: number | null;
 };
 
+type ReferralEventRow = { event_id: string; events: MonthEventRow | null };
+
+type AttendeeRow = {
+  event_id: string;
+  attendee_name: string;
+  registration_kind: "member" | "prospect";
+};
+
+const EVENT_COLS = "id, title, event_type, mode, starts_at, venue_name, capacity";
+
 export async function buildNoZeroMonth(
   supabase: SupabaseClient,
-  member: { id: string; noZeroCurrentStreak: number; noZeroBestStreak: number },
+  member: {
+    id: string;
+    profileId: string;
+    noZeroCurrentStreak: number;
+    noZeroBestStreak: number;
+  },
   ym?: string | null,
 ): Promise<NoZeroMonth> {
   const { year, monthIndex } = parseYm(ym);
@@ -127,33 +152,52 @@ export async function buildNoZeroMonth(
 
   const todayIso = new Date().toISOString().slice(0, 10);
 
-  const [prospectsRes, registrationsRes, monthEventsRes] = await Promise.all([
-    supabase
-      .from("prospects")
-      .select("id, full_name, stage, created_at")
-      .eq("sponsor_member_id", member.id)
-      .gte("created_at", monthStart.toISOString())
-      .lt("created_at", monthEnd.toISOString())
-      .returns<ProspectRow[]>(),
-    supabase
-      .from("event_registrations")
-      .select(
-        "id, status, events!inner(id, title, event_type, mode, starts_at, venue_name, capacity)",
-      )
-      .eq("member_id", member.id)
-      .neq("status", "cancelled")
-      .gte("events.starts_at", monthStart.toISOString())
-      .lt("events.starts_at", monthEnd.toISOString())
-      .returns<RegistrationRow[]>(),
-    supabase
-      .from("events")
-      .select("id, title, event_type, mode, starts_at, venue_name, capacity")
-      .eq("status", "published")
-      .gte("starts_at", monthStart.toISOString())
-      .lt("starts_at", monthEnd.toISOString())
-      .order("starts_at", { ascending: true })
-      .returns<MonthEventRow[]>(),
-  ]);
+  const [prospectsRes, registrationsRes, myEventsRes, referralEventsRes, attendeesRes] =
+    await Promise.all([
+      supabase
+        .from("prospects")
+        .select("id, full_name, stage, created_at")
+        .eq("sponsor_member_id", member.id)
+        .gte("created_at", monthStart.toISOString())
+        .lt("created_at", monthEnd.toISOString())
+        .returns<ProspectRow[]>(),
+      supabase
+        .from("event_registrations")
+        .select(`id, status, events!inner(${EVENT_COLS})`)
+        .eq("member_id", member.id)
+        .neq("status", "cancelled")
+        .gte("events.starts_at", monthStart.toISOString())
+        .lt("events.starts_at", monthEnd.toISOString())
+        .returns<RegistrationRow[]>(),
+      // Events the member created or hosts.
+      supabase
+        .from("events")
+        .select(EVENT_COLS)
+        .eq("status", "published")
+        .or(`host_member_id.eq.${member.id},created_by_profile_id.eq.${member.profileId}`)
+        .gte("starts_at", monthStart.toISOString())
+        .lt("starts_at", monthEnd.toISOString())
+        .returns<MonthEventRow[]>(),
+      // Events the member generated a referral link for.
+      supabase
+        .from("referrals")
+        .select(`event_id, events!inner(${EVENT_COLS})`)
+        .eq("referrer_member_id", member.id)
+        .not("event_id", "is", null)
+        .eq("events.status", "published")
+        .gte("events.starts_at", monthStart.toISOString())
+        .lt("events.starts_at", monthEnd.toISOString())
+        .returns<ReferralEventRow[]>(),
+      // Attended check-ins this month; RLS returns all rows for events the
+      // member manages, and only their own guests for everything else.
+      supabase
+        .from("event_registrations")
+        .select("event_id, attendee_name, registration_kind, events!inner(starts_at)")
+        .eq("status", "attended")
+        .gte("events.starts_at", monthStart.toISOString())
+        .lt("events.starts_at", monthEnd.toISOString())
+        .returns<AttendeeRow[]>(),
+    ]);
 
   const prospectsByDay = new Map<string, DayProspect[]>();
   for (const p of prospectsRes.data ?? []) {
@@ -168,8 +212,24 @@ export async function buildNoZeroMonth(
     if (r.events) regStatusByEventId.set(r.events.id, r.status);
   }
 
+  const attendeesByEventId = new Map<string, DayAttendee[]>();
+  for (const a of attendeesRes.data ?? []) {
+    const list = attendeesByEventId.get(a.event_id) ?? [];
+    list.push({ name: a.attendee_name, kind: a.registration_kind });
+    attendeesByEventId.set(a.event_id, list);
+  }
+
+  // Merge the three sources (hosted/created, referral-linked, RSVP'd), deduped by id.
+  const eventById = new Map<string, MonthEventRow>();
+  for (const ev of myEventsRes.data ?? []) eventById.set(ev.id, ev);
+  for (const r of referralEventsRes.data ?? []) if (r.events) eventById.set(r.events.id, r.events);
+  for (const r of registrationsRes.data ?? []) if (r.events) eventById.set(r.events.id, r.events);
+
   const eventsByDay = new Map<string, DayEvent[]>();
-  for (const ev of monthEventsRes.data ?? []) {
+  const monthEvents = Array.from(eventById.values()).sort((a, b) =>
+    a.starts_at.localeCompare(b.starts_at),
+  );
+  for (const ev of monthEvents) {
     const key = ev.starts_at.slice(0, 10);
     const list = eventsByDay.get(key) ?? [];
     list.push({
@@ -181,6 +241,7 @@ export async function buildNoZeroMonth(
       venueName: ev.venue_name,
       capacity: ev.capacity,
       registrationStatus: regStatusByEventId.get(ev.id) ?? null,
+      attendees: attendeesByEventId.get(ev.id) ?? [],
     });
     eventsByDay.set(key, list);
   }

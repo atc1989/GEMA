@@ -59,7 +59,8 @@ export function ScaledPoster({
     <div ref={wrapRef} className="min-w-0">
       <div
         className={className}
-        style={{ width: POSTER_W * scale, height: POSTER_H * scale, margin: "0 auto", overflow: "hidden" }}
+        // maxWidth caps the first paint (scale=1 → 360px) before the ResizeObserver fires
+        style={{ width: POSTER_W * scale, maxWidth: "100%", height: POSTER_H * scale, margin: "0 auto", overflow: "hidden" }}
       >
         <div style={{ width: POSTER_W, height: POSTER_H, transform: `scale(${scale})`, transformOrigin: "top left" }}>
           <EventPoster data={data} template={template} />

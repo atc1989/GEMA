@@ -121,7 +121,7 @@ export default async function EventAttendancePage({
   );
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href={`/admin/events/${id}`}

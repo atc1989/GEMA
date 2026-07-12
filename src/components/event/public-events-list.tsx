@@ -12,6 +12,8 @@ import type { EventType } from "@/lib/database/types";
 import { cn } from "@/lib/utils";
 import { formatEventDateTime } from "@/lib/utils/format";
 
+const PAGE_SIZE = 20;
+
 export type PublicEventRow = {
   id: string;
   title: string;
@@ -27,6 +29,7 @@ export type PublicEventRow = {
 export function PublicEventsList({ events }: { events: PublicEventRow[] }) {
   const [q, setQ] = useState("");
   const [type, setType] = useState("");
+  const [page, setPage] = useState(1);
 
   const filtered = useMemo(
     () =>
@@ -35,6 +38,15 @@ export function PublicEventsList({ events }: { events: PublicEventRow[] }) {
       ),
     [events, q, type],
   );
+
+  // Clamp instead of resetting on filter change: search shrinks the list, so the
+  // stale page number just collapses back into range.
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const visible = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  const pagerButton =
+    "rounded-lg border border-border px-3 py-1.5 transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50";
 
   return (
     <div className="grid gap-3">
@@ -45,7 +57,7 @@ export function PublicEventsList({ events }: { events: PublicEventRow[] }) {
         </p>
       ) : (
         <div className="grid gap-3">
-          {filtered.map((ev) => {
+          {visible.map((ev) => {
             const typeMeta = TYPE_META[ev.event_type] ?? TYPE_META.other;
             const LocationIcon = ev.mode === "online" ? Monitor : MapPin;
             const location =
@@ -101,6 +113,31 @@ export function PublicEventsList({ events }: { events: PublicEventRow[] }) {
           })}
         </div>
       )}
+      {totalPages > 1 ? (
+        <div className="flex items-center justify-between gap-3 text-sm font-semibold text-muted-foreground">
+          <span>
+            Page {safePage} of {totalPages}
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className={pagerButton}
+              disabled={safePage <= 1}
+              onClick={() => setPage(safePage - 1)}
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              className={pagerButton}
+              disabled={safePage >= totalPages}
+              onClick={() => setPage(safePage + 1)}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

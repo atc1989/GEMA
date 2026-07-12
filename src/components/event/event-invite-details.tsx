@@ -37,7 +37,7 @@ export function EventInviteDetails({
   const template = asPosterTemplateId(event.metadata?.poster_template);
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       {event.bannerUrl ? (
         <div className="overflow-hidden rounded-2xl border border-border/70">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -58,7 +58,7 @@ export function EventInviteDetails({
           <Badge>{event.eventType}</Badge>
           <Badge tone="muted">{event.mode.replace("_", " ")}</Badge>
         </div>
-        <h1 className="mt-2 text-2xl font-black tracking-tight">{event.title}</h1>
+        <h1 className="mt-2 break-words text-2xl font-black tracking-tight">{event.title}</h1>
       </div>
 
       <Card className="grid gap-3 p-5">
@@ -100,7 +100,7 @@ export function EventInviteDetails({
           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
             About this event
           </p>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-6">
+          <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">
             {event.description}
           </p>
         </Card>
@@ -177,7 +177,7 @@ function DetailRow({
         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
           {label}
         </p>
-        <div className="text-sm font-semibold">{children}</div>
+        <div className="break-words text-sm font-semibold">{children}</div>
       </div>
     </div>
   );

@@ -260,6 +260,41 @@ function DayButton({ cell, onOpen }: { cell: DayCell; onOpen: () => void }) {
   );
 }
 
+const ATTENDEE_GROUPS = [
+  { kind: "member", label: "Members attended" },
+  { kind: "prospect", label: "Prospects attended" },
+] as const;
+
+function EventAttendees({ attendees }: { attendees: DayCell["events"][number]["attendees"] }) {
+  if (attendees.length === 0) return null;
+
+  return (
+    <div className="mt-2 grid gap-2 pl-[18px]">
+      {ATTENDEE_GROUPS.map(({ kind, label }) => {
+        const group = attendees.filter((a) => a.kind === kind);
+        if (group.length === 0) return null;
+        return (
+          <div key={kind}>
+            <p className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+              {label} ({group.length})
+            </p>
+            <ul className="mt-1 flex flex-wrap gap-1">
+              {group.map((a, i) => (
+                <li
+                  key={`${a.name}-${i}`}
+                  className="rounded-lg bg-card px-2 py-0.5 text-[11px] font-bold"
+                >
+                  {a.name}
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function DayDetailDialog({ cell, onClose }: { cell: DayCell; onClose: () => void }) {
   return (
     <div
@@ -378,6 +413,7 @@ function DayDetailDialog({ cell, onClose }: { cell: DayCell; onClose: () => void
                       </span>
                       {ev.capacity != null ? <span>{ev.capacity} seats</span> : null}
                     </div>
+                    <EventAttendees attendees={ev.attendees} />
                     <Link
                       href={`/member/events/${ev.id}`}
                       className="mt-2 inline-flex items-center gap-1.5 pl-[18px] text-xs font-bold text-brand hover:underline"

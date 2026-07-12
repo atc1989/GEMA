@@ -149,7 +149,7 @@ export default async function MemberDashboardPage() {
     // values, which are patched onto the result below once computed.
     buildNoZeroMonth(
       supabase,
-      { id: member.id, noZeroCurrentStreak: 0, noZeroBestStreak: 0 },
+      { id: member.id, profileId, noZeroCurrentStreak: 0, noZeroBestStreak: 0 },
       today.slice(0, 7),
     ),
     getMusterData(supabase, member.id),
@@ -188,7 +188,7 @@ export default async function MemberDashboardPage() {
   const todayGuide = WEEK_GUIDE[todayWeekday] ?? WEEK_GUIDE[0]!;
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <MusterReminder
         memberName={firstName(profile.fullName, member.username)}
         state={memberState}
@@ -294,6 +294,7 @@ export default async function MemberDashboardPage() {
             maximumFractionDigits: 2,
           })}`}
           tone="gold"
+          className="col-span-2 lg:col-span-1"
         />
       </section>
     </div>
@@ -325,7 +326,7 @@ function TodayHero({
     <section className="overflow-hidden rounded-2xl bg-linear-to-br from-brand to-brand-dark text-white shadow-[0_18px_50px_rgb(14_34_73/18%)]">
       <div className="grid gap-5 p-5 lg:grid-cols-[1.25fr_0.75fr] lg:p-6">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-blue-100">
+          <p className="truncate text-xs font-bold uppercase tracking-widest text-blue-100">
             @{username} / {memberCode}
           </p>
           <h2 className="mt-2 font-heading text-3xl font-extrabold tracking-tight">

@@ -9,6 +9,7 @@ type DashboardCardProps = {
   value: string;
   helper?: string;
   tone?: "brand" | "success" | "gold" | "purple";
+  className?: string;
 };
 
 const toneClass = {
@@ -24,10 +25,11 @@ export function DashboardCard({
   value,
   helper,
   tone = "brand",
+  className,
 }: DashboardCardProps) {
   return (
-    <Card className="p-4">
-      <div className="flex items-start gap-3">
+    <Card className={cn("p-4", className)}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
         <div
           className={cn(
             "flex size-10 shrink-0 items-center justify-center rounded-xl",
@@ -38,7 +40,7 @@ export function DashboardCard({
         </div>
         <div className="min-w-0">
           <div className="font-heading text-[11px] font-bold text-muted-foreground">{label}</div>
-          <div className="font-heading mt-0.5 text-[22px] font-extrabold leading-tight tracking-tight">
+          <div className="font-heading mt-0.5 break-words text-[22px] font-extrabold leading-tight tracking-tight">
             {value}
           </div>
           {helper ? (

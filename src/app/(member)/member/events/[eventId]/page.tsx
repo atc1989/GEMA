@@ -96,7 +96,7 @@ export default async function MemberEventPage({
     : null;
 
   return (
-    <div className="mx-auto grid max-w-2xl gap-4">
+    <div className="mx-auto grid max-w-2xl grid-cols-1 gap-4">
       <Link
         href="/member/events"
         className="inline-flex items-center gap-1.5 text-sm font-bold text-muted-foreground hover:text-foreground"

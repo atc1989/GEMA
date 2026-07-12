@@ -15,7 +15,9 @@ export default async function PublicEventsPage() {
     .eq("status", "published")
     .eq("visibility", "public")
     .order("starts_at", { ascending: true })
-    .limit(20)
+    // ponytail: capped fetch, paged client-side so instant search covers everything;
+    // move search + paging server-side if upcoming public events ever exceed this.
+    .limit(100)
     .returns<PublicEventRow[]>();
 
   const events = data ?? [];
