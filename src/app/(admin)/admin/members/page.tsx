@@ -4,7 +4,10 @@ import { ChevronRight, IdCard } from "lucide-react";
 import { SetPasswordButton } from "@/components/admin/set-password-button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { cleanPage, Pagination } from "@/components/ui/pagination";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+const PAGE_SIZE = 20;
 
 type MemberRow = {
   id: string;
@@ -22,25 +25,40 @@ type ProspectAggRow = {
 
 type MemberStats = { total: number; viaLinks: number; converted: number };
 
-export default async function AdminMembersPage() {
+export default async function AdminMembersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: rawPage } = await searchParams;
+  const page = cleanPage(rawPage);
+  const from = (page - 1) * PAGE_SIZE;
+
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: members }, { data: prospectAgg }] = await Promise.all([
-    supabase
-      .from("members")
-      .select("id, username, member_code, status, profile_id")
-      .order("created_at", { ascending: false })
-      .returns<MemberRow[]>(),
-    supabase
-      .from("prospects")
-      .select("sponsor_member_id, source, converted_member_id")
-      .not("sponsor_member_id", "is", null)
-      .returns<ProspectAggRow[]>(),
-  ]);
+  const { data: members, count } = await supabase
+    .from("members")
+    .select("id, username, member_code, status, profile_id", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(from, from + PAGE_SIZE - 1)
+    .returns<MemberRow[]>();
 
   const rows = members ?? [];
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
-  // ponytail: aggregate in JS; move to a grouped RPC if prospects reach many thousands.
+  let prospectAgg: ProspectAggRow[] = [];
+  if (rows.length > 0) {
+    const { data } = await supabase
+      .from("prospects")
+      .select("sponsor_member_id, source, converted_member_id")
+      .in(
+        "sponsor_member_id",
+        rows.map((m) => m.id),
+      )
+      .returns<ProspectAggRow[]>();
+    prospectAgg = data ?? [];
+  }
+
   const statsByMember = new Map<string, MemberStats>();
   for (const p of prospectAgg ?? []) {
     const s = statsByMember.get(p.sponsor_member_id) ?? {
@@ -117,6 +135,11 @@ export default async function AdminMembersPage() {
           </ul>
         </Card>
       )}
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        hrefFor={(p) => (p > 1 ? `/admin/members?page=${p}` : "/admin/members")}
+      />
     </div>
   );
 }

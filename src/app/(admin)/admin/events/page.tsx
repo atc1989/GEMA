@@ -6,10 +6,13 @@ import { ExportReportMenu } from "@/components/event/export-report-menu";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LinkTabs } from "@/components/ui/link-tabs";
+import { cleanPage, Pagination } from "@/components/ui/pagination";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import type { EventStatus } from "@/lib/database/types";
+
+const PAGE_SIZE = 20;
 
 const FILTERS: { key: string; label: string; status?: EventStatus }[] = [
   { key: "all", label: "All" },
@@ -18,23 +21,35 @@ const FILTERS: { key: string; label: string; status?: EventStatus }[] = [
   { key: "cancelled", label: "Cancelled", status: "cancelled" },
 ];
 
+function pageHref(page: number, statusKey: string) {
+  const params = new URLSearchParams();
+  if (statusKey !== "all") params.set("status", statusKey);
+  if (page > 1) params.set("page", String(page));
+  const suffix = params.toString();
+  return suffix ? `/admin/events?${suffix}` : "/admin/events";
+}
+
 export default async function AdminEventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; page?: string }>;
 }) {
-  const { status } = await searchParams;
+  const { status, page: rawPage } = await searchParams;
   const active = FILTERS.find((f) => f.key === status) ?? FILTERS[0];
+  const page = cleanPage(rawPage);
+  const from = (page - 1) * PAGE_SIZE;
 
   const supabase = await createSupabaseServerClient();
   let query = supabase
     .from("events")
-    .select("*")
-    .order("starts_at", { ascending: false });
+    .select("*", { count: "exact" })
+    .order("starts_at", { ascending: false })
+    .range(from, from + PAGE_SIZE - 1);
   if (active.status) query = query.eq("status", active.status);
 
-  const { data, error } = await query.returns<EventRow[]>();
+  const { data, error, count } = await query.returns<EventRow[]>();
   const events = (data ?? []).map(mapEventRow);
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   return (
     <div className="grid gap-4">
@@ -45,7 +60,7 @@ export default async function AdminEventsPage({
           tabs={FILTERS.map((f) => ({
             key: f.key,
             label: f.label,
-            href: f.key === "all" ? "/admin/events" : `/admin/events?status=${f.key}`,
+            href: pageHref(1, f.key),
           }))}
         />
         <div className="flex items-center gap-2">
@@ -71,11 +86,14 @@ export default async function AdminEventsPage({
           description="Create your first event to start managing registrations and attendance."
         />
       ) : (
-        <div className="grid gap-3">
-          {events.map((event) => (
-            <EventListItem key={event.id} event={event} />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-3">
+            {events.map((event) => (
+              <EventListItem key={event.id} event={event} />
+            ))}
+          </div>
+          <Pagination page={page} totalPages={totalPages} hrefFor={(p) => pageHref(p, active.key)} />
+        </>
       )}
     </div>
   );

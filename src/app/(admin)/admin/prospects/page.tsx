@@ -3,8 +3,11 @@ import { Users } from "lucide-react";
 import { ConvertProspectButton } from "@/components/prospect/convert-prospect-button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { cleanPage, Pagination } from "@/components/ui/pagination";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatEventDateTime } from "@/lib/utils/format";
+
+const PAGE_SIZE = 20;
 
 type ProspectRow = {
   id: string;
@@ -16,15 +19,27 @@ type ProspectRow = {
   sponsor_member_id: string | null;
 };
 
-export default async function AdminProspectsPage() {
+export default async function AdminProspectsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: rawPage } = await searchParams;
+  const page = cleanPage(rawPage);
+  const from = (page - 1) * PAGE_SIZE;
+
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase
+  const { data, count } = await supabase
     .from("prospects")
-    .select("id, full_name, email, stage, created_at, converted_member_id, sponsor_member_id")
+    .select("id, full_name, email, stage, created_at, converted_member_id, sponsor_member_id", {
+      count: "exact",
+    })
     .order("created_at", { ascending: false })
+    .range(from, from + PAGE_SIZE - 1)
     .returns<ProspectRow[]>();
 
   const rows = data ?? [];
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   const sponsorIds = [...new Set(rows.map((p) => p.sponsor_member_id).filter(Boolean))] as string[];
   const sponsorById = new Map<string, string>();
@@ -85,6 +100,11 @@ export default async function AdminProspectsPage() {
           </ul>
         </Card>
       )}
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        hrefFor={(p) => (p > 1 ? `/admin/prospects?page=${p}` : "/admin/prospects")}
+      />
     </div>
   );
 }

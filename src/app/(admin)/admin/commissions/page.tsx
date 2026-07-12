@@ -10,8 +10,11 @@ import { CommissionStats } from "@/components/commission/commission-stats";
 import { BulkCommissionActions } from "@/components/commission/bulk-commission-actions";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { cleanPage, Pagination } from "@/components/ui/pagination";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 20;
 
 type CommissionRowData = {
   id: string;
@@ -31,22 +34,47 @@ const FILTERS: { key: string; label: string; status?: CommissionStatus }[] = [
   { key: "reversed", label: "Reversed", status: "reversed" },
 ];
 
+function pageHref(page: number, statusKey: string) {
+  const params = new URLSearchParams();
+  if (statusKey !== "all") params.set("status", statusKey);
+  if (page > 1) params.set("page", String(page));
+  const suffix = params.toString();
+  return suffix ? `/admin/commissions?${suffix}` : "/admin/commissions";
+}
+
 export default async function AdminCommissionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; page?: string }>;
 }) {
-  const { status } = await searchParams;
+  const { status, page: rawPage } = await searchParams;
   const active = FILTERS.find((f) => f.key === status) ?? FILTERS[0];
+  const page = cleanPage(rawPage);
+  const from = (page - 1) * PAGE_SIZE;
 
   const supabase = await createSupabaseServerClient();
-  const { data: commissions } = await supabase
+  let query = supabase
     .from("commissions")
-    .select("id, earner_member_id, source_member_id, level_depth, amount, currency, status")
+    .select("id, earner_member_id, source_member_id, level_depth, amount, currency, status", {
+      count: "exact",
+    })
     .order("created_at", { ascending: false })
-    .returns<CommissionRowData[]>();
+    .range(from, from + PAGE_SIZE - 1);
+  if (active.status) query = query.eq("status", active.status);
+
+  // ponytail: totals still scan amount+status of every row; swap for an aggregate RPC
+  // if commissions reach tens of thousands.
+  const [{ data: commissions, count }, { data: allAmounts }] = await Promise.all([
+    query.returns<CommissionRowData[]>(),
+    supabase
+      .from("commissions")
+      .select("amount, status")
+      .returns<{ amount: string; status: CommissionStatus }[]>(),
+  ]);
 
   const rows = commissions ?? [];
+  const totals = allAmounts ?? [];
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   // Resolve member display names in one query.
   const memberIds = Array.from(
@@ -63,11 +91,9 @@ export default async function AdminCommissionsPage({
   }
 
   const sumBy = (s: CommissionStatus) =>
-    rows.filter((r) => r.status === s).reduce((acc, r) => acc + Number(r.amount), 0);
+    totals.filter((r) => r.status === s).reduce((acc, r) => acc + Number(r.amount), 0);
 
-  const visible = active.status ? rows.filter((r) => r.status === active.status) : rows;
-
-  const views: CommissionView[] = visible.map((r) => ({
+  const views: CommissionView[] = rows.map((r) => ({
     id: r.id,
     earnerName: nameById.get(r.earner_member_id) ?? "Member",
     sourceName: r.source_member_id ? nameById.get(r.source_member_id) ?? "Member" : "—",
@@ -93,15 +119,15 @@ export default async function AdminCommissionsPage({
       />
 
       <BulkCommissionActions
-        pendingCount={rows.filter((r) => r.status === "pending").length}
-        approvedCount={rows.filter((r) => r.status === "approved").length}
+        pendingCount={totals.filter((r) => r.status === "pending").length}
+        approvedCount={totals.filter((r) => r.status === "approved").length}
       />
 
       <div className="flex flex-wrap gap-1.5">
         {FILTERS.map((f) => (
           <Link
             key={f.key}
-            href={f.key === "all" ? "/admin/commissions" : `/admin/commissions?status=${f.key}`}
+            href={pageHref(1, f.key)}
             className={cn(
               "rounded-lg px-3 py-1.5 text-xs font-bold transition-colors",
               active.key === f.key
@@ -121,13 +147,16 @@ export default async function AdminCommissionsPage({
           description="Convert a prospect to a member to generate upline commissions."
         />
       ) : (
-        <Card className="p-0">
-          <ul className="divide-y divide-border/60">
-            {views.map((c) => (
-              <CommissionRow key={c.id} commission={c} showActions />
-            ))}
-          </ul>
-        </Card>
+        <>
+          <Card className="p-0">
+            <ul className="divide-y divide-border/60">
+              {views.map((c) => (
+                <CommissionRow key={c.id} commission={c} showActions />
+              ))}
+            </ul>
+          </Card>
+          <Pagination page={page} totalPages={totalPages} hrefFor={(p) => pageHref(p, active.key)} />
+        </>
       )}
     </div>
   );

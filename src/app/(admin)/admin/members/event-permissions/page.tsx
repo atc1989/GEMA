@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ShieldCheck, Users } from "lucide-react";
 
 import {
@@ -8,9 +7,9 @@ import {
 import { MemberPermissionsSearch } from "@/components/admin/member-permissions-search";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { cleanPage, Pagination } from "@/components/ui/pagination";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
 
@@ -30,11 +29,6 @@ type ProfileRow = {
   is_admin: boolean | null;
   can_publish_events: boolean | null;
 };
-
-function cleanPage(raw?: string) {
-  const page = Number(raw ?? "1");
-  return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
-}
 
 function pageHref(page: number, search: string) {
   const params = new URLSearchParams();
@@ -158,35 +152,7 @@ export default async function AdminMemberEventPermissionsPage({
       ) : (
         <>
           <MemberPublishingPermissionsTable members={rows} />
-          {totalPages > 1 ? (
-            <div className="flex items-center justify-between gap-3 text-sm font-semibold text-muted-foreground">
-              <span>
-                Page {page} of {totalPages}
-              </span>
-              <div className="flex gap-2">
-                <Link
-                  href={pageHref(Math.max(1, page - 1), search)}
-                  aria-disabled={page <= 1}
-                  className={cn(
-                    "rounded-lg border border-border px-3 py-1.5 transition-colors hover:bg-muted",
-                    page <= 1 && "pointer-events-none opacity-50",
-                  )}
-                >
-                  Previous
-                </Link>
-                <Link
-                  href={pageHref(Math.min(totalPages, page + 1), search)}
-                  aria-disabled={page >= totalPages}
-                  className={cn(
-                    "rounded-lg border border-border px-3 py-1.5 transition-colors hover:bg-muted",
-                    page >= totalPages && "pointer-events-none opacity-50",
-                  )}
-                >
-                  Next
-                </Link>
-              </div>
-            </div>
-          ) : null}
+          <Pagination page={page} totalPages={totalPages} hrefFor={(p) => pageHref(p, search)} />
         </>
       )}
     </div>

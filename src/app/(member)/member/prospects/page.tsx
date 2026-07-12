@@ -30,6 +30,9 @@ export default async function MemberProspectsPage() {
     )
     .eq("sponsor_member_id", member.id)
     .order("created_at", { ascending: false })
+    // ponytail: capped, not paginated — the client view's stage filters and counts
+    // need the full set. Paginate when a member realistically exceeds 200 prospects.
+    .limit(200)
     .returns<ProspectRow[]>();
 
   const rows: MemberProspect[] = (prospects ?? []).map((p) => ({

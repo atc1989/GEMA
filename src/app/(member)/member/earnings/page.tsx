@@ -8,8 +8,11 @@ import {
 import { CommissionStats } from "@/components/commission/commission-stats";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { cleanPage, Pagination } from "@/components/ui/pagination";
 import { getCurrentMember } from "@/lib/auth/require-member";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+const PAGE_SIZE = 20;
 
 type CommissionRowData = {
   id: string;
@@ -21,25 +24,45 @@ type CommissionRowData = {
   source: { username: string; member_code: string } | null;
 };
 
-export default async function MemberEarningsPage() {
+export default async function MemberEarningsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: rawPage } = await searchParams;
+  const page = cleanPage(rawPage);
+  const from = (page - 1) * PAGE_SIZE;
+
   const ctx = await getCurrentMember();
   const member = ctx!.member;
 
   const supabase = await createSupabaseServerClient();
   // Single query: join source member name via FK relation alias.
-  const { data: commissions } = await supabase
-    .from("commissions")
-    .select(
-      "id, source_member_id, level_depth, amount, currency, status, source:members!source_member_id(username, member_code)",
-    )
-    .eq("earner_member_id", member.id)
-    .order("created_at", { ascending: false })
-    .returns<CommissionRowData[]>();
+  // ponytail: totals scan amount+status of all the member's rows; aggregate RPC if that ever hurts.
+  const [{ data: commissions, count }, { data: allAmounts }] = await Promise.all([
+    supabase
+      .from("commissions")
+      .select(
+        "id, source_member_id, level_depth, amount, currency, status, source:members!source_member_id(username, member_code)",
+        { count: "exact" },
+      )
+      .eq("earner_member_id", member.id)
+      .order("created_at", { ascending: false })
+      .range(from, from + PAGE_SIZE - 1)
+      .returns<CommissionRowData[]>(),
+    supabase
+      .from("commissions")
+      .select("amount, status")
+      .eq("earner_member_id", member.id)
+      .returns<{ amount: string; status: CommissionStatus }[]>(),
+  ]);
 
   const rows = commissions ?? [];
+  const totals = allAmounts ?? [];
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   const sumBy = (s: CommissionStatus) =>
-    rows.filter((r) => r.status === s).reduce((acc, r) => acc + Number(r.amount), 0);
+    totals.filter((r) => r.status === s).reduce((acc, r) => acc + Number(r.amount), 0);
 
   const views: CommissionView[] = rows.map((r) => ({
     id: r.id,
@@ -73,13 +96,20 @@ export default async function MemberEarningsPage() {
           description="When prospects in your downline convert to members, your commissions appear here."
         />
       ) : (
-        <Card className="p-0">
-          <ul className="divide-y divide-border/60">
-            {views.map((c) => (
-              <CommissionRow key={c.id} commission={c} />
-            ))}
-          </ul>
-        </Card>
+        <>
+          <Card className="p-0">
+            <ul className="divide-y divide-border/60">
+              {views.map((c) => (
+                <CommissionRow key={c.id} commission={c} />
+              ))}
+            </ul>
+          </Card>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            hrefFor={(p) => (p > 1 ? `/member/earnings?page=${p}` : "/member/earnings")}
+          />
+        </>
       )}
     </div>
   );

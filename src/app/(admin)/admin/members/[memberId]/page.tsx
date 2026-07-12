@@ -69,12 +69,16 @@ export default async function AdminMemberDetailPage({
         .select("id, full_name, email, phone, stage, source, created_at, converted_member_id")
         .eq("sponsor_member_id", memberId)
         .order("created_at", { ascending: false })
+        // ponytail: capped — stats above the list read these rows, so paginate
+        // (with count queries for stats) if a member exceeds 200 prospects.
+        .limit(200)
         .returns<ProspectRow[]>(),
       supabase
         .from("referrals")
         .select("id, ref_code, status, event_id, created_at")
         .eq("referrer_member_id", memberId)
         .order("created_at", { ascending: false })
+        .limit(200)
         .returns<ReferralRow[]>(),
       supabase
         .from("event_registrations")
