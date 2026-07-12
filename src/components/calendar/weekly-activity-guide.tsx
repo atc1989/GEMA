@@ -24,7 +24,8 @@ export function WeeklyActivityGuide({ todayWeekday }: { todayWeekday: number }) 
       </h3>
 
       {/* Day strip */}
-      <div className="flex gap-1.5">
+      <div className="-mx-1 overflow-x-auto px-1 pb-1">
+      <div className="grid min-w-[21rem] grid-cols-7 gap-1.5">
         {WEEK_GUIDE.map((g, i) => {
           const Icon = g.icon;
           const isToday = i === todayWeekday;
@@ -47,9 +48,10 @@ export function WeeklyActivityGuide({ todayWeekday }: { todayWeekday: number }) 
           );
         })}
       </div>
+      </div>
 
       {/* Today block */}
-      <div className="mt-3 flex items-center gap-3 rounded-xl border border-border/70 bg-secondary/50 p-3">
+      <div className="mt-3 flex min-w-0 items-center gap-3 rounded-xl border border-border/70 bg-secondary/50 p-3">
         <TodayIcon className={cn("size-5 shrink-0", today.colorClass)} aria-hidden="true" />
         <div className="min-w-0">
           <p className="font-heading text-[13px] font-extrabold">

@@ -20,7 +20,7 @@ export function AttendanceStats({
       : 0;
 
   return (
-    <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <section className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2 lg:grid-cols-4">
       <Stat
         icon={<Users className="size-5" aria-hidden="true" />}
         tone="bg-secondary text-brand"
@@ -61,7 +61,7 @@ function Stat({
   value: string;
 }) {
   return (
-    <Card className="p-4">
+    <Card className="min-w-0 p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
         <div
           className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${tone}`}
@@ -69,8 +69,8 @@ function Stat({
           {icon}
         </div>
         <div className="min-w-0">
-          <div className="text-xs font-semibold text-muted-foreground">{label}</div>
-          <div className="mt-1 text-2xl font-black tracking-tight">{value}</div>
+          <div className="text-xs font-semibold leading-4 text-muted-foreground">{label}</div>
+          <div className="mt-1 break-words text-2xl font-black tracking-tight">{value}</div>
         </div>
       </div>
     </Card>

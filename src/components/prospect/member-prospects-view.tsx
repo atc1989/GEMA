@@ -244,20 +244,20 @@ export function MemberProspectsView({
 
   return (
     <div className="grid gap-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+      <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2 sm:grid-cols-5">
         {summaryStages.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             type="button"
             onClick={() => setActiveStage(key)}
             className={cn(
-              "rounded-2xl border border-border/70 bg-card p-3 text-left shadow-sm transition-colors hover:border-brand/40 hover:bg-secondary/50",
+              "min-w-0 rounded-2xl border border-border/70 bg-card p-3 text-left shadow-sm transition-colors hover:border-brand/40 hover:bg-secondary/50",
               activeStage === key && "border-brand/40 bg-secondary text-brand",
             )}
           >
             <div className="mb-2 flex items-center justify-between gap-2">
               <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
-              <span className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+              <span className="truncate text-[10px] font-black uppercase tracking-wide text-muted-foreground">
                 {label}
               </span>
             </div>
@@ -273,8 +273,8 @@ export function MemberProspectsView({
         ))}
       </div>
 
-      <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1 sm:max-w-xs">
+      <div className="grid min-w-0 gap-2 sm:flex sm:items-center">
+        <div className="relative min-w-0 sm:w-64 sm:shrink-0">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden="true"
@@ -288,7 +288,7 @@ export function MemberProspectsView({
             className="h-9 w-full rounded-full border border-border bg-card pl-9 pr-3 text-xs font-bold outline-none transition-colors placeholder:text-muted-foreground focus:border-brand"
           />
         </div>
-        <div className="min-w-0 flex-1 overflow-x-auto pb-1">
+        <div className="-mx-4 min-w-0 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-1 sm:px-0">
           <div className="flex min-w-max gap-2">
             {filterStages.map((stage) => {
             const label = stage === "all" ? "All" : stageMeta[stage].label;
@@ -339,15 +339,15 @@ export function MemberProspectsView({
                   prospect.id === focusId && "ring-2 ring-brand",
                 )}
               >
-                <div className="flex items-start gap-3">
+                <div className="flex min-w-0 items-start gap-3">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-info to-brand-dark font-heading text-[13px] font-extrabold text-white">
                     {initials(prospect.fullName)}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="grid min-w-0 gap-2 min-[420px]:flex min-[420px]:items-start min-[420px]:justify-between">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-black">{prospect.fullName}</p>
-                        <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+                        <p className="mt-0.5 text-xs font-semibold leading-5 text-muted-foreground">
                           {sourceLabel(prospect.source)} - Registered{" "}
                           {formatDate(prospect.createdAt)}
                         </p>
@@ -390,10 +390,10 @@ export function MemberProspectsView({
                   ) : null}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
-                  <span className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+                <div className="grid gap-2 border-t border-border/60 pt-3 min-[420px]:flex min-[420px]:items-center min-[420px]:justify-between">
+                  <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
                     <Clock3 className="size-3.5" aria-hidden="true" />
-                    Last follow-up: {formatDate(prospect.lastContactedAt)}
+                    <span className="truncate">Last follow-up: {formatDate(prospect.lastContactedAt)}</span>
                   </span>
                   {canFollowUp ? (
                     <Button
@@ -402,6 +402,7 @@ export function MemberProspectsView({
                       variant="soft"
                       disabled={pendingId === prospect.id}
                       onClick={() => markFollowUp(prospect.id)}
+                      className="w-full min-[420px]:w-auto"
                     >
                       <MessageCircle aria-hidden="true" />
                       {pendingId === prospect.id ? "Saving..." : "Mark follow-up"}

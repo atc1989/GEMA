@@ -25,7 +25,7 @@ export function PagerControls({
   const current = Math.min(page, totalPages);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-semibold text-muted-foreground">
+    <div className="grid gap-3 text-sm font-semibold text-muted-foreground min-[520px]:flex min-[520px]:items-center min-[520px]:justify-between">
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold uppercase tracking-wide">Show</span>
@@ -52,7 +52,7 @@ export function PagerControls({
           Page {current} of {totalPages}
         </span>
       </div>
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2 min-[420px]:flex">
         <button
           type="button"
           disabled={current <= 1}

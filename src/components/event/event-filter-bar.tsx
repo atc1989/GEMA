@@ -33,8 +33,8 @@ export function EventFilterBar({
   placeholder?: string;
 }) {
   return (
-    <div className="flex gap-2">
-      <div className="relative flex-1">
+    <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
+      <div className="relative min-w-0 flex-1">
         <Search
           className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
           aria-hidden="true"
@@ -52,7 +52,7 @@ export function EventFilterBar({
         value={type}
         onChange={(e) => onType(e.target.value)}
         aria-label="Filter by category"
-        className="h-11 shrink-0 rounded-xl border border-border bg-card px-3 text-sm font-semibold outline-none transition-colors focus:border-brand"
+        className="h-11 w-full rounded-xl border border-border bg-card px-3 text-sm font-semibold outline-none transition-colors focus:border-brand sm:w-auto sm:shrink-0"
       >
         <option value="">All categories</option>
         {(extraOptions ?? []).map((opt) => (

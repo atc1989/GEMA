@@ -61,7 +61,8 @@ export function AttendanceTable({
           pagerClassName="border-t border-border/70 px-4 py-3"
         >
           {rows.map((row) => (
-            <li key={row.id} className="flex items-center gap-3 px-4 py-3">
+            <li key={row.id} className="grid gap-2 px-4 py-3 min-[520px]:flex min-[520px]:items-center min-[520px]:gap-3">
+              <div className="flex min-w-0 items-start gap-3">
               <div
                 className={cn(
                   "flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-black uppercase",
@@ -86,7 +87,8 @@ export function AttendanceTable({
                   </p>
                 ) : null}
               </div>
-              <div className="shrink-0 text-right">
+              </div>
+              <div className="min-[520px]:shrink-0 min-[520px]:text-right">
                 <span className="block text-[10px] font-black uppercase tracking-wide text-muted-foreground">
                   {row.kind}
                 </span>
@@ -101,11 +103,13 @@ export function AttendanceTable({
                 ) : null}
               </div>
               {removableEventId ? (
+                <div className="min-[520px]:shrink-0">
                 <RemoveRegistrationButton
                   eventId={removableEventId}
                   registrationId={row.id}
                   attendeeName={row.name}
                 />
+                </div>
               ) : null}
             </li>
           ))}

@@ -77,7 +77,7 @@ export default async function AdminProspectsPage({
         <Card className="p-0">
           <ul className="divide-y divide-border/60">
             {rows.map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3">
+              <li key={p.id} className="grid gap-3 px-4 py-3 min-[520px]:flex min-[520px]:items-center min-[520px]:justify-between">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold">{p.full_name}</p>
                   <p className="truncate text-xs font-semibold text-muted-foreground">
@@ -89,7 +89,7 @@ export default async function AdminProspectsPage({
                     </p>
                   ) : null}
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 min-[520px]:shrink-0 min-[520px]:justify-end">
                   <span className="rounded-lg bg-secondary px-2 py-1 text-[10px] font-black uppercase tracking-wide text-brand">
                     {p.stage}
                   </span>

@@ -126,7 +126,7 @@ export default async function MemberEventAttendancePage({
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="grid gap-3 min-[520px]:flex min-[520px]:items-center min-[520px]:justify-between">
         <Link
           href="/member/events?tab=hosting"
           className="inline-flex items-center gap-1.5 text-sm font-bold text-muted-foreground hover:text-foreground"
@@ -134,11 +134,11 @@ export default async function MemberEventAttendancePage({
           <ArrowLeft className="size-4" aria-hidden="true" />
           My hosted events
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="grid gap-2 min-[420px]:flex min-[420px]:items-center">
           <ExportReportMenu href={`/api/events/${eventId}/report`} />
           <Link
             href={`/member/events/${eventId}/scan`}
-            className={cn(buttonVariants({ variant: "brand", size: "sm" }))}
+            className={cn(buttonVariants({ variant: "brand", size: "sm" }), "w-full min-[420px]:w-auto")}
           >
             <ScanLine aria-hidden="true" />
             Open scanner

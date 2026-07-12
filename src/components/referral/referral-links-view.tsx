@@ -107,12 +107,12 @@ export function ReferralLinksView({
                 initialRefCode={row.event.refCode}
               />
             ) : (
-              <Card key={row.key} className="flex items-center justify-between gap-3 p-4">
+              <Card key={row.key} className="grid gap-3 p-4 min-[420px]:flex min-[420px]:items-center min-[420px]:justify-between">
                 <div className="flex min-w-0 items-center gap-2">
                   <Link2 className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold">{row.title}</p>
-                    <p className="font-mono text-xs text-muted-foreground">{row.refCode}</p>
+                    <p className="break-all font-mono text-xs text-muted-foreground">{row.refCode}</p>
                   </div>
                 </div>
                 <span className="shrink-0 rounded-lg bg-secondary px-2 py-1 text-[10px] font-black uppercase tracking-wide text-brand">

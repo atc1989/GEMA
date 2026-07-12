@@ -121,11 +121,11 @@ export function NoZeroCalendar({
 
   return (
     <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-5">
-      <div className="grid gap-3">
+      <div className="grid min-w-0 gap-3">
       {todayBanner}
 
       {/* Month header + nav */}
-      <div className="flex items-center justify-between">
+      <div className="grid gap-2 min-[420px]:flex min-[420px]:items-center min-[420px]:justify-between">
         <h2 className="font-heading text-sm font-bold tracking-tight">My No-Zero Calendar</h2>
         <div className="flex items-center gap-1">
           <Link
@@ -149,14 +149,14 @@ export function NoZeroCalendar({
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-1 gap-2.5 min-[380px]:grid-cols-3">
         <SummaryStat value={month.noZeroDays} label="No-Zero days" icon={CheckCircle2} />
         <SummaryStat value={month.currentStreak} label="Day streak" icon={Flame} accent="gold" />
         <SummaryStat value={month.bestStreak} label="Best streak" icon={Trophy} />
       </div>
 
       {/* Grid */}
-      <Card className="p-4">
+      <Card className="p-3 min-[420px]:p-4">
         <div className="mb-2 grid grid-cols-7 gap-1.5">
           {DOW.map((d, i) => (
             <div
@@ -281,7 +281,7 @@ function LegendItem({ swatch, label }: { swatch: React.ReactNode; label: string 
 
 function DayButton({ cell, onOpen }: { cell: DayCell; onOpen: () => void }) {
   const circle =
-    "flex size-9 items-center justify-center text-[12.5px] font-bold transition-colors";
+    "flex size-8 items-center justify-center text-xs font-bold transition-colors min-[380px]:size-9 min-[380px]:text-[12.5px]";
 
   // The event type that drives the cell colour (first event of the day, if any).
   const meta = cell.events[0] ? TYPE_META[cell.events[0].type] ?? TYPE_META.other : null;

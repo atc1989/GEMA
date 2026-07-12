@@ -12,7 +12,7 @@ export function TeamLeaderboard({ entries }: { entries: LeaderboardEntry[] }) {
 
   return (
     <Card className="p-4">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 grid gap-1 min-[420px]:flex min-[420px]:items-center min-[420px]:justify-between">
         <h3 className="font-heading text-sm font-bold tracking-tight">
           Team No-Zero Leaderboard
         </h3>

@@ -34,7 +34,7 @@ export function InviterLeaderboard({ rows }: { rows: InviterRow[] }) {
         {rows.map((row, index) => {
           const total = row.membersInvited + row.prospectsInvited;
           return (
-            <li key={row.name} className="flex items-center gap-3 px-4 py-3">
+            <li key={row.name} className="flex min-w-0 items-start gap-3 px-4 py-3">
               <span
                 className={cn(
                   "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-black",

@@ -211,7 +211,7 @@ export default async function MemberProfilePage() {
         username={member.username}
       />
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <section className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 lg:grid-cols-5">
         <DashboardCard
           icon={Flame}
           label="Current streak"
@@ -249,7 +249,7 @@ export default async function MemberProfilePage() {
 
       <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <Card className="p-5">
-          <div className="flex items-start justify-between gap-4">
+          <div className="grid gap-3 min-[420px]:flex min-[420px]:items-start min-[420px]:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
                 Rank progress
@@ -278,7 +278,7 @@ export default async function MemberProfilePage() {
               <div
                 key={rank.id}
                 className={cn(
-                  "flex items-center justify-between rounded-xl border px-3 py-2 text-sm",
+                  "grid gap-1 rounded-xl border px-3 py-2 text-sm min-[420px]:flex min-[420px]:items-center min-[420px]:justify-between",
                   rank.id === currentRank?.id
                     ? "border-brand/30 bg-secondary text-brand"
                     : "border-border/70 bg-background text-muted-foreground",
@@ -292,7 +292,7 @@ export default async function MemberProfilePage() {
         </Card>
 
         <Card className="p-5">
-          <div className="flex items-start justify-between gap-3">
+          <div className="grid gap-3 min-[420px]:flex min-[420px]:items-start min-[420px]:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
                 Referral card
@@ -312,7 +312,7 @@ export default async function MemberProfilePage() {
             <p className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">
               Active code
             </p>
-            <p className="mt-1 font-mono text-sm font-black">
+            <p className="mt-1 break-all font-mono text-sm font-black">
               {activeReferral?.ref_code ?? "No referral link yet"}
             </p>
           </div>
@@ -339,7 +339,7 @@ export default async function MemberProfilePage() {
             </div>
             <Award className="size-5 text-gold" aria-hidden="true" />
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
             {badges.map((badge) => {
               const Icon = badge.icon;
               return (
@@ -363,7 +363,7 @@ export default async function MemberProfilePage() {
 
         <Card className="p-0">
           <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
-            <div>
+            <div className="min-w-0">
               <h2 className="font-heading text-base font-extrabold tracking-tight">
                 Recent sponsored prospects
               </h2>
@@ -373,7 +373,7 @@ export default async function MemberProfilePage() {
             </div>
             <Link
               href="/member/prospects"
-              className="text-xs font-black text-brand underline-offset-4 hover:underline"
+              className="shrink-0 text-xs font-black text-brand underline-offset-4 hover:underline"
             >
               View all
             </Link>
@@ -393,7 +393,7 @@ export default async function MemberProfilePage() {
               {prospects.map((prospect) => (
                 <li
                   key={prospect.id}
-                  className="flex items-center justify-between gap-3 px-4 py-3"
+                  className="grid gap-2 px-4 py-3 min-[420px]:flex min-[420px]:items-center min-[420px]:justify-between"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold">{prospect.full_name}</p>
@@ -433,7 +433,7 @@ export default async function MemberProfilePage() {
             {formatDate(memberProfile?.activated_at ?? null)}
           </p>
         </div>
-        <Link href="/member/settings" className={cn(buttonVariants({ variant: "outline" }))}>
+        <Link href="/member/settings" className={cn(buttonVariants({ variant: "outline" }), "w-full sm:w-auto")}>
           <Settings aria-hidden="true" />
           Security settings
         </Link>
@@ -467,10 +467,10 @@ function ProfileHero({
           <p className="text-xs font-bold uppercase tracking-widest text-blue-100">
             Member profile
           </p>
-          <h1 className="mt-1 truncate font-heading text-3xl font-extrabold tracking-tight">
+          <h1 className="mt-1 break-words font-heading text-2xl font-extrabold tracking-tight min-[420px]:text-3xl">
             {displayName}
           </h1>
-          <p className="mt-1 truncate text-sm font-semibold text-blue-100">
+          <p className="mt-1 break-words text-sm font-semibold text-blue-100">
             @{username} / {rankName}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -483,7 +483,7 @@ function ProfileHero({
               {status}
             </span>
             {email ? (
-              <span className="inline-flex max-w-full items-center gap-1 truncate rounded-lg bg-white/12 px-2.5 py-1 text-xs font-bold ring-1 ring-white/16">
+              <span className="inline-flex max-w-full items-center gap-1 break-all rounded-lg bg-white/12 px-2.5 py-1 text-xs font-bold ring-1 ring-white/16">
                 {email}
               </span>
             ) : null}
