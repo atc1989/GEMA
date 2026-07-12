@@ -47,11 +47,12 @@ export default async function InviteLandingPage({
       .order("sort_order", { ascending: true })
       .returns<SpeakerRow[]>();
     speakerRows = data ?? [];
-  } else if (ref) {
-    // Private events open through a valid member referral link.
+  } else {
+    // Unlisted (private) events open through the direct link/QR; a ref
+    // code only adds inviter attribution.
     const { data } = await supabase.rpc("get_invite_event", {
       p_event_id: eventId,
-      p_ref_code: ref,
+      p_ref_code: ref ?? null,
     });
     const invite = data as { event: EventRow; speakers: SpeakerRow[] } | null;
     if (invite?.event) {

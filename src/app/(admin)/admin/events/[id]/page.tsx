@@ -13,7 +13,10 @@ import {
 
 import { EventActions } from "@/components/event/event-actions";
 import { QrDownload } from "@/components/qr/qr-download";
-import { ScaledPoster, type EventPosterData } from "@/components/event/event-poster";
+import {
+  ScaledPoster,
+  type EventPosterData,
+} from "@/components/event/event-poster";
 import { EventStatusBadge } from "@/components/event/event-status-badge";
 import { asPhotoFocus } from "@/components/event/posters/shared";
 import { asPosterTemplateId } from "@/components/event/posters/types";
@@ -56,7 +59,9 @@ export default async function EventDetailPage({
   const readinessItems = getPublishReadinessItems(event);
   const missingItems = readinessItems.filter((item) => !item.ready);
   const speakerName =
-    (event.metadata?.speakerName as string | null) ?? speaker?.name ?? undefined;
+    (event.metadata?.speakerName as string | null) ??
+    speaker?.name ??
+    undefined;
   const posterData: EventPosterData = {
     title: event.title,
     eventType: event.eventType,
@@ -82,7 +87,9 @@ export default async function EventDetailPage({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-black tracking-tight">{event.title}</h2>
+            <h2 className="text-2xl font-black tracking-tight">
+              {event.title}
+            </h2>
             <EventStatusBadge status={event.status} />
           </div>
           <p className="mt-1 text-sm font-semibold text-muted-foreground">
@@ -188,21 +195,6 @@ export default async function EventDetailPage({
         ) : null}
       </Card>
 
-      <Card className="grid gap-3 p-5">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            Event QR code
-          </p>
-          <p className="mt-1 text-sm font-semibold text-muted-foreground">
-            Scans to the public invite page. Download for flyers and posters.
-          </p>
-        </div>
-        <QrDownload
-          path={`/invite/${event.id}`}
-          fileName={`${slugify(event.title)}-qr`}
-        />
-      </Card>
-
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
         <ScaledPoster
           data={posterData}
@@ -210,29 +202,51 @@ export default async function EventDetailPage({
           className="rounded-xl border border-border/70 shadow-sm"
         />
 
-        <Card className="grid content-start gap-4 p-5">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            Speaker
-          </p>
-          <div className="flex items-center gap-3">
-            <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-secondary text-brand">
-              {speaker?.photo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={speaker.photo_url} alt={speakerName ?? "Speaker"} className="size-full object-cover" />
-              ) : (
-                <Users className="size-6" aria-hidden="true" />
-              )}
+        <div className="grid content-start gap-4">
+          <Card className="grid content-start gap-4 p-5">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              Speaker
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-secondary text-brand">
+                {speaker?.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={speaker.photo_url}
+                    alt={speakerName ?? "Speaker"}
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <Users className="size-6" aria-hidden="true" />
+                )}
+              </div>
+              <div>
+                <p className="font-heading text-lg font-black">
+                  {speakerName ?? "No speaker set"}
+                </p>
+                <p className="text-sm font-semibold text-muted-foreground">
+                  Used on event posters and invite pages.
+                </p>
+              </div>
             </div>
+          </Card>
+
+          <Card className="grid gap-3 p-5">
             <div>
-              <p className="font-heading text-lg font-black">
-                {speakerName ?? "No speaker set"}
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                Event QR code
               </p>
-              <p className="text-sm font-semibold text-muted-foreground">
-                Used on event posters and invite pages.
+              <p className="mt-1 text-sm font-semibold text-muted-foreground">
+                Scans to the public invite page. Download for flyers and
+                posters.
               </p>
             </div>
-          </div>
-        </Card>
+            <QrDownload
+              path={`/invite/${event.id}`}
+              fileName={`${slugify(event.title)}-qr`}
+            />
+          </Card>
+        </div>
       </div>
 
       {event.description ? (
@@ -252,7 +266,10 @@ export default async function EventDetailPage({
 function getPublishReadinessItems(event: ReturnType<typeof mapEventRow>) {
   return [
     { label: "Title", ready: Boolean(event.title.trim()) },
-    { label: "Future start time", ready: Date.parse(event.startsAt) > Date.now() },
+    {
+      label: "Future start time",
+      ready: Date.parse(event.startsAt) > Date.now(),
+    },
     {
       label: "Venue",
       ready: event.mode === "online" || Boolean(event.venueName?.trim()),
@@ -264,7 +281,6 @@ function getPublishReadinessItems(event: ReturnType<typeof mapEventRow>) {
     { label: "Description", ready: Boolean(event.description?.trim()) },
   ];
 }
-
 
 function DetailRow({
   icon: Icon,
