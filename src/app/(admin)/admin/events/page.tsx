@@ -5,6 +5,7 @@ import { EventListItem } from "@/components/event/event-list-item";
 import { ExportReportMenu } from "@/components/event/export-report-menu";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { LinkTabs } from "@/components/ui/link-tabs";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -37,23 +38,16 @@ export default async function AdminEventsPage({
 
   return (
     <div className="grid gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1.5">
-          {FILTERS.map((f) => (
-            <Link
-              key={f.key}
-              href={f.key === "all" ? "/admin/events" : `/admin/events?status=${f.key}`}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-bold transition-colors",
-                active.key === f.key
-                  ? "bg-secondary text-brand"
-                  : "text-muted-foreground hover:bg-muted",
-              )}
-            >
-              {f.label}
-            </Link>
-          ))}
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <LinkTabs
+          className="w-full sm:w-auto"
+          activeKey={active.key}
+          tabs={FILTERS.map((f) => ({
+            key: f.key,
+            label: f.label,
+            href: f.key === "all" ? "/admin/events" : `/admin/events?status=${f.key}`,
+          }))}
+        />
         <div className="flex items-center gap-2">
           <ExportReportMenu href="/api/events-report" />
           <Link

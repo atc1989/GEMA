@@ -2,9 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Event attendance/referral report shared by the per-event and bulk export
- * routes. One flat table: a summary row per event, then one row per referral
- * link used. Inviter names come from the get_event_attendee_sponsors RPC so
- * member hosts get complete data under RLS.
+ * routes. One flat table: a summary row per event, one row per referral link
+ * used, then one row per attendee (name/email/number/check-in time). Inviter
+ * names come from the get_event_attendee_sponsors RPC so member hosts get
+ * complete data under RLS.
  */
 
 export const REPORT_HEADERS = [
@@ -18,6 +19,11 @@ export const REPORT_HEADERS = [
   "Link owner",
   "Prospects via link",
   "Checked in via link",
+  "Name",
+  "Email",
+  "Number",
+  "Type",
+  "Checked in at",
 ] as const;
 
 export type ReportRow = (string | number)[];
@@ -29,7 +35,13 @@ export type ReportEvent = {
   timezone: string;
 };
 
-type RegRow = { id: string; registration_kind: "member" | "prospect" };
+type RegRow = {
+  id: string;
+  registration_kind: "member" | "prospect";
+  attendee_name: string;
+  attendee_email: string | null;
+  attendee_phone: string | null;
+};
 type SponsorRow = { registration_id: string; ref_code: string | null; sponsor_name: string | null };
 
 export async function buildEventReportRows(
@@ -39,21 +51,27 @@ export async function buildEventReportRows(
   const [regsRes, attsRes, sponsorsRes] = await Promise.all([
     supabase
       .from("event_registrations")
-      .select("id, registration_kind")
+      .select("id, registration_kind, attendee_name, attendee_email, attendee_phone")
       .eq("event_id", event.id)
       .neq("status", "cancelled")
+      .order("registered_at", { ascending: true })
       .returns<RegRow[]>(),
     supabase
       .from("attendance_records")
-      .select("registration_id")
+      .select("registration_id, checked_in_at")
       .eq("event_id", event.id)
-      .returns<{ registration_id: string }[]>(),
+      .returns<{ registration_id: string; checked_in_at: string }[]>(),
     supabase.rpc("get_event_attendee_sponsors", { p_event_id: event.id }),
   ]);
 
   const regs = regsRes.data ?? [];
-  const checkedIn = new Set((attsRes.data ?? []).map((a) => a.registration_id));
-  const sponsors = ((sponsorsRes.data ?? []) as SponsorRow[]).filter((s) => s.ref_code);
+  const checkedInAt = new Map(
+    (attsRes.data ?? []).map((a) => [a.registration_id, a.checked_in_at]),
+  );
+  const checkedIn = new Set(checkedInAt.keys());
+  const allSponsors = (sponsorsRes.data ?? []) as SponsorRow[];
+  const sponsors = allSponsors.filter((s) => s.ref_code);
+  const sponsorById = new Map(allSponsors.map((s) => [s.registration_id, s]));
 
   const kindById = new Map(regs.map((r) => [r.id, r.registration_kind]));
   const membersCheckedIn = regs.filter(
@@ -77,17 +95,45 @@ export async function buildEventReportRows(
     byLink.set(s.ref_code!, link);
   }
 
-  const date = new Intl.DateTimeFormat("en-US", {
+  const dateFmt = new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeZone: event.timezone || "UTC",
-  }).format(new Date(event.starts_at));
+  });
+  const dateTimeFmt = new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: event.timezone || "UTC",
+  });
+  const date = dateFmt.format(new Date(event.starts_at));
+
+  const pad = (row: ReportRow) =>
+    row.concat(Array(REPORT_HEADERS.length - row.length).fill(""));
 
   const rows: ReportRow[] = [
-    [event.title, date, "Summary", byLink.size, membersCheckedIn, prospectsCheckedIn, "", "", "", ""],
+    pad([event.title, date, "Summary", byLink.size, membersCheckedIn, prospectsCheckedIn]),
   ];
   const links = [...byLink.entries()].sort((a, b) => b[1].prospects - a[1].prospects);
   for (const [code, link] of links) {
-    rows.push([event.title, date, "Link", "", "", "", code, link.owner, link.prospects, link.checked]);
+    rows.push(pad([event.title, date, "Link", "", "", "", code, link.owner, link.prospects, link.checked]));
+  }
+  // One row per registrant: name/email/number split out, check-in timestamp if attended.
+  for (const r of regs) {
+    const checked = checkedInAt.get(r.id);
+    const sponsor = sponsorById.get(r.id);
+    rows.push([
+      event.title,
+      date,
+      "Attendee",
+      "", "", "",
+      sponsor?.ref_code ?? "",
+      sponsor?.sponsor_name ?? "",
+      "", "",
+      r.attendee_name,
+      r.attendee_email ?? "",
+      r.attendee_phone ?? "",
+      r.registration_kind,
+      checked ? dateTimeFmt.format(new Date(checked)) : "",
+    ]);
   }
   return rows;
 }

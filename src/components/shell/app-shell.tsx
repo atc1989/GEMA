@@ -94,6 +94,35 @@ function ThemeSwitcher() {
   );
 }
 
+/** Compact header button for mobile/tablet: tap cycles light → dark → system. */
+function MobileThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) {
+    return <div className="size-9 shrink-0 rounded-full bg-white/10" />;
+  }
+
+  const order = ["light", "dark", "system"] as const;
+  const current = order.includes(theme as (typeof order)[number])
+    ? (theme as (typeof order)[number])
+    : "system";
+  const next = order[(order.indexOf(current) + 1) % order.length]!;
+  const Icon = current === "light" ? Sun : current === "dark" ? Moon : Monitor;
+
+  return (
+    <button
+      type="button"
+      onClick={() => setTheme(next)}
+      aria-label={`Theme: ${current}. Switch to ${next}.`}
+      className="flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-white/30 text-white transition-colors hover:bg-white/10"
+    >
+      <Icon className="size-4" aria-hidden="true" />
+    </button>
+  );
+}
+
 // ─── Sidebar user block ───────────────────────────────────────────────────────
 
 function SidebarUserBlock({
@@ -201,6 +230,7 @@ export function AppShell({ role, eyebrow, title, subtitle, user, signOutSlot, ch
                   {title}
                 </div>
               </div>
+              <MobileThemeToggle />
               {user ? (
                 <div
                   className="flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-white/30 text-[11px] font-black text-white"

@@ -3,6 +3,7 @@ import { CalendarDays, MapPin, Monitor, Users } from "lucide-react";
 
 import { EventStatusBadge } from "@/components/event/event-status-badge";
 import { Card } from "@/components/ui/card";
+import { LinkSpinner } from "@/components/ui/link-pending";
 import { formatEventDateTime } from "@/lib/utils/format";
 import type { Event } from "@/lib/database/types";
 
@@ -25,6 +26,7 @@ export function EventListItem({ event, href }: { event: Event; href?: string }) 
               <h2 className="min-w-0 flex-1 text-sm font-bold leading-5">
                 {event.title}
               </h2>
+              <LinkSpinner className="size-4 shrink-0 text-brand" />
               <EventStatusBadge status={event.status} />
             </div>
             <div className="mt-2 grid gap-1 text-xs font-semibold text-muted-foreground">

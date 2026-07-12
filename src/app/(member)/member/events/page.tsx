@@ -15,6 +15,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LinkSpinner } from "@/components/ui/link-pending";
+import { LinkTabs } from "@/components/ui/link-tabs";
 import { requireMember } from "@/lib/auth/require-member";
 import type { EventMode, EventStatus, EventType, RegistrationStatus } from "@/lib/database/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -136,25 +137,14 @@ export default async function MemberEventsPage({
       </div>
 
       <div className="grid gap-3">
-        <div className="grid grid-cols-4 gap-1 rounded-xl bg-muted p-1">
-          {TABS.map((tab) => (
-            <Link
-              key={tab.key}
-              href={`/member/events?tab=${tab.key}`}
-              className={cn(
-                "rounded-lg px-2 py-2 text-center text-[11px] font-black transition-colors sm:text-xs",
-                activeTab === tab.key
-                  ? "bg-background text-brand shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <span className="inline-flex items-center justify-center gap-1">
-                {tab.label}
-                <LinkSpinner className="size-3" />
-              </span>
-            </Link>
-          ))}
-        </div>
+        <LinkTabs
+          activeKey={activeTab}
+          tabs={TABS.map((tab) => ({
+            key: tab.key,
+            label: tab.label,
+            href: `/member/events?tab=${tab.key}`,
+          }))}
+        />
         <p className="px-1 text-xs font-semibold text-muted-foreground">
           {TABS.find((tab) => tab.key === activeTab)?.description}
         </p>
@@ -254,6 +244,7 @@ function RegistrationCard({ registration }: { registration: RegistrationRow }) {
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <h3 className="min-w-0 flex-1 text-sm font-bold leading-5">{event.title}</h3>
+              <LinkSpinner className="size-4 shrink-0 text-brand" />
               <span
                 className={cn(
                   "shrink-0 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide",
