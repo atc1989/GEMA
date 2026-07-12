@@ -48,5 +48,44 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Redirect authenticated members/admins away from public invite/register pages.
+  if (user) {
+    const pathname = request.nextUrl.pathname;
+    const inviteMatch = pathname.match(/^\/(invite|register)\/([^/]+)$/);
+    if (inviteMatch) {
+      const eventId = inviteMatch[2];
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role, is_admin")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profile) {
+        if (profile.is_admin || profile.role === "admin") {
+          const url = request.nextUrl.clone();
+          url.pathname = `/admin/events/${eventId}`;
+          return NextResponse.redirect(url);
+        }
+
+        const { data: member } = await supabase
+          .from("members")
+          .select("id")
+          .eq("profile_id", profile.id)
+          .maybeSingle();
+
+        if (member) {
+          const url = request.nextUrl.clone();
+          url.pathname = `/member/events/${eventId}`;
+          return NextResponse.redirect(url);
+        } else {
+          const url = request.nextUrl.clone();
+          url.pathname = "/onboarding";
+          return NextResponse.redirect(url);
+        }
+      }
+    }
+  }
+
   return supabaseResponse;
 }
