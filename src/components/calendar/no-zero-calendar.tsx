@@ -265,31 +265,58 @@ const ATTENDEE_GROUPS = [
   { kind: "prospect", label: "Prospects attended" },
 ] as const;
 
+const ATTENDEE_PREVIEW = 9;
+
+function AttendeeGroup({
+  label,
+  names,
+}: {
+  label: string;
+  names: string[];
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? names : names.slice(0, ATTENDEE_PREVIEW);
+  const hidden = names.length - visible.length;
+
+  return (
+    <div>
+      <p className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+        {label} ({names.length})
+      </p>
+      <ul className="mt-1.5 flex flex-wrap gap-1.5">
+        {visible.map((name, i) => (
+          <li
+            key={`${name}-${i}`}
+            className="rounded-lg border border-border/60 bg-card px-2 py-1 text-[11px] font-semibold"
+          >
+            {name}
+          </li>
+        ))}
+        {hidden > 0 || showAll ? (
+          <li>
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="rounded-lg bg-secondary px-2 py-1 text-[11px] font-black text-brand hover:bg-secondary/70"
+            >
+              {showAll ? "Show less" : `+${hidden} more`}
+            </button>
+          </li>
+        ) : null}
+      </ul>
+    </div>
+  );
+}
+
 function EventAttendees({ attendees }: { attendees: DayCell["events"][number]["attendees"] }) {
   if (attendees.length === 0) return null;
 
   return (
-    <div className="mt-2 grid gap-2 pl-[18px]">
+    <div className="mt-2.5 grid gap-2.5 border-t border-border/60 pt-2.5 sm:pl-[18px]">
       {ATTENDEE_GROUPS.map(({ kind, label }) => {
-        const group = attendees.filter((a) => a.kind === kind);
-        if (group.length === 0) return null;
-        return (
-          <div key={kind}>
-            <p className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">
-              {label} ({group.length})
-            </p>
-            <ul className="mt-1 flex flex-wrap gap-1">
-              {group.map((a, i) => (
-                <li
-                  key={`${a.name}-${i}`}
-                  className="rounded-lg bg-card px-2 py-0.5 text-[11px] font-bold"
-                >
-                  {a.name}
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
+        const names = attendees.filter((a) => a.kind === kind).map((a) => a.name);
+        if (names.length === 0) return null;
+        return <AttendeeGroup key={kind} label={label} names={names} />;
       })}
     </div>
   );
@@ -306,8 +333,8 @@ function DayDetailDialog({ cell, onClose }: { cell: DayCell; onClose: () => void
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-card p-5 shadow-xl sm:rounded-3xl">
-        <div className="mb-4 flex items-start justify-between gap-3">
+      <div className="flex max-h-[88vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-card shadow-xl sm:max-h-[80vh] sm:max-w-lg sm:rounded-3xl lg:max-w-2xl">
+        <div className="flex items-start justify-between gap-3 border-b border-border/60 px-5 py-4">
           <div>
             <p className="font-heading text-base font-black tracking-tight">
               {formatLongDate(cell.iso)}
@@ -340,32 +367,15 @@ function DayDetailDialog({ cell, onClose }: { cell: DayCell; onClose: () => void
           </Button>
         </div>
 
-        {/* Prospects sponsored */}
-        <section className="mb-4">
-          <h3 className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-wide text-muted-foreground">
-            <Users className="size-3.5" aria-hidden="true" />
-            Prospects sponsored
-          </h3>
-          {cell.prospects.length === 0 ? (
-            <p className="text-sm font-semibold text-muted-foreground">
-              No prospects sponsored on this day.
-            </p>
-          ) : (
-            <ul className="grid gap-2">
-              {cell.prospects.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-secondary/40 px-3 py-2"
-                >
-                  <span className="truncate text-sm font-bold">{p.fullName}</span>
-                  <span className="shrink-0 rounded-lg bg-card px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-brand">
-                    {p.stage}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <div className="overflow-y-auto px-5 py-4">
+        {/* Why the day counted */}
+        {cell.prospects.length > 0 ? (
+          <p className="mb-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2.5 text-sm font-bold text-emerald-700">
+            <Users className="size-4 shrink-0 text-success" aria-hidden="true" />
+            You sponsored {cell.prospects.length}{" "}
+            {cell.prospects.length === 1 ? "prospect" : "prospects"} this day.
+          </p>
+        ) : null}
 
         {/* Events */}
         <section>
@@ -427,6 +437,7 @@ function DayDetailDialog({ cell, onClose }: { cell: DayCell; onClose: () => void
             </ul>
           )}
         </section>
+        </div>
       </div>
     </div>
   );
