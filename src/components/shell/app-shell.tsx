@@ -217,7 +217,7 @@ export function AppShell({ role, eyebrow, title, subtitle, user, signOutSlot, ch
         </aside>
 
         {/* Content */}
-        <div className="flex min-h-dvh w-full flex-col bg-background lg:flex-1 lg:overflow-x-hidden">
+        <div className="flex min-h-dvh w-full min-w-0 flex-col overflow-x-hidden bg-background lg:flex-1">
           {/* Mobile header */}
           <header className="bg-linear-to-br from-brand to-brand-dark px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] text-white lg:hidden">
             <div className="flex items-center gap-3">

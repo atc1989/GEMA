@@ -8,6 +8,7 @@ import {
   reverseCommission,
 } from "@/lib/actions/commissions";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 export type CommissionStatus = "pending" | "approved" | "paid" | "reversed" | "void";
@@ -40,6 +41,9 @@ export function CommissionRow({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<CommissionStatus>(commission.status);
+  const [confirming, setConfirming] = useState<"paid" | "reversed" | null>(null);
+
+  const amountLabel = `${commission.currency === "PHP" ? "₱" : `${commission.currency} `}${commission.amount}`;
 
   const run = (
     action: (input: { commissionId: string }) => Promise<{ ok: boolean; error?: string }>,
@@ -53,6 +57,7 @@ export function CommissionRow({
         return;
       }
       setStatus(next);
+      setConfirming(null);
     });
   };
 
@@ -98,7 +103,7 @@ export function CommissionRow({
               size="xs"
               variant="brand"
               disabled={pending}
-              onClick={() => run(markCommissionPaid, "paid")}
+              onClick={() => setConfirming("paid")}
             >
               Mark paid
             </Button>
@@ -107,14 +112,38 @@ export function CommissionRow({
             size="xs"
             variant="destructive"
             disabled={pending}
-            onClick={() => run(reverseCommission, "reversed")}
+            onClick={() => setConfirming("reversed")}
           >
             Reverse
           </Button>
         </div>
       ) : null}
 
-      {error ? <p className="text-xs font-semibold text-destructive">{error}</p> : null}
+      {error && !confirming ? (
+        <p className="text-xs font-semibold text-destructive">{error}</p>
+      ) : null}
+
+      <ConfirmDialog
+        open={confirming === "paid"}
+        title="Mark commission as paid?"
+        description={`${amountLabel} to ${commission.earnerName} will be recorded as paid. Confirm only after the payout has actually been made.`}
+        confirmLabel="Mark paid"
+        pending={pending}
+        error={error}
+        onConfirm={() => run(markCommissionPaid, "paid")}
+        onClose={() => setConfirming(null)}
+      />
+      <ConfirmDialog
+        open={confirming === "reversed"}
+        destructive
+        title="Reverse this commission?"
+        description={`${amountLabel} for ${commission.earnerName} will be reversed. This cannot be undone from this screen.`}
+        confirmLabel="Reverse"
+        pending={pending}
+        error={error}
+        onConfirm={() => run(reverseCommission, "reversed")}
+        onClose={() => setConfirming(null)}
+      />
     </li>
   );
 }

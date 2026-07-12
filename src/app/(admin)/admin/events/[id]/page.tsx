@@ -182,7 +182,7 @@ export default async function EventDetailPage({
               href={event.onlineUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-brand underline-offset-4 hover:underline"
+              className="break-all text-brand underline-offset-4 hover:underline"
             >
               {event.onlineUrl}
             </a>

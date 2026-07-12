@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 
 import { updateMemberEventPublishingPermission } from "@/lib/actions/member-permissions";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 export type MemberPublishingPermissionRow = {
@@ -29,6 +30,8 @@ export function MemberPublishingPermissionsTable({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [isPending, startTransition] = useTransition();
+  const [confirmTarget, setConfirmTarget] =
+    useState<MemberPublishingPermissionRow | null>(null);
 
   useEffect(() => {
     setRows(members);
@@ -43,14 +46,17 @@ export function MemberPublishingPermissionsTable({
       return;
     }
 
-    const nextValue = !member.canPublishEvents;
-    if (
-      nextValue &&
-      !window.confirm(`Allow ${member.fullName} to publish events without administrator approval?`)
-    ) {
+    // Enabling grants unattended publishing rights — confirm first.
+    if (!member.canPublishEvents) {
+      setConfirmTarget(member);
       return;
     }
+    apply(member);
+  };
 
+  const apply = (member: MemberPublishingPermissionRow) => {
+    const nextValue = !member.canPublishEvents;
+    setConfirmTarget(null);
     setFeedback(null);
     setSavingId(member.id);
     setRows((current) =>
@@ -179,6 +185,19 @@ export function MemberPublishingPermissionsTable({
           })}
         </ul>
       </div>
+
+      <ConfirmDialog
+        open={confirmTarget !== null}
+        title="Allow direct publishing?"
+        description={
+          confirmTarget
+            ? `${confirmTarget.fullName} will be able to publish events without administrator approval.`
+            : undefined
+        }
+        confirmLabel="Allow"
+        onConfirm={() => confirmTarget && apply(confirmTarget)}
+        onClose={() => setConfirmTarget(null)}
+      />
     </div>
   );
 }

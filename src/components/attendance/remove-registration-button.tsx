@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
 import { cancelRegistration } from "@/lib/actions/attendance";
-import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 /** Trash button on a pending attendance row: confirm, then soft-cancel the registration. */
 export function RemoveRegistrationButton({
@@ -16,41 +16,45 @@ export function RemoveRegistrationButton({
   registrationId: string;
   attendeeName: string;
 }) {
+  const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const onRemove = () => {
-    if (
-      !window.confirm(
-        `Remove ${attendeeName}'s registration? Their QR pass will stop working.`,
-      )
-    ) {
-      return;
-    }
+  const onConfirm = () => {
     setError(null);
     startTransition(async () => {
       const result = await cancelRegistration({ eventId, registrationId });
-      if (!result.ok) setError(result.error);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setOpen(false);
     });
   };
 
   return (
-    <button
-      type="button"
-      onClick={onRemove}
-      disabled={pending}
-      aria-label={`Remove ${attendeeName}'s registration`}
-      title={error ?? "Remove registration"}
-      className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50",
-        error && "text-destructive",
-      )}
-    >
-      {pending ? (
-        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-      ) : (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={`Remove ${attendeeName}'s registration`}
+        title="Remove registration"
+        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+      >
         <Trash2 className="size-4" aria-hidden="true" />
-      )}
-    </button>
+      </button>
+
+      <ConfirmDialog
+        open={open}
+        destructive
+        title="Remove registration?"
+        description={`${attendeeName}'s registration will be cancelled and their QR pass will stop working.`}
+        confirmLabel="Remove"
+        pending={pending}
+        error={error}
+        onConfirm={onConfirm}
+        onClose={() => setOpen(false)}
+      />
+    </>
   );
 }

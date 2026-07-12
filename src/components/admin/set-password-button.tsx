@@ -5,14 +5,16 @@ import { KeyRound } from "lucide-react";
 
 import { setMemberPassword } from "@/lib/actions/members";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CopyButton } from "@/components/ui/copy-button";
 
 export function SetPasswordButton({ memberId }: { memberId: string }) {
   const [pending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
   const [creds, setCreds] = useState<{ email: string; password: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const onClick = () => {
+  const onConfirm = () => {
     setError(null);
     startTransition(async () => {
       const result = await setMemberPassword({ memberId });
@@ -21,6 +23,7 @@ export function SetPasswordButton({ memberId }: { memberId: string }) {
         return;
       }
       setCreds(result.data);
+      setOpen(false);
     });
   };
 
@@ -44,11 +47,21 @@ export function SetPasswordButton({ memberId }: { memberId: string }) {
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <Button size="xs" variant="outline" onClick={onClick} disabled={pending}>
+      <Button size="xs" variant="outline" onClick={() => setOpen(true)} disabled={pending}>
         <KeyRound aria-hidden="true" />
         {pending ? "Setting…" : "Set password"}
       </Button>
-      {error ? <p className="text-xs font-semibold text-destructive">{error}</p> : null}
+
+      <ConfirmDialog
+        open={open}
+        title="Set a new password?"
+        description="A new temporary password will be generated for this member. Their current password will stop working immediately."
+        confirmLabel="Generate password"
+        pending={pending}
+        error={error}
+        onConfirm={onConfirm}
+        onClose={() => setOpen(false)}
+      />
     </div>
   );
 }

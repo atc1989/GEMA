@@ -54,7 +54,9 @@ export function ScaledPoster({
   }, []);
 
   return (
-    <div ref={wrapRef}>
+    // min-w-0 lets grid/flex parents shrink this below the native 360px poster
+    // width on small screens; the ResizeObserver then scales the poster down.
+    <div ref={wrapRef} className="min-w-0">
       <div
         className={className}
         style={{ width: POSTER_W * scale, height: POSTER_H * scale, margin: "0 auto", overflow: "hidden" }}
