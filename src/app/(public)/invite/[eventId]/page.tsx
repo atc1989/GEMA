@@ -1,13 +1,10 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { CalendarX, Gift, Ticket } from "lucide-react";
 
 import { EventInviteDetails, type InviteSpeaker } from "@/components/event/event-invite-details";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { getCurrentProfile } from "@/lib/auth/require-admin";
-import { getCurrentMember } from "@/lib/auth/require-member";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -28,18 +25,6 @@ export default async function InviteLandingPage({
 }) {
   const { eventId } = await params;
   const { ref } = await searchParams;
-
-  const profile = await getCurrentProfile();
-  if (profile) {
-    if (profile.isAdmin || profile.role === "admin") {
-      redirect(`/admin/events/${eventId}`);
-    }
-    const memberCtx = await getCurrentMember();
-    if (memberCtx) {
-      redirect(`/member/events/${eventId}`);
-    }
-    redirect("/onboarding");
-  }
 
   const supabase = await createSupabaseServerClient();
 

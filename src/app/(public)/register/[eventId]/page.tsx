@@ -1,11 +1,8 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowLeft, CalendarX } from "lucide-react";
 
 import { ProspectRegistrationForm } from "@/components/prospect/prospect-registration-form";
 import { EmptyState } from "@/components/ui/empty-state";
-import { getCurrentProfile } from "@/lib/auth/require-admin";
-import { getCurrentMember } from "@/lib/auth/require-member";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatEventDateTime } from "@/lib/utils/format";
 
@@ -18,18 +15,6 @@ export default async function RegisterPage({
 }) {
   const { eventId } = await params;
   const { ref } = await searchParams;
-
-  const profile = await getCurrentProfile();
-  if (profile) {
-    if (profile.isAdmin || profile.role === "admin") {
-      redirect(`/admin/events/${eventId}`);
-    }
-    const memberCtx = await getCurrentMember();
-    if (memberCtx) {
-      redirect(`/member/events/${eventId}`);
-    }
-    redirect("/onboarding");
-  }
 
   const supabase = await createSupabaseServerClient();
   // Single gate for public + referral-unlocked private events.
