@@ -7,11 +7,9 @@ import {
 import { MemberPermissionsSearch } from "@/components/admin/member-permissions-search";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { cleanPage, Pagination } from "@/components/ui/pagination";
+import { cleanPage, cleanPerPage, DEFAULT_PER_PAGE, Pagination } from "@/components/ui/pagination";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-
-const PAGE_SIZE = 20;
 
 type MemberRow = {
   id: string;
@@ -30,10 +28,11 @@ type ProfileRow = {
   can_publish_events: boolean | null;
 };
 
-function pageHref(page: number, search: string) {
+function pageHref(page: number, perPage: number, search: string) {
   const params = new URLSearchParams();
   if (search) params.set("q", search);
   if (page > 1) params.set("page", String(page));
+  if (perPage !== DEFAULT_PER_PAGE) params.set("per", String(perPage));
   const suffix = params.toString();
   return suffix ? `/admin/members/event-permissions?${suffix}` : "/admin/members/event-permissions";
 }
@@ -41,13 +40,14 @@ function pageHref(page: number, search: string) {
 export default async function AdminMemberEventPermissionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; per?: string }>;
 }) {
-  const { q, page: rawPage } = await searchParams;
+  const { q, page: rawPage, per: rawPer } = await searchParams;
   const search = (q ?? "").trim();
   const page = cleanPage(rawPage);
-  const from = (page - 1) * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
+  const perPage = cleanPerPage(rawPer);
+  const from = (page - 1) * perPage;
+  const to = from + perPage - 1;
   await requireAdmin();
   const supabase = createSupabaseAdminClient();
 
@@ -118,7 +118,6 @@ export default async function AdminMemberEventPermissionsPage({
     })
     .filter((row): row is MemberPublishingPermissionRow => row !== null);
 
-  const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
   return (
     <div className="grid gap-4">
@@ -152,7 +151,12 @@ export default async function AdminMemberEventPermissionsPage({
       ) : (
         <>
           <MemberPublishingPermissionsTable members={rows} />
-          <Pagination page={page} totalPages={totalPages} hrefFor={(p) => pageHref(p, search)} />
+          <Pagination
+            page={page}
+            count={count}
+            perPage={perPage}
+            hrefFor={(p, n) => pageHref(p, n, search)}
+          />
         </>
       )}
     </div>

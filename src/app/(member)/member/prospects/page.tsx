@@ -18,7 +18,12 @@ type ProspectRow = {
   created_at: string;
 };
 
-export default async function MemberProspectsPage() {
+export default async function MemberProspectsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ focus?: string }>;
+}) {
+  const { focus } = await searchParams;
   const ctx = await getCurrentMember();
   const member = ctx!.member;
 
@@ -56,7 +61,7 @@ export default async function MemberProspectsPage() {
         </p>
       </div>
 
-      <MemberProspectsView initialProspects={rows} />
+      <MemberProspectsView initialProspects={rows} focusId={focus ?? null} />
     </div>
   );
 }

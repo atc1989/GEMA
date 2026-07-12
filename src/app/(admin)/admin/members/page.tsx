@@ -4,10 +4,16 @@ import { ChevronRight, IdCard } from "lucide-react";
 import { SetPasswordButton } from "@/components/admin/set-password-button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { cleanPage, Pagination } from "@/components/ui/pagination";
+import { cleanPage, cleanPerPage, DEFAULT_PER_PAGE, Pagination } from "@/components/ui/pagination";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-const PAGE_SIZE = 20;
+function pageHref(page: number, perPage: number) {
+  const params = new URLSearchParams();
+  if (page > 1) params.set("page", String(page));
+  if (perPage !== DEFAULT_PER_PAGE) params.set("per", String(perPage));
+  const suffix = params.toString();
+  return suffix ? `/admin/members?${suffix}` : "/admin/members";
+}
 
 type MemberRow = {
   id: string;
@@ -28,11 +34,12 @@ type MemberStats = { total: number; viaLinks: number; converted: number };
 export default async function AdminMembersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; per?: string }>;
 }) {
-  const { page: rawPage } = await searchParams;
+  const { page: rawPage, per: rawPer } = await searchParams;
   const page = cleanPage(rawPage);
-  const from = (page - 1) * PAGE_SIZE;
+  const perPage = cleanPerPage(rawPer);
+  const from = (page - 1) * perPage;
 
   const supabase = await createSupabaseServerClient();
 
@@ -40,11 +47,10 @@ export default async function AdminMembersPage({
     .from("members")
     .select("id, username, member_code, status, profile_id", { count: "exact" })
     .order("created_at", { ascending: false })
-    .range(from, from + PAGE_SIZE - 1)
+    .range(from, from + perPage - 1)
     .returns<MemberRow[]>();
 
   const rows = members ?? [];
-  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   let prospectAgg: ProspectAggRow[] = [];
   if (rows.length > 0) {
@@ -135,11 +141,7 @@ export default async function AdminMembersPage({
           </ul>
         </Card>
       )}
-      <Pagination
-        page={page}
-        totalPages={totalPages}
-        hrefFor={(p) => (p > 1 ? `/admin/members?page=${p}` : "/admin/members")}
-      />
+      <Pagination page={page} count={count ?? 0} perPage={perPage} hrefFor={pageHref} />
     </div>
   );
 }

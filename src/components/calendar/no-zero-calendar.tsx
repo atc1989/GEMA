@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Dialog } from "@base-ui/react/dialog";
 import {
   CalendarDays,
   CheckCircle2,
@@ -20,7 +21,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { EventType } from "@/lib/database/types";
-import type { DayCell, LeaderboardEntry, NoZeroMonth } from "@/lib/calendar/no-zero-month";
+import type {
+  DayAttendee,
+  DayCell,
+  DayStatus,
+  LeaderboardEntry,
+  NoZeroMonth,
+} from "@/lib/calendar/no-zero-month";
 import { WeeklyActivityGuide } from "@/components/calendar/weekly-activity-guide";
 import { TeamLeaderboard } from "@/components/calendar/team-leaderboard";
 
@@ -68,6 +75,19 @@ function formatLongDate(iso: string) {
   }).format(new Date(`${iso}T00:00:00Z`));
 }
 
+/** True at Tailwind's lg breakpoint and up; false on first render until mounted. */
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return isDesktop;
+}
+
 export function NoZeroCalendar({
   month,
   todayWeekday,
@@ -78,6 +98,7 @@ export function NoZeroCalendar({
   leaderboard: LeaderboardEntry[];
 }) {
   const [openDay, setOpenDay] = useState<DayCell | null>(null);
+  const isDesktop = useIsDesktop();
 
   const todayBanner =
     month.todayIsNoZero === null ? null : month.todayIsNoZero ? (
@@ -99,7 +120,8 @@ export function NoZeroCalendar({
     );
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-5">
+      <div className="grid gap-3">
       {todayBanner}
 
       {/* Month header + nav */}
@@ -178,8 +200,47 @@ export function NoZeroCalendar({
 
       <WeeklyActivityGuide todayWeekday={todayWeekday} />
       <TeamLeaderboard entries={leaderboard} />
+      </div>
 
-      {openDay ? <DayDetailDialog cell={openDay} onClose={() => setOpenDay(null)} /> : null}
+      {/* Desktop: persistent day panel beside the grid */}
+      <Card className="sticky top-6 hidden max-h-[calc(100dvh-3rem)] flex-col overflow-hidden p-0 lg:flex">
+        {openDay ? (
+          <>
+            <div className="flex items-start justify-between gap-3 border-b border-border/60 px-5 py-4">
+              <div>
+                <p className="font-heading text-base font-black tracking-tight">
+                  {formatLongDate(openDay.iso)}
+                </p>
+                <DayStatusBadge status={openDay.status} />
+              </div>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setOpenDay(null)}
+                aria-label="Close day details"
+              >
+                <X aria-hidden="true" />
+              </Button>
+            </div>
+            <div className="overflow-y-auto px-5 py-4">
+              <DayDetailBody cell={openDay} />
+            </div>
+          </>
+        ) : (
+          <div className="grid gap-2 px-5 py-12 text-center">
+            <CalendarDays
+              className="mx-auto size-6 text-muted-foreground/50"
+              aria-hidden="true"
+            />
+            <p className="text-sm font-bold text-muted-foreground">
+              Select a day on the calendar to see its details.
+            </p>
+          </div>
+        )}
+      </Card>
+
+      {/* Mobile / tablet: bottom-sheet dialog */}
+      {!isDesktop ? <DayDetailDialog cell={openDay} onClose={() => setOpenDay(null)} /> : null}
     </div>
   );
 }
@@ -267,29 +328,38 @@ const ATTENDEE_GROUPS = [
 
 const ATTENDEE_PREVIEW = 9;
 
+const attendeeChip =
+  "inline-block rounded-lg border border-border/60 bg-card px-2 py-1 text-[11px] font-semibold";
+
 function AttendeeGroup({
   label,
-  names,
+  attendees,
 }: {
   label: string;
-  names: string[];
+  attendees: DayAttendee[];
 }) {
   const [showAll, setShowAll] = useState(false);
-  const visible = showAll ? names : names.slice(0, ATTENDEE_PREVIEW);
-  const hidden = names.length - visible.length;
+  const visible = showAll ? attendees : attendees.slice(0, ATTENDEE_PREVIEW);
+  const hidden = attendees.length - visible.length;
 
   return (
     <div>
       <p className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">
-        {label} ({names.length})
+        {label} ({attendees.length})
       </p>
       <ul className="mt-1.5 flex flex-wrap gap-1.5">
-        {visible.map((name, i) => (
-          <li
-            key={`${name}-${i}`}
-            className="rounded-lg border border-border/60 bg-card px-2 py-1 text-[11px] font-semibold"
-          >
-            {name}
+        {visible.map((a, i) => (
+          <li key={`${a.name}-${i}`}>
+            {a.prospectId ? (
+              <Link
+                href={`/member/prospects?focus=${a.prospectId}`}
+                className={cn(attendeeChip, "text-brand hover:border-brand/50 hover:underline")}
+              >
+                {a.name}
+              </Link>
+            ) : (
+              <span className={attendeeChip}>{a.name}</span>
+            )}
           </li>
         ))}
         {hidden > 0 || showAll ? (
@@ -308,68 +378,53 @@ function AttendeeGroup({
   );
 }
 
-function EventAttendees({ attendees }: { attendees: DayCell["events"][number]["attendees"] }) {
+function EventAttendees({ attendees }: { attendees: DayAttendee[] }) {
   if (attendees.length === 0) return null;
 
   return (
     <div className="mt-2.5 grid gap-2.5 border-t border-border/60 pt-2.5 sm:pl-[18px]">
       {ATTENDEE_GROUPS.map(({ kind, label }) => {
-        const names = attendees.filter((a) => a.kind === kind).map((a) => a.name);
-        if (names.length === 0) return null;
-        return <AttendeeGroup key={kind} label={label} names={names} />;
+        const group = attendees.filter((a) => a.kind === kind);
+        if (group.length === 0) return null;
+        return <AttendeeGroup key={kind} label={label} attendees={group} />;
       })}
     </div>
   );
 }
 
-function DayDetailDialog({ cell, onClose }: { cell: DayCell; onClose: () => void }) {
+function DayStatusBadge({ status }: { status: DayStatus }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Day details"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <span
+      className={cn(
+        "mt-1 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide",
+        status === "done"
+          ? "bg-emerald-50 text-success"
+          : status === "going"
+            ? "bg-secondary text-brand"
+            : "bg-slate-100 text-muted-foreground",
+      )}
     >
-      <div className="flex max-h-[88vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-card shadow-xl sm:max-h-[80vh] sm:max-w-lg sm:rounded-3xl lg:max-w-2xl">
-        <div className="flex items-start justify-between gap-3 border-b border-border/60 px-5 py-4">
-          <div>
-            <p className="font-heading text-base font-black tracking-tight">
-              {formatLongDate(cell.iso)}
-            </p>
-            <span
-              className={cn(
-                "mt-1 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide",
-                cell.status === "done"
-                  ? "bg-emerald-50 text-success"
-                  : cell.status === "going"
-                    ? "bg-secondary text-brand"
-                    : "bg-slate-100 text-muted-foreground",
-              )}
-            >
-              {cell.status === "done" ? (
-                <>
-                  <CheckCircle2 className="size-3" aria-hidden="true" /> No-Zero day
-                </>
-              ) : cell.status === "going" ? (
-                <>
-                  <CalendarDays className="size-3" aria-hidden="true" /> RSVP&apos;d
-                </>
-              ) : (
-                "Zero day"
-              )}
-            </span>
-          </div>
-          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close">
-            <X aria-hidden="true" />
-          </Button>
-        </div>
+      {status === "done" ? (
+        <>
+          <CheckCircle2 className="size-3" aria-hidden="true" /> No-Zero day
+        </>
+      ) : status === "going" ? (
+        <>
+          <CalendarDays className="size-3" aria-hidden="true" /> RSVP&apos;d
+        </>
+      ) : (
+        "Zero day"
+      )}
+    </span>
+  );
+}
 
-        <div className="overflow-y-auto px-5 py-4">
-        {/* Why the day counted */}
-        {cell.prospects.length > 0 ? (
+/** Shared day content: why the day counted + the per-event listings. */
+function DayDetailBody({ cell }: { cell: DayCell }) {
+  return (
+    <>
+      {/* Why the day counted */}
+      {cell.prospects.length > 0 ? (
           <p className="mb-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2.5 text-sm font-bold text-emerald-700">
             <Users className="size-4 shrink-0 text-success" aria-hidden="true" />
             You sponsored {cell.prospects.length}{" "}
@@ -437,8 +492,41 @@ function DayDetailDialog({ cell, onClose }: { cell: DayCell; onClose: () => void
             </ul>
           )}
         </section>
-        </div>
-      </div>
-    </div>
+    </>
+  );
+}
+
+function DayDetailDialog({ cell, onClose }: { cell: DayCell | null; onClose: () => void }) {
+  return (
+    <Dialog.Root
+      open={cell !== null}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/50" />
+        <Dialog.Popup className="fixed inset-x-0 bottom-0 z-50 flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-3xl bg-card shadow-xl outline-none sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[80vh] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl">
+          {cell ? (
+            <>
+              <div className="flex items-start justify-between gap-3 border-b border-border/60 px-5 py-4">
+                <div>
+                  <Dialog.Title className="font-heading text-base font-black tracking-tight">
+                    {formatLongDate(cell.iso)}
+                  </Dialog.Title>
+                  <DayStatusBadge status={cell.status} />
+                </div>
+                <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close">
+                  <X aria-hidden="true" />
+                </Button>
+              </div>
+              <div className="overflow-y-auto px-5 py-4">
+                <DayDetailBody cell={cell} />
+              </div>
+            </>
+          ) : null}
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

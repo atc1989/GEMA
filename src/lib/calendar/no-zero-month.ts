@@ -23,6 +23,8 @@ export type DayStatus = "done" | "going" | "zero";
 export type DayAttendee = {
   name: string;
   kind: "member" | "prospect";
+  /** Set for prospect attendees so the UI can deep-link to the prospects page. */
+  prospectId: string | null;
 };
 
 export type DayEvent = {
@@ -118,6 +120,7 @@ type AttendeeRow = {
   event_id: string;
   attendee_name: string;
   registration_kind: "member" | "prospect";
+  prospect_id: string | null;
 };
 
 const EVENT_COLS = "id, title, event_type, mode, starts_at, venue_name, capacity";
@@ -192,7 +195,7 @@ export async function buildNoZeroMonth(
       // member manages, and only their own guests for everything else.
       supabase
         .from("event_registrations")
-        .select("event_id, attendee_name, registration_kind, events!inner(starts_at)")
+        .select("event_id, attendee_name, registration_kind, prospect_id, events!inner(starts_at)")
         .eq("status", "attended")
         .gte("events.starts_at", monthStart.toISOString())
         .lt("events.starts_at", monthEnd.toISOString())
@@ -215,7 +218,7 @@ export async function buildNoZeroMonth(
   const attendeesByEventId = new Map<string, DayAttendee[]>();
   for (const a of attendeesRes.data ?? []) {
     const list = attendeesByEventId.get(a.event_id) ?? [];
-    list.push({ name: a.attendee_name, kind: a.registration_kind });
+    list.push({ name: a.attendee_name, kind: a.registration_kind, prospectId: a.prospect_id });
     attendeesByEventId.set(a.event_id, list);
   }
 

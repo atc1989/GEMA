@@ -8,11 +8,11 @@ import { EventFilterBar, matchesSearch } from "@/components/event/event-filter-b
 import { TYPE_META } from "@/components/event/event-meta";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PagerControls } from "@/components/ui/pager-controls";
+import { DEFAULT_PER_PAGE } from "@/components/ui/pagination";
 import type { EventType } from "@/lib/database/types";
 import { cn } from "@/lib/utils";
 import { formatEventDateTime } from "@/lib/utils/format";
-
-const PAGE_SIZE = 20;
 
 export type PublicEventRow = {
   id: string;
@@ -30,6 +30,7 @@ export function PublicEventsList({ events }: { events: PublicEventRow[] }) {
   const [q, setQ] = useState("");
   const [type, setType] = useState("");
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
 
   const filtered = useMemo(
     () =>
@@ -41,12 +42,9 @@ export function PublicEventsList({ events }: { events: PublicEventRow[] }) {
 
   // Clamp instead of resetting on filter change: search shrinks the list, so the
   // stale page number just collapses back into range.
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const safePage = Math.min(page, totalPages);
-  const visible = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-
-  const pagerButton =
-    "rounded-lg border border-border px-3 py-1.5 transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50";
+  const visible = filtered.slice((safePage - 1) * perPage, safePage * perPage);
 
   return (
     <div className="grid gap-3">
@@ -113,31 +111,13 @@ export function PublicEventsList({ events }: { events: PublicEventRow[] }) {
           })}
         </div>
       )}
-      {totalPages > 1 ? (
-        <div className="flex items-center justify-between gap-3 text-sm font-semibold text-muted-foreground">
-          <span>
-            Page {safePage} of {totalPages}
-          </span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className={pagerButton}
-              disabled={safePage <= 1}
-              onClick={() => setPage(safePage - 1)}
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              className={pagerButton}
-              disabled={safePage >= totalPages}
-              onClick={() => setPage(safePage + 1)}
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <PagerControls
+        page={safePage}
+        count={filtered.length}
+        perPage={perPage}
+        onPage={setPage}
+        onPerPage={setPerPage}
+      />
     </div>
   );
 }

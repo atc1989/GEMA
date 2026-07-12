@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   CalendarClock,
@@ -20,6 +20,8 @@ import { updateProspectStage } from "@/lib/actions/prospects";
 import type { ProspectStage } from "@/lib/database/types";
 import { buttonVariants, Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PagerControls } from "@/components/ui/pager-controls";
+import { DEFAULT_PER_PAGE } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 
 export type MemberProspect = {
@@ -124,13 +126,32 @@ function sourceLabel(source: string | null): string {
     .join(" ");
 }
 
-export function MemberProspectsView({ initialProspects }: { initialProspects: MemberProspect[] }) {
+export function MemberProspectsView({
+  initialProspects,
+  focusId = null,
+}: {
+  initialProspects: MemberProspect[];
+  /** Prospect id to page to, scroll to, and highlight (e.g. from a calendar deep link). */
+  focusId?: string | null;
+}) {
   const router = useRouter();
   const [prospects, setProspects] = useState(initialProspects);
   const [activeStage, setActiveStage] = useState<StageFilter>("all");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const focusIndex = focusId ? initialProspects.findIndex((p) => p.id === focusId) : -1;
+  const [page, setPage] = useState(
+    focusIndex >= 0 ? Math.floor(focusIndex / DEFAULT_PER_PAGE) + 1 : 1,
+  );
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
   const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!focusId) return;
+    document
+      .getElementById(`prospect-${focusId}`)
+      ?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [focusId]);
 
   const counts = useMemo(() => {
     return prospects.reduce(
@@ -155,6 +176,12 @@ export function MemberProspectsView({ initialProspects }: { initialProspects: Me
     if (activeStage === "all") return prospects;
     return prospects.filter((prospect) => prospect.stage === activeStage);
   }, [activeStage, prospects]);
+
+  // Paginate after the stage filter so counts stay global; clamp instead of
+  // resetting when a filter shrinks the list.
+  const totalPages = Math.max(1, Math.ceil(filteredProspects.length / perPage));
+  const safePage = Math.min(page, totalPages);
+  const visibleProspects = filteredProspects.slice((safePage - 1) * perPage, safePage * perPage);
 
   const markFollowUp = (prospectId: string) => {
     setError(null);
@@ -270,7 +297,7 @@ export function MemberProspectsView({ initialProspects }: { initialProspects: Me
         </Card>
       ) : (
         <div className="grid gap-3 xl:grid-cols-2">
-          {filteredProspects.map((prospect) => {
+          {visibleProspects.map((prospect) => {
             const meta = stageMeta[prospect.stage];
             const canFollowUp =
               !prospect.convertedMemberId &&
@@ -279,7 +306,14 @@ export function MemberProspectsView({ initialProspects }: { initialProspects: Me
               prospect.stage !== "expired";
 
             return (
-              <Card key={prospect.id} className="grid gap-3 p-4">
+              <Card
+                key={prospect.id}
+                id={`prospect-${prospect.id}`}
+                className={cn(
+                  "grid gap-3 p-4",
+                  prospect.id === focusId && "ring-2 ring-brand",
+                )}
+              >
                 <div className="flex items-start gap-3">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-info to-brand-dark font-heading text-[13px] font-extrabold text-white">
                     {initials(prospect.fullName)}
@@ -362,6 +396,13 @@ export function MemberProspectsView({ initialProspects }: { initialProspects: Me
           })}
         </div>
       )}
+      <PagerControls
+        page={safePage}
+        count={filteredProspects.length}
+        perPage={perPage}
+        onPage={setPage}
+        onPerPage={setPerPage}
+      />
     </div>
   );
 }

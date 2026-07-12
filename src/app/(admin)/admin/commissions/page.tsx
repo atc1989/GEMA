@@ -10,11 +10,9 @@ import { CommissionStats } from "@/components/commission/commission-stats";
 import { BulkCommissionActions } from "@/components/commission/bulk-commission-actions";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { cleanPage, Pagination } from "@/components/ui/pagination";
+import { cleanPage, cleanPerPage, DEFAULT_PER_PAGE, Pagination } from "@/components/ui/pagination";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
-
-const PAGE_SIZE = 20;
 
 type CommissionRowData = {
   id: string;
@@ -34,10 +32,11 @@ const FILTERS: { key: string; label: string; status?: CommissionStatus }[] = [
   { key: "reversed", label: "Reversed", status: "reversed" },
 ];
 
-function pageHref(page: number, statusKey: string) {
+function pageHref(page: number, perPage: number, statusKey: string) {
   const params = new URLSearchParams();
   if (statusKey !== "all") params.set("status", statusKey);
   if (page > 1) params.set("page", String(page));
+  if (perPage !== DEFAULT_PER_PAGE) params.set("per", String(perPage));
   const suffix = params.toString();
   return suffix ? `/admin/commissions?${suffix}` : "/admin/commissions";
 }
@@ -45,12 +44,13 @@ function pageHref(page: number, statusKey: string) {
 export default async function AdminCommissionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; page?: string; per?: string }>;
 }) {
-  const { status, page: rawPage } = await searchParams;
+  const { status, page: rawPage, per: rawPer } = await searchParams;
   const active = FILTERS.find((f) => f.key === status) ?? FILTERS[0];
   const page = cleanPage(rawPage);
-  const from = (page - 1) * PAGE_SIZE;
+  const perPage = cleanPerPage(rawPer);
+  const from = (page - 1) * perPage;
 
   const supabase = await createSupabaseServerClient();
   let query = supabase
@@ -59,7 +59,7 @@ export default async function AdminCommissionsPage({
       count: "exact",
     })
     .order("created_at", { ascending: false })
-    .range(from, from + PAGE_SIZE - 1);
+    .range(from, from + perPage - 1);
   if (active.status) query = query.eq("status", active.status);
 
   // ponytail: totals still scan amount+status of every row; swap for an aggregate RPC
@@ -74,7 +74,6 @@ export default async function AdminCommissionsPage({
 
   const rows = commissions ?? [];
   const totals = allAmounts ?? [];
-  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   // Resolve member display names in one query.
   const memberIds = Array.from(
@@ -127,7 +126,7 @@ export default async function AdminCommissionsPage({
         {FILTERS.map((f) => (
           <Link
             key={f.key}
-            href={pageHref(1, f.key)}
+            href={pageHref(1, perPage, f.key)}
             className={cn(
               "rounded-lg px-3 py-1.5 text-xs font-bold transition-colors",
               active.key === f.key
@@ -155,7 +154,12 @@ export default async function AdminCommissionsPage({
               ))}
             </ul>
           </Card>
-          <Pagination page={page} totalPages={totalPages} hrefFor={(p) => pageHref(p, active.key)} />
+          <Pagination
+            page={page}
+            count={count ?? 0}
+            perPage={perPage}
+            hrefFor={(p, n) => pageHref(p, n, active.key)}
+          />
         </>
       )}
     </div>

@@ -1,33 +1,24 @@
-import Link from "next/link";
+"use client";
+
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { PER_PAGE_OPTIONS } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 
-export const PER_PAGE_OPTIONS = [10, 20, 50] as const;
-export const DEFAULT_PER_PAGE = 20;
-
-export function cleanPage(raw?: string) {
-  const page = Number(raw ?? "1");
-  return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
-}
-
-export function cleanPerPage(raw?: string) {
-  const per = Number(raw ?? String(DEFAULT_PER_PAGE));
-  return (PER_PAGE_OPTIONS as readonly number[]).includes(per) ? per : DEFAULT_PER_PAGE;
-}
-
-/** Server-side pager: pages are links, state lives in the URL. */
-export function Pagination({
+/** Client-side twin of <Pagination> for lists filtered in the browser. */
+export function PagerControls({
   page,
   count,
   perPage,
-  hrefFor,
+  onPage,
+  onPerPage,
 }: {
   page: number;
   count: number;
   perPage: number;
-  hrefFor: (page: number, perPage: number) => string;
+  onPage: (page: number) => void;
+  onPerPage: (perPage: number) => void;
 }) {
   if (count <= PER_PAGE_OPTIONS[0]) return null;
   const totalPages = Math.max(1, Math.ceil(count / perPage));
@@ -40,16 +31,20 @@ export function Pagination({
           <span className="text-xs font-bold uppercase tracking-wide">Show</span>
           <div className="flex rounded-lg border border-border p-0.5">
             {PER_PAGE_OPTIONS.map((n) => (
-              <Link
+              <button
                 key={n}
-                href={hrefFor(1, n)}
+                type="button"
+                onClick={() => {
+                  onPerPage(n);
+                  onPage(1);
+                }}
                 className={cn(
                   "rounded-md px-2.5 py-1 text-xs font-bold transition-colors",
                   n === perPage ? "bg-secondary text-brand" : "hover:bg-muted",
                 )}
               >
                 {n}
-              </Link>
+              </button>
             ))}
           </div>
         </div>
@@ -58,28 +53,30 @@ export function Pagination({
         </span>
       </div>
       <div className="flex gap-2">
-        <Link
-          href={hrefFor(Math.max(1, current - 1), perPage)}
-          aria-disabled={current <= 1}
+        <button
+          type="button"
+          disabled={current <= 1}
+          onClick={() => onPage(current - 1)}
           className={cn(
             buttonVariants({ variant: "outline", size: "sm" }),
-            current <= 1 && "pointer-events-none opacity-50",
+            "disabled:pointer-events-none disabled:opacity-50",
           )}
         >
           <ChevronLeft aria-hidden="true" />
           Previous
-        </Link>
-        <Link
-          href={hrefFor(Math.min(totalPages, current + 1), perPage)}
-          aria-disabled={current >= totalPages}
+        </button>
+        <button
+          type="button"
+          disabled={current >= totalPages}
+          onClick={() => onPage(current + 1)}
           className={cn(
             buttonVariants({ variant: "outline", size: "sm" }),
-            current >= totalPages && "pointer-events-none opacity-50",
+            "disabled:pointer-events-none disabled:opacity-50",
           )}
         >
           Next
           <ChevronRight aria-hidden="true" />
-        </Link>
+        </button>
       </div>
     </div>
   );

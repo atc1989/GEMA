@@ -8,11 +8,17 @@ import {
 import { CommissionStats } from "@/components/commission/commission-stats";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { cleanPage, Pagination } from "@/components/ui/pagination";
+import { cleanPage, cleanPerPage, DEFAULT_PER_PAGE, Pagination } from "@/components/ui/pagination";
 import { getCurrentMember } from "@/lib/auth/require-member";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-const PAGE_SIZE = 20;
+function pageHref(page: number, perPage: number) {
+  const params = new URLSearchParams();
+  if (page > 1) params.set("page", String(page));
+  if (perPage !== DEFAULT_PER_PAGE) params.set("per", String(perPage));
+  const suffix = params.toString();
+  return suffix ? `/member/earnings?${suffix}` : "/member/earnings";
+}
 
 type CommissionRowData = {
   id: string;
@@ -27,11 +33,12 @@ type CommissionRowData = {
 export default async function MemberEarningsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; per?: string }>;
 }) {
-  const { page: rawPage } = await searchParams;
+  const { page: rawPage, per: rawPer } = await searchParams;
   const page = cleanPage(rawPage);
-  const from = (page - 1) * PAGE_SIZE;
+  const perPage = cleanPerPage(rawPer);
+  const from = (page - 1) * perPage;
 
   const ctx = await getCurrentMember();
   const member = ctx!.member;
@@ -48,7 +55,7 @@ export default async function MemberEarningsPage({
       )
       .eq("earner_member_id", member.id)
       .order("created_at", { ascending: false })
-      .range(from, from + PAGE_SIZE - 1)
+      .range(from, from + perPage - 1)
       .returns<CommissionRowData[]>(),
     supabase
       .from("commissions")
@@ -59,7 +66,6 @@ export default async function MemberEarningsPage({
 
   const rows = commissions ?? [];
   const totals = allAmounts ?? [];
-  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   const sumBy = (s: CommissionStatus) =>
     totals.filter((r) => r.status === s).reduce((acc, r) => acc + Number(r.amount), 0);
@@ -104,11 +110,7 @@ export default async function MemberEarningsPage({
               ))}
             </ul>
           </Card>
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            hrefFor={(p) => (p > 1 ? `/member/earnings?page=${p}` : "/member/earnings")}
-          />
+          <Pagination page={page} count={count ?? 0} perPage={perPage} hrefFor={pageHref} />
         </>
       )}
     </div>
