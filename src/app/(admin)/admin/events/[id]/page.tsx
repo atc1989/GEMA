@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { EventActions } from "@/components/event/event-actions";
+import { QrDownload } from "@/components/qr/qr-download";
 import { ScaledPoster, type EventPosterData } from "@/components/event/event-poster";
 import { EventStatusBadge } from "@/components/event/event-status-badge";
 import { asPhotoFocus } from "@/components/event/posters/shared";
@@ -21,6 +22,7 @@ import { Card } from "@/components/ui/card";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatEventDateTime } from "@/lib/utils/format";
+import { slugify } from "@/lib/utils/slug";
 import { cn } from "@/lib/utils";
 
 export default async function EventDetailPage({
@@ -184,6 +186,21 @@ export default async function EventDetailPage({
             {event.capacity}
           </DetailRow>
         ) : null}
+      </Card>
+
+      <Card className="grid gap-3 p-5">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            Event QR code
+          </p>
+          <p className="mt-1 text-sm font-semibold text-muted-foreground">
+            Scans to the public invite page. Download for flyers and posters.
+          </p>
+        </div>
+        <QrDownload
+          path={`/invite/${event.id}`}
+          fileName={`${slugify(event.title)}-qr`}
+        />
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">

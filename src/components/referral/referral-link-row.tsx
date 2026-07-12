@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Link2, Sparkles } from "lucide-react";
+import { Link2, QrCode, Sparkles } from "lucide-react";
 
 import { createReferralLink } from "@/lib/actions/referrals";
+import { QrDownload } from "@/components/qr/qr-download";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -21,6 +22,7 @@ export function ReferralLinkRow({
 }) {
   const [refCode, setRefCode] = useState<string | null>(initialRefCode);
   const [origin, setOrigin] = useState("");
+  const [showQr, setShowQr] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -58,6 +60,16 @@ export function ReferralLinkRow({
             </span>
           </div>
           <CopyButton value={shareUrl || `/invite/${eventId}?ref=${refCode}`} />
+          <Button
+            type="button"
+            variant="soft"
+            size="sm"
+            onClick={() => setShowQr((v) => !v)}
+            aria-expanded={showQr}
+          >
+            <QrCode aria-hidden="true" />
+            QR
+          </Button>
         </div>
       ) : (
         <div className="flex items-center justify-between gap-2">
@@ -70,6 +82,13 @@ export function ReferralLinkRow({
           </Button>
         </div>
       )}
+
+      {refCode && showQr ? (
+        <QrDownload
+          path={`/invite/${eventId}?ref=${refCode}`}
+          fileName={`referral-${refCode}-qr`}
+        />
+      ) : null}
 
       {error ? <p className="text-xs font-semibold text-destructive">{error}</p> : null}
     </Card>

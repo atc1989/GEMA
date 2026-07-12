@@ -8,11 +8,13 @@ import {
 } from "@/components/event/event-invite-details";
 import { MemberRsvpButton } from "@/components/event/member-rsvp-button";
 import { QRCodeCard } from "@/components/qr/qr-code-card";
+import { QrDownload } from "@/components/qr/qr-download";
 import { Card } from "@/components/ui/card";
 import { getCurrentMember } from "@/lib/auth/require-member";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
+import { slugify } from "@/lib/utils/slug";
 
 type RegistrationRow = {
   id: string;
@@ -157,6 +159,21 @@ export default async function MemberEventPage({
       )}
 
       <EventInviteDetails event={event} speakers={speakers} />
+
+      <Card className="grid gap-3 p-5">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            Share this event
+          </p>
+          <p className="mt-1 text-sm font-semibold text-muted-foreground">
+            Anyone who scans this lands on the public invite page.
+          </p>
+        </div>
+        <QrDownload
+          path={`/invite/${event.id}`}
+          fileName={`${slugify(event.title)}-qr`}
+        />
+      </Card>
     </div>
   );
 }
