@@ -149,15 +149,15 @@ export function NoZeroCalendar({
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-1 gap-2.5 min-[380px]:grid-cols-3">
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
         <SummaryStat value={month.noZeroDays} label="No-Zero days" icon={CheckCircle2} />
         <SummaryStat value={month.currentStreak} label="Day streak" icon={Flame} accent="gold" />
         <SummaryStat value={month.bestStreak} label="Best streak" icon={Trophy} />
       </div>
 
       {/* Grid */}
-      <Card className="p-3 min-[420px]:p-4">
-        <div className="mb-2 grid grid-cols-7 gap-1.5">
+      <Card className="p-2.5 min-[380px]:p-3 min-[420px]:p-4">
+        <div className="mb-2 grid grid-cols-7 gap-1">
           {DOW.map((d, i) => (
             <div
               key={i}
@@ -167,7 +167,7 @@ export function NoZeroCalendar({
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1.5">
+        <div className="grid grid-cols-7 gap-1 min-[380px]:gap-1.5">
           {Array.from({ length: month.leadingBlanks }).map((_, i) => (
             <div key={`blank-${i}`} />
           ))}
@@ -177,7 +177,7 @@ export function NoZeroCalendar({
         </div>
 
         {/* Legend */}
-        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-border/60 pt-3 text-[11px] font-semibold text-muted-foreground">
+        <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border/60 pt-3 text-[10.5px] font-semibold text-muted-foreground min-[420px]:flex min-[420px]:flex-wrap min-[420px]:gap-x-4 min-[420px]:text-[11px]">
           <LegendItem swatch={<span className="size-3 rounded-full bg-brand" />} label="No-Zero day" />
           <LegendItem
             swatch={<span className="size-3 rounded-full border-2 border-dashed border-brand bg-card" />}
@@ -257,15 +257,15 @@ function SummaryStat({
   accent?: "gold";
 }) {
   return (
-    <div className="rounded-xl border border-border/70 bg-secondary/50 p-3 text-center">
+    <div className="min-w-0 rounded-xl border border-border/70 bg-secondary/50 px-1.5 py-2 text-center sm:p-3">
       <Icon
-        className={cn("mx-auto size-4", accent === "gold" ? "text-gold" : "text-brand")}
+        className={cn("mx-auto size-3.5 sm:size-4", accent === "gold" ? "text-gold" : "text-brand")}
         aria-hidden="true"
       />
-      <div className="mt-1 font-heading text-2xl font-extrabold leading-none text-brand">
+      <div className="mt-1 font-heading text-xl font-extrabold leading-none text-brand sm:text-2xl">
         {value}
       </div>
-      <div className="mt-1 text-[10px] font-semibold text-muted-foreground">{label}</div>
+      <div className="mt-1 text-[9.5px] font-semibold leading-tight text-muted-foreground sm:text-[10px]">{label}</div>
     </div>
   );
 }
@@ -281,7 +281,7 @@ function LegendItem({ swatch, label }: { swatch: React.ReactNode; label: string 
 
 function DayButton({ cell, onOpen }: { cell: DayCell; onOpen: () => void }) {
   const circle =
-    "flex size-8 items-center justify-center text-xs font-bold transition-colors min-[380px]:size-9 min-[380px]:text-[12.5px]";
+    "flex size-8 items-center justify-center text-xs font-bold transition-colors min-[420px]:size-9 min-[420px]:text-[12.5px]";
 
   // The event type that drives the cell colour (first event of the day, if any).
   const meta = cell.events[0] ? TYPE_META[cell.events[0].type] ?? TYPE_META.other : null;
