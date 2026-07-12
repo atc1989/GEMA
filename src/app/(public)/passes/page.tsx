@@ -4,6 +4,7 @@ import { PassLookupForm } from "@/components/prospect/pass-lookup-form";
 import { QRCodeCard } from "@/components/qr/qr-code-card";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PaginatedList } from "@/components/ui/paginated-list";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatEventDateTime } from "@/lib/utils/format";
 import type { RegistrationStatus } from "@/lib/database/types";
@@ -77,7 +78,7 @@ export default async function PassesPage({
       .eq("registration_kind", "prospect")
       .neq("status", "cancelled")
       .order("registered_at", { ascending: false })
-      .limit(20);
+      .limit(100);
 
     dbQuery = query.includes("@")
       ? dbQuery.eq("attendee_email", query.toLowerCase())
@@ -116,7 +117,7 @@ export default async function PassesPage({
             description="No registrations found. Make sure you use the same email or mobile number you registered with."
           />
         ) : (
-          <div className="grid gap-6">
+          <PaginatedList as="div" className="grid gap-6">
             {passes.map((pass) => {
               const ev = pass.events;
               const LocationIcon = ev.mode === "online" ? Monitor : MapPin;
@@ -161,7 +162,7 @@ export default async function PassesPage({
                 </div>
               );
             })}
-          </div>
+          </PaginatedList>
         )
       ) : null}
     </div>

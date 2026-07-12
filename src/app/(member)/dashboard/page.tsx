@@ -17,6 +17,7 @@ import { MusterReminder } from "@/components/dashboard/muster-reminder";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PaginatedList } from "@/components/ui/paginated-list";
 import { getCurrentMember } from "@/lib/auth/require-member";
 import { buildNoZeroMonth, type DayCell } from "@/lib/calendar/no-zero-month";
 import { WEEK_GUIDE, WEEKDAY_LETTERS, WEEKDAY_NAMES } from "@/lib/calendar/weekly-guide";
@@ -118,7 +119,7 @@ export default async function MemberDashboardPage() {
       .select("id, full_name, email, stage, created_at")
       .eq("sponsor_member_id", member.id)
       .order("created_at", { ascending: false })
-      .limit(5)
+      .limit(100)
       .returns<ProspectRow[]>(),
     supabase
       .from("commissions")
@@ -244,7 +245,7 @@ export default async function MemberDashboardPage() {
             className="border-0 shadow-none"
           />
         ) : (
-          <ul className="divide-y divide-border/60">
+          <PaginatedList className="divide-y divide-border/60" pagerClassName="border-t border-border/70 px-4 py-3">
             {(recentProspects.data ?? []).map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-0">
@@ -258,7 +259,7 @@ export default async function MemberDashboardPage() {
                 </span>
               </li>
             ))}
-          </ul>
+          </PaginatedList>
         )}
       </Card>
 

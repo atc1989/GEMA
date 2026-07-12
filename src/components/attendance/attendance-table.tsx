@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { RemoveRegistrationButton } from "@/components/attendance/remove-registration-button";
 import { Card } from "@/components/ui/card";
+import { PaginatedList } from "@/components/ui/paginated-list";
 import { formatEventDateTime } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import type { RegistrationKind } from "@/lib/database/types";
@@ -55,7 +56,10 @@ export function AttendanceTable({
           {emptyLabel}
         </p>
       ) : (
-        <ul className="divide-y divide-border/60">
+        <PaginatedList
+          className="divide-y divide-border/60"
+          pagerClassName="border-t border-border/70 px-4 py-3"
+        >
           {rows.map((row) => (
             <li key={row.id} className="flex items-center gap-3 px-4 py-3">
               <div
@@ -105,7 +109,7 @@ export function AttendanceTable({
               ) : null}
             </li>
           ))}
-        </ul>
+        </PaginatedList>
       )}
     </Card>
   );

@@ -11,10 +11,13 @@ import {
   Mail,
   MessageCircle,
   Phone,
+  Search,
   Sparkles,
   UserRoundCheck,
   Users,
 } from "lucide-react";
+
+import { matchesSearch } from "@/components/event/event-filter-bar";
 
 import { updateProspectStage } from "@/lib/actions/prospects";
 import type { ProspectStage } from "@/lib/database/types";
@@ -137,6 +140,7 @@ export function MemberProspectsView({
   const router = useRouter();
   const [prospects, setProspects] = useState(initialProspects);
   const [activeStage, setActiveStage] = useState<StageFilter>("all");
+  const [q, setQ] = useState("");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const focusIndex = focusId ? initialProspects.findIndex((p) => p.id === focusId) : -1;
@@ -172,10 +176,15 @@ export function MemberProspectsView({
     );
   }, [prospects]);
 
-  const filteredProspects = useMemo(() => {
-    if (activeStage === "all") return prospects;
-    return prospects.filter((prospect) => prospect.stage === activeStage);
-  }, [activeStage, prospects]);
+  const filteredProspects = useMemo(
+    () =>
+      prospects.filter(
+        (prospect) =>
+          (activeStage === "all" || prospect.stage === activeStage) &&
+          matchesSearch(q, prospect.fullName, prospect.email, prospect.phone),
+      ),
+    [activeStage, prospects, q],
+  );
 
   // Paginate after the stage filter so counts stay global; clamp instead of
   // resetting when a filter shrinks the list.
@@ -264,9 +273,24 @@ export function MemberProspectsView({
         ))}
       </div>
 
-      <div className="-mx-4 overflow-x-auto px-4 pb-1">
-        <div className="flex min-w-max gap-2">
-          {filterStages.map((stage) => {
+      <div className="flex items-center gap-2">
+        <div className="relative min-w-0 flex-1 sm:max-w-xs">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search prospects"
+            aria-label="Search prospects"
+            className="h-9 w-full rounded-full border border-border bg-card pl-9 pr-3 text-xs font-bold outline-none transition-colors placeholder:text-muted-foreground focus:border-brand"
+          />
+        </div>
+        <div className="min-w-0 flex-1 overflow-x-auto pb-1">
+          <div className="flex min-w-max gap-2">
+            {filterStages.map((stage) => {
             const label = stage === "all" ? "All" : stageMeta[stage].label;
             return (
               <button
@@ -281,7 +305,8 @@ export function MemberProspectsView({
                 {label} <span className="font-semibold opacity-80">{counts[stage]}</span>
               </button>
             );
-          })}
+            })}
+          </div>
         </div>
       </div>
 

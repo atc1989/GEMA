@@ -24,6 +24,8 @@ import {
 import { MemberRsvpButton } from "@/components/event/member-rsvp-button";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PagerControls } from "@/components/ui/pager-controls";
+import { DEFAULT_PER_PAGE } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 import { formatEventDateTime } from "@/lib/utils/format";
 
@@ -40,60 +42,80 @@ function NoMatches() {
   );
 }
 
-export function AllEventsList({ events }: { events: MemberEventCardRow[] }) {
+/** Shared search + type filter + pagination over a client-side event list. */
+function useFilteredPage<T>(items: T[], match: (item: T, q: string, type: string) => boolean) {
   const [q, setQ] = useState("");
   const [type, setType] = useState("");
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
 
   const filtered = useMemo(
-    () =>
-      events.filter(
-        (e) =>
-          (!type || e.event_type === type) &&
-          matches(q, e.title, e.venue_name, e.speaker_name),
-      ),
-    [events, q, type],
+    () => items.filter((item) => match(item, q, type)),
+    [items, q, type, match],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  const safePage = Math.min(page, totalPages);
+  const visible = filtered.slice((safePage - 1) * perPage, safePage * perPage);
+
+  return { q, setQ, type, setType, filtered, visible, safePage, perPage, setPage, setPerPage };
+}
+
+export function AllEventsList({ events }: { events: MemberEventCardRow[] }) {
+  const list = useFilteredPage(
+    events,
+    (e, q, type) =>
+      (!type || e.event_type === type) && matches(q, e.title, e.venue_name, e.speaker_name),
   );
 
   return (
     <section className="grid gap-3">
-      <EventFilterBar q={q} onQ={setQ} type={type} onType={setType} />
-      {filtered.length === 0 ? (
+      <EventFilterBar q={list.q} onQ={list.setQ} type={list.type} onType={list.setType} />
+      {list.filtered.length === 0 ? (
         <NoMatches />
       ) : (
         <div className="grid gap-3">
-          {filtered.map((event) => (
+          {list.visible.map((event) => (
             <AllEventCard key={event.id} event={event} />
           ))}
         </div>
       )}
+      <PagerControls
+        page={list.safePage}
+        count={list.filtered.length}
+        perPage={list.perPage}
+        onPage={list.setPage}
+        onPerPage={list.setPerPage}
+      />
     </section>
   );
 }
 
 export function HostedEventsList({ events }: { events: HostedEventRow[] }) {
-  const [q, setQ] = useState("");
-  const [type, setType] = useState("");
-
-  const filtered = useMemo(
-    () =>
-      events.filter(
-        (e) => (!type || e.event_type === type) && matches(q, e.title, e.venue_name),
-      ),
-    [events, q, type],
+  const list = useFilteredPage(
+    events,
+    (e, q, type) => (!type || e.event_type === type) && matches(q, e.title, e.venue_name),
   );
 
   return (
     <div className="grid gap-3">
-      <EventFilterBar q={q} onQ={setQ} type={type} onType={setType} />
-      {filtered.length === 0 ? (
+      <EventFilterBar q={list.q} onQ={list.setQ} type={list.type} onType={list.setType} />
+      {list.filtered.length === 0 ? (
         <NoMatches />
       ) : (
         <div className="grid gap-3">
-          {filtered.map((event) => (
+          {list.visible.map((event) => (
             <HostedEventCard key={event.id} event={event} />
           ))}
         </div>
       )}
+      <PagerControls
+        page={list.safePage}
+        count={list.filtered.length}
+        perPage={list.perPage}
+        onPage={list.setPage}
+        onPerPage={list.setPerPage}
+      />
     </div>
   );
 }

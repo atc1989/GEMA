@@ -121,6 +121,7 @@ type AttendeeRow = {
   attendee_name: string;
   registration_kind: "member" | "prospect";
   prospect_id: string | null;
+  events: MonthEventRow | null;
 };
 
 const EVENT_COLS = "id, title, event_type, mode, starts_at, venue_name, capacity";
@@ -195,7 +196,7 @@ export async function buildNoZeroMonth(
       // member manages, and only their own guests for everything else.
       supabase
         .from("event_registrations")
-        .select("event_id, attendee_name, registration_kind, prospect_id, events!inner(starts_at)")
+        .select(`event_id, attendee_name, registration_kind, prospect_id, events!inner(${EVENT_COLS})`)
         .eq("status", "attended")
         .gte("events.starts_at", monthStart.toISOString())
         .lt("events.starts_at", monthEnd.toISOString())
@@ -222,11 +223,14 @@ export async function buildNoZeroMonth(
     attendeesByEventId.set(a.event_id, list);
   }
 
-  // Merge the three sources (hosted/created, referral-linked, RSVP'd), deduped by id.
+  // Merge the four sources, deduped by id: hosted/created, referral-linked,
+  // RSVP'd, and events where one of the member's guests attended (covers
+  // generic referral links used on events the member has no other tie to).
   const eventById = new Map<string, MonthEventRow>();
   for (const ev of myEventsRes.data ?? []) eventById.set(ev.id, ev);
   for (const r of referralEventsRes.data ?? []) if (r.events) eventById.set(r.events.id, r.events);
   for (const r of registrationsRes.data ?? []) if (r.events) eventById.set(r.events.id, r.events);
+  for (const a of attendeesRes.data ?? []) if (a.events) eventById.set(a.events.id, a.events);
 
   const eventsByDay = new Map<string, DayEvent[]>();
   const monthEvents = Array.from(eventById.values()).sort((a, b) =>

@@ -1,9 +1,10 @@
-import { CalendarX, Link2 } from "lucide-react";
-
-import { ReferralLinkRow } from "@/components/referral/referral-link-row";
-import { Card } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
+import {
+  ReferralLinksView,
+  type ReferralEventItem,
+  type ReferralLinkItem,
+} from "@/components/referral/referral-links-view";
 import { getCurrentMember } from "@/lib/auth/require-member";
+import type { EventType } from "@/lib/database/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatEventDateTime } from "@/lib/utils/format";
 
@@ -12,6 +13,7 @@ type EventRow = {
   title: string;
   starts_at: string;
   timezone: string;
+  event_type: EventType;
 };
 
 type ReferralRow = {
@@ -29,10 +31,10 @@ export default async function MemberReferralsPage() {
   const [{ data: events }, { data: referrals }] = await Promise.all([
     supabase
       .from("events")
-      .select("id, title, starts_at, timezone")
+      .select("id, title, starts_at, timezone, event_type")
       .eq("status", "published")
       .order("starts_at", { ascending: true })
-      .limit(50)
+      .limit(200)
       .returns<EventRow[]>(),
     supabase
       .from("referrals")
@@ -46,6 +48,25 @@ export default async function MemberReferralsPage() {
   );
   const titleByEvent = new Map((events ?? []).map((e) => [e.id, e.title]));
 
+  const eventItems: ReferralEventItem[] = (events ?? []).map((e) => ({
+    id: e.id,
+    title: e.title,
+    meta: formatEventDateTime(e.starts_at, e.timezone),
+    eventType: e.event_type,
+    refCode: refByEvent.get(e.id) ?? null,
+  }));
+
+  // Links whose event isn't in the published list (general links, past events)
+  // still show, as plain link rows.
+  const publishedIds = new Set((events ?? []).map((e) => e.id));
+  const linkItems: ReferralLinkItem[] = (referrals ?? [])
+    .filter((r) => !r.event_id || !publishedIds.has(r.event_id))
+    .map((r) => ({
+      refCode: r.ref_code,
+      title: r.event_id ? titleByEvent.get(r.event_id) ?? "Event" : "General link",
+      status: r.status,
+    }));
+
   return (
     <div className="grid gap-4">
       <div>
@@ -56,59 +77,7 @@ export default async function MemberReferralsPage() {
         </p>
       </div>
 
-      <section className="grid gap-3">
-        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-          Published events
-        </p>
-        {(events ?? []).length === 0 ? (
-          <EmptyState
-            icon={CalendarX}
-            title="No published events"
-            description="Once an organizer publishes an event, you can generate a referral link for it here."
-          />
-        ) : (
-          (events ?? []).map((e) => (
-            <ReferralLinkRow
-              key={e.id}
-              eventId={e.id}
-              eventTitle={e.title}
-              eventMeta={formatEventDateTime(e.starts_at, e.timezone)}
-              initialRefCode={refByEvent.get(e.id) ?? null}
-            />
-          ))
-        )}
-      </section>
-
-      {(referrals ?? []).length > 0 ? (
-        <section className="grid gap-3">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            All my links
-          </p>
-          <Card className="p-0">
-            <ul className="divide-y divide-border/60">
-              {(referrals ?? []).map((r) => (
-                <li
-                  key={r.ref_code}
-                  className="flex items-center justify-between gap-3 px-4 py-3"
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <Link2 className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold">
-                        {r.event_id ? titleByEvent.get(r.event_id) ?? "Event" : "General link"}
-                      </p>
-                      <p className="font-mono text-xs text-muted-foreground">{r.ref_code}</p>
-                    </div>
-                  </div>
-                  <span className="shrink-0 rounded-lg bg-secondary px-2 py-1 text-[10px] font-black uppercase tracking-wide text-brand">
-                    {r.status}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </section>
-      ) : null}
+      <ReferralLinksView events={eventItems} links={linkItems} />
     </div>
   );
 }

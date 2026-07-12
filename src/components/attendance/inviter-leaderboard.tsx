@@ -1,6 +1,7 @@
 import { Trophy } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
+import { PaginatedList } from "@/components/ui/paginated-list";
 import { cn } from "@/lib/utils";
 
 export type InviterRow = {
@@ -26,7 +27,10 @@ export function InviterLeaderboard({ rows }: { rows: InviterRow[] }) {
         <Trophy className="size-4 text-gold-dark" aria-hidden="true" />
         Top inviters
       </div>
-      <ul className="divide-y divide-border/60">
+      <PaginatedList
+        className="divide-y divide-border/60"
+        pagerClassName="border-t border-border/70 px-4 py-3"
+      >
         {rows.map((row, index) => {
           const total = row.membersInvited + row.prospectsInvited;
           return (
@@ -65,7 +69,7 @@ export function InviterLeaderboard({ rows }: { rows: InviterRow[] }) {
             </li>
           );
         })}
-      </ul>
+      </PaginatedList>
     </Card>
   );
 }

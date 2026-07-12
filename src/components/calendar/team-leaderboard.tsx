@@ -1,6 +1,7 @@
 import { Flame } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
+import { PaginatedList } from "@/components/ui/paginated-list";
 import { cn } from "@/lib/utils";
 import type { LeaderboardEntry } from "@/lib/calendar/no-zero-month";
 
@@ -26,7 +27,7 @@ export function TeamLeaderboard({ entries }: { entries: LeaderboardEntry[] }) {
         </div>
       </div>
 
-      <ul className="grid gap-1.5">
+      <PaginatedList className="grid gap-1.5" pagerClassName="mt-3">
         {entries.map((e, i) => (
           <li
             key={e.memberId}
@@ -55,7 +56,7 @@ export function TeamLeaderboard({ entries }: { entries: LeaderboardEntry[] }) {
             </span>
           </li>
         ))}
-      </ul>
+      </PaginatedList>
     </Card>
   );
 }

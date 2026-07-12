@@ -21,6 +21,7 @@ import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PaginatedList } from "@/components/ui/paginated-list";
 import { requireMember } from "@/lib/auth/require-member";
 import type { CommissionStatus, ProspectStage } from "@/lib/database/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -109,10 +110,10 @@ export default async function MemberProfilePage() {
       .returns<RankRow[]>(),
     supabase
       .from("prospects")
-      .select("id, full_name, email, stage, converted_member_id, created_at")
+      .select("id, full_name, email, stage, converted_member_id, created_at", { count: "exact" })
       .eq("sponsor_member_id", member.id)
       .order("created_at", { ascending: false })
-      .limit(5)
+      .limit(100)
       .returns<ProspectRow[]>(),
     supabase
       .from("referrals")
@@ -221,7 +222,7 @@ export default async function MemberProfilePage() {
         <DashboardCard
           icon={Users}
           label="Prospects"
-          value={String(prospects.length)}
+          value={String(prospectsRes.count ?? prospects.length)}
           helper={`${convertedProspects} converted`}
           tone="purple"
         />
@@ -385,7 +386,10 @@ export default async function MemberProfilePage() {
               className="border-0 shadow-none"
             />
           ) : (
-            <ul className="divide-y divide-border/60">
+            <PaginatedList
+              className="divide-y divide-border/60"
+              pagerClassName="border-t border-border/70 px-4 py-3"
+            >
               {prospects.map((prospect) => (
                 <li
                   key={prospect.id}
@@ -402,7 +406,7 @@ export default async function MemberProfilePage() {
                   </span>
                 </li>
               ))}
-            </ul>
+            </PaginatedList>
           )}
         </Card>
       </section>

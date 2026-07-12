@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LinkSpinner } from "@/components/ui/link-pending";
 import { LinkTabs } from "@/components/ui/link-tabs";
+import { PaginatedList } from "@/components/ui/paginated-list";
 import { requireMember } from "@/lib/auth/require-member";
 import type { EventMode, EventStatus, EventType, RegistrationStatus } from "@/lib/database/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -95,7 +96,7 @@ export default async function MemberEventsPage({
       ? supabase
           .rpc("get_member_event_cards", {
             p_search: null,
-            p_limit: 50,
+            p_limit: 200,
           })
           .returns<MemberEventCardRow[]>()
       : Promise.resolve({ data: [] as MemberEventCardRow[], error: null }),
@@ -108,6 +109,7 @@ export default async function MemberEventsPage({
           .eq("member_id", ctx.member.id)
           .neq("status", "cancelled")
           .order("registered_at", { ascending: false })
+          .limit(200)
           .returns<RegistrationRow[]>()
       : Promise.resolve({ data: [] as RegistrationRow[], error: null }),
     activeTab === "hosting"
@@ -116,7 +118,7 @@ export default async function MemberEventsPage({
           .select("id, title, event_type, status, mode, starts_at, timezone, venue_name")
           .eq("host_member_id", ctx.member.id)
           .order("starts_at", { ascending: false })
-          .limit(50)
+          .limit(200)
           .returns<HostedEventRow[]>()
       : Promise.resolve({ data: [] as HostedEventRow[], error: null }),
   ]);
@@ -219,11 +221,11 @@ function MyEventsSection({
   }
 
   return (
-    <div className="grid gap-3">
+    <PaginatedList as="div" className="grid gap-3">
       {registrations.map((registration) => (
         <RegistrationCard key={registration.id} registration={registration} />
       ))}
-    </div>
+    </PaginatedList>
   );
 }
 
@@ -297,7 +299,7 @@ function MyPassesSection({
   }
 
   return (
-    <div className="grid gap-5">
+    <PaginatedList as="div" className="grid gap-5">
       {registrations.map((registration) => {
         const event = registration.events;
         const tone = REG_STATUS[registration.status] ?? REG_STATUS.registered;
@@ -338,7 +340,7 @@ function MyPassesSection({
           </div>
         );
       })}
-    </div>
+    </PaginatedList>
   );
 }
 

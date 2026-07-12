@@ -21,11 +21,16 @@ export function EventFilterBar({
   onQ,
   type,
   onType,
+  extraOptions,
+  placeholder = "Search events or venues",
 }: {
   q: string;
   onQ: (v: string) => void;
   type: string;
   onType: (v: string) => void;
+  /** Extra category options rendered above the event types (e.g. "Published"). */
+  extraOptions?: { value: string; label: string }[];
+  placeholder?: string;
 }) {
   return (
     <div className="flex gap-2">
@@ -38,8 +43,8 @@ export function EventFilterBar({
           type="search"
           value={q}
           onChange={(e) => onQ(e.target.value)}
-          placeholder="Search events or venues"
-          aria-label="Search events"
+          placeholder={placeholder}
+          aria-label={placeholder}
           className="h-11 w-full rounded-xl border border-border bg-card pl-9 pr-3 text-sm font-semibold outline-none transition-colors placeholder:text-muted-foreground focus:border-brand"
         />
       </div>
@@ -50,6 +55,11 @@ export function EventFilterBar({
         className="h-11 shrink-0 rounded-xl border border-border bg-card px-3 text-sm font-semibold outline-none transition-colors focus:border-brand"
       >
         <option value="">All categories</option>
+        {(extraOptions ?? []).map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
         {(Object.keys(TYPE_META) as EventType[]).map((t) => (
           <option key={t} value={t}>
             {TYPE_META[t].label}
