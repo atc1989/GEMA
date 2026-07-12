@@ -18,6 +18,7 @@ type CommissionRowData = {
   amount: string;
   currency: string;
   status: CommissionStatus;
+  source: { username: string; member_code: string } | null;
 };
 
 export default async function MemberEarningsPage() {
@@ -25,27 +26,17 @@ export default async function MemberEarningsPage() {
   const member = ctx!.member;
 
   const supabase = await createSupabaseServerClient();
+  // Single query: join source member name via FK relation alias.
   const { data: commissions } = await supabase
     .from("commissions")
-    .select("id, source_member_id, level_depth, amount, currency, status")
+    .select(
+      "id, source_member_id, level_depth, amount, currency, status, source:members!source_member_id(username, member_code)",
+    )
     .eq("earner_member_id", member.id)
     .order("created_at", { ascending: false })
     .returns<CommissionRowData[]>();
 
   const rows = commissions ?? [];
-
-  const nameById = new Map<string, string>();
-  const sourceIds = Array.from(
-    new Set(rows.map((r) => r.source_member_id).filter(Boolean)),
-  ) as string[];
-  if (sourceIds.length > 0) {
-    const { data: members } = await supabase
-      .from("members")
-      .select("id, username, member_code")
-      .in("id", sourceIds)
-      .returns<{ id: string; username: string; member_code: string }[]>();
-    for (const m of members ?? []) nameById.set(m.id, m.username ?? m.member_code);
-  }
 
   const sumBy = (s: CommissionStatus) =>
     rows.filter((r) => r.status === s).reduce((acc, r) => acc + Number(r.amount), 0);
@@ -53,7 +44,7 @@ export default async function MemberEarningsPage() {
   const views: CommissionView[] = rows.map((r) => ({
     id: r.id,
     earnerName: `@${member.username}`,
-    sourceName: r.source_member_id ? nameById.get(r.source_member_id) ?? "Member" : "—",
+    sourceName: r.source ? (r.source.username ?? r.source.member_code) : "—",
     level: r.level_depth,
     amount: Number(r.amount).toFixed(2),
     currency: r.currency,
