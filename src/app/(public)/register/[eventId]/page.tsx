@@ -53,6 +53,16 @@ export default async function RegisterPage({
       </div>
 
       <ProspectRegistrationForm eventId={eventId} refCode={ref} />
+
+      <p className="text-center text-sm font-semibold text-muted-foreground">
+        Already a member?{" "}
+        <Link
+          href={`/login?redirectTo=${encodeURIComponent(`/register/${eventId}`)}`}
+          className="font-bold text-foreground underline underline-offset-4 hover:text-purple"
+        >
+          Log in
+        </Link>
+      </p>
     </div>
   );
 }

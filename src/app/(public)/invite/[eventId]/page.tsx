@@ -113,6 +113,17 @@ export default async function InviteLandingPage({
           Reserve my seat
         </Link>
       </div>
+
+      {/* Logged-in members never see this page; middleware sends them to the member event view. */}
+      <p className="text-center text-sm font-semibold text-muted-foreground">
+        Already a member?{" "}
+        <Link
+          href={`/login?redirectTo=${encodeURIComponent(`/invite/${eventId}`)}`}
+          className="font-bold text-foreground underline underline-offset-4 hover:text-purple"
+        >
+          Log in
+        </Link>
+      </p>
     </div>
   );
 }
