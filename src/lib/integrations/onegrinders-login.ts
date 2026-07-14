@@ -187,6 +187,10 @@ async function ensureAuthUser(email: string, password: string, account: External
       external_user_id: account.user.id,
       external_profile_id: account.profile.id,
       username: account.user.username,
+      full_name:
+        account.profile.full_name?.trim() ||
+        account.profile.display_name?.trim() ||
+        account.user.username,
     },
   });
 
