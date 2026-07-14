@@ -22,6 +22,19 @@ export type { ActionResult, FieldErrors };
 
 const EVENTS_PATH = "/admin/events";
 
+/** Maps raw database errors to messages safe to show users; logs the original. */
+function friendlyDbError(message: string, fallback = "Something went wrong. Please try again."): string {
+  console.error("[events]", message);
+  const m = message.toLowerCase();
+  if (m.includes("events_slug_key") || m.includes("duplicate key")) {
+    return "An event with a similar title already exists. Please adjust the title and try again.";
+  }
+  if (m.includes("row-level security") || m.includes("permission denied")) {
+    return "You do not have permission to do that.";
+  }
+  return fallback;
+}
+
 type SpeakerSync = { name?: string; photoUrl?: string };
 
 async function syncPrimarySpeaker(
@@ -95,7 +108,10 @@ export async function createEvent(
     .single();
 
   if (error || !data) {
-    return { ok: false, error: error?.message ?? "Failed to create the event." };
+    return {
+      ok: false,
+      error: error ? friendlyDbError(error.message, "Failed to create the event.") : "Failed to create the event.",
+    };
   }
 
   await syncPrimarySpeaker(supabase, data.id, {
@@ -131,7 +147,7 @@ export async function updateEvent(
     .eq("id", eventId)
     .maybeSingle();
 
-  if (loadError) return { ok: false, error: loadError.message };
+  if (loadError) return { ok: false, error: friendlyDbError(loadError.message) };
   if (!existing) return { ok: false, error: "Event not found." };
   if (existing.status === "cancelled") {
     return { ok: false, error: "Cancelled events can no longer be edited." };
@@ -161,7 +177,7 @@ export async function updateEvent(
     })
     .eq("id", eventId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: friendlyDbError(error.message, "Failed to update the event.") };
 
   await syncPrimarySpeaker(supabase, eventId, {
     name: parsed.data.speakerName,
@@ -185,7 +201,7 @@ export async function publishEvent(eventId: string): Promise<ActionResult<Event>
     .eq("id", eventId)
     .maybeSingle<EventRow>();
 
-  if (loadError) return { ok: false, error: loadError.message };
+  if (loadError) return { ok: false, error: friendlyDbError(loadError.message) };
   if (!row) return { ok: false, error: "Event not found." };
   if (row.status === "cancelled") {
     return { ok: false, error: "Cancelled events cannot be published." };
@@ -220,7 +236,10 @@ export async function publishEvent(eventId: string): Promise<ActionResult<Event>
     .single<EventRow>();
 
   if (error || !data) {
-    return { ok: false, error: error?.message ?? "Failed to publish the event." };
+    return {
+      ok: false,
+      error: error ? friendlyDbError(error.message, "Failed to publish the event.") : "Failed to publish the event.",
+    };
   }
 
   revalidatePath(EVENTS_PATH);
@@ -251,7 +270,7 @@ export async function cancelEvent(
     .eq("id", eventId)
     .maybeSingle<{ id: string; status: Event["status"]; metadata: Record<string, unknown> }>();
 
-  if (loadError) return { ok: false, error: loadError.message };
+  if (loadError) return { ok: false, error: friendlyDbError(loadError.message) };
   if (!row) return { ok: false, error: "Event not found." };
   if (row.status === "cancelled") {
     return { ok: false, error: "This event is already cancelled." };
@@ -272,7 +291,10 @@ export async function cancelEvent(
     .single<EventRow>();
 
   if (error || !data) {
-    return { ok: false, error: error?.message ?? "Failed to cancel the event." };
+    return {
+      ok: false,
+      error: error ? friendlyDbError(error.message, "Failed to cancel the event.") : "Failed to cancel the event.",
+    };
   }
 
   revalidatePath(EVENTS_PATH);

@@ -16,6 +16,10 @@ export function slugify(input: string): string {
  * Returns a slug for `title` guaranteed unique against `events.slug`. Appends a
  * short random suffix when the base (or a collision) already exists.
  * `ignoreId` lets an event keep/regenerate its own slug on edit.
+ *
+ * Uses the security-definer `event_slug_exists` RPC: a plain select here runs
+ * under RLS, which hides drafts and other users' events, so it would miss
+ * collisions and the insert would blow up on `events_slug_key`.
  */
 export async function ensureUniqueEventSlug(
   supabase: SupabaseClient,
@@ -27,12 +31,12 @@ export async function ensureUniqueEventSlug(
   for (let attempt = 0; attempt < 5; attempt++) {
     const candidate = attempt === 0 ? base : `${base}-${randomSuffix()}`;
 
-    let query = supabase.from("events").select("id").eq("slug", candidate).limit(1);
-    if (ignoreId) query = query.neq("id", ignoreId);
-
-    const { data, error } = await query;
+    const { data: exists, error } = await supabase.rpc("event_slug_exists", {
+      p_slug: candidate,
+      p_ignore_id: ignoreId ?? null,
+    });
     if (error) throw error;
-    if (!data || data.length === 0) return candidate;
+    if (!exists) return candidate;
   }
 
   // Extremely unlikely fallback.

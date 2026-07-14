@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -9,7 +10,35 @@ import {
   ExternalLoginError,
   provisionOneGrindersLogin,
 } from "@/lib/integrations/onegrinders-login";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+const THROTTLE_MAX_FAILURES = 5;
+const THROTTLE_WINDOW_MINUTES = 15;
+
+async function clientIp() {
+  const requestHeaders = await headers();
+  return requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+}
+
+/** True when the identifier has too many recent failures to try again. */
+async function isThrottled(identifier: string) {
+  const since = new Date(Date.now() - THROTTLE_WINDOW_MINUTES * 60_000).toISOString();
+  const { count, error } = await createSupabaseAdminClient()
+    .from("login_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("username", identifier)
+    .gte("created_at", since);
+  // ponytail: per-identifier only; add a per-IP cap if bots rotate usernames.
+  return !error && (count ?? 0) >= THROTTLE_MAX_FAILURES;
+}
+
+/** Fire-and-forget: a logging failure must never block a login. */
+async function recordFailedLogin(identifier: string) {
+  await createSupabaseAdminClient()
+    .from("login_attempts")
+    .insert({ username: identifier, client_ip: await clientIp() });
+}
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Username or email is required."),
@@ -40,6 +69,14 @@ export async function loginAction(
   const supabase = await createSupabaseServerClient();
   let email = parsed.data.identifier.trim();
   let password = parsed.data.password;
+  const identifier = email.toLowerCase();
+
+  if (await isThrottled(identifier)) {
+    return {
+      ok: false,
+      error: `Too many failed attempts. Please wait ${THROTTLE_WINDOW_MINUTES} minutes and try again.`,
+    };
+  }
 
   if (!email.includes("@")) {
     try {
@@ -48,6 +85,7 @@ export async function loginAction(
       password = provisioned.password;
     } catch (error) {
       if (error instanceof ExternalLoginError) {
+        if (error.kind === "credentials") await recordFailedLogin(identifier);
         return { ok: false, error: error.message };
       }
 
@@ -61,6 +99,7 @@ export async function loginAction(
   });
 
   if (error) {
+    await recordFailedLogin(identifier);
     return { ok: false, error: "Invalid email or password." };
   }
 

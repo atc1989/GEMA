@@ -192,9 +192,14 @@ async function ensureAuthUser(email: string, password: string, account: External
 
   if (!createError && created.user) return created.user;
 
+  console.error("[onegrinders-login] createUser failed", { email, error: createError?.message });
+
   const existing = await findAuthUserByEmail(email);
   if (!existing) {
-    throw new ExternalLoginError("Unable to create the local auth user.", "provisioning");
+    throw new ExternalLoginError(
+      `Unable to create the local auth user${createError ? ` (${createError.message})` : ""}.`,
+      "provisioning",
+    );
   }
 
   const { data, error } = await admin.auth.admin.updateUserById(existing.id, {
