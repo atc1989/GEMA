@@ -1,7 +1,5 @@
 import "server-only";
 
-import { randomBytes } from "crypto";
-
 import type { User } from "@supabase/supabase-js";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -62,9 +60,14 @@ function normalizeUsername(username: string) {
   return username.trim().toLowerCase();
 }
 
-function externalEmailForUsername(username: string) {
+export function externalEmailForUsername(username: string) {
   const safeUsername = normalizeUsername(username).replace(/[^a-z0-9._-]/g, "-");
   return `${safeUsername}@${EXTERNAL_EMAIL_DOMAIN}`;
+}
+
+/** Synthetic addresses can't receive mail (no reset links, no notifications). */
+export function isSyntheticExternalEmail(email: string) {
+  return email.toLowerCase().endsWith(`@${EXTERNAL_EMAIL_DOMAIN}`);
 }
 
 function memberCodeForExternalUser(userId: number) {
@@ -135,6 +138,24 @@ async function verifyExternalCredentials(username: string, password: string) {
   return account;
 }
 
+/**
+ * Members imported via the admin uploader (or upgraded with a real email) are
+ * found by username, not by the synthetic email — their auth email may be real.
+ */
+async function findProfileIdByUsername(username: string): Promise<string | null> {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("members")
+    .select("profile_id")
+    .eq("username", username)
+    .maybeSingle<{ profile_id: string }>();
+
+  if (error) {
+    throw new ExternalLoginError("Unable to inspect local member accounts.", "provisioning");
+  }
+  return data?.profile_id ?? null;
+}
+
 async function findAuthUserByEmail(email: string): Promise<User | null> {
   const admin = createSupabaseAdminClient();
   const perPage = 100;
@@ -153,6 +174,35 @@ async function findAuthUserByEmail(email: string): Promise<User | null> {
   return null;
 }
 
+function externalUserMetadata(account: ExternalLoginAccount) {
+  return {
+    provider: "onegrindersguild",
+    external_user_id: account.user.id,
+    external_profile_id: account.profile.id,
+    username: account.user.username,
+    full_name:
+      account.profile.full_name?.trim() ||
+      account.profile.display_name?.trim() ||
+      account.user.username,
+  };
+}
+
+/**
+ * Mirrors the member's verified external password onto the local auth user so
+ * GEMA can still sign them in when the external API is down.
+ */
+async function syncAuthUser(profileId: string, password: string, account: ExternalLoginAccount) {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin.auth.admin.updateUserById(profileId, {
+    password,
+    user_metadata: externalUserMetadata(account),
+  });
+  if (error || !data.user) {
+    throw new ExternalLoginError("Unable to update the local auth user.", "provisioning");
+  }
+  return data.user;
+}
+
 async function ensureAuthUser(email: string, password: string, account: ExternalLoginAccount) {
   const admin = createSupabaseAdminClient();
 
@@ -163,35 +213,14 @@ async function ensureAuthUser(email: string, password: string, account: External
     .maybeSingle<{ id: string }>();
 
   if (profile?.id) {
-    const { data, error } = await admin.auth.admin.updateUserById(profile.id, {
-      password,
-      user_metadata: {
-        provider: "onegrindersguild",
-        external_user_id: account.user.id,
-        external_profile_id: account.profile.id,
-        username: account.user.username,
-      },
-    });
-    if (error || !data.user) {
-      throw new ExternalLoginError("Unable to update the local auth user.", "provisioning");
-    }
-    return data.user;
+    return syncAuthUser(profile.id, password, account);
   }
 
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
-    user_metadata: {
-      provider: "onegrindersguild",
-      external_user_id: account.user.id,
-      external_profile_id: account.profile.id,
-      username: account.user.username,
-      full_name:
-        account.profile.full_name?.trim() ||
-        account.profile.display_name?.trim() ||
-        account.user.username,
-    },
+    user_metadata: externalUserMetadata(account),
   });
 
   if (!createError && created.user) return created.user;
@@ -213,13 +242,7 @@ async function ensureAuthUser(email: string, password: string, account: External
     throw new ExternalLoginError(`Unable to create the local auth user (${detail}).`, "provisioning");
   }
 
-  const { data, error } = await admin.auth.admin.updateUserById(existing.id, {
-    password,
-  });
-  if (error || !data.user) {
-    throw new ExternalLoginError("Unable to refresh the local auth user.", "provisioning");
-  }
-  return data.user;
+  return syncAuthUser(existing.id, password, account);
 }
 
 async function ensureProfileAndMember(userId: string, email: string, account: ExternalLoginAccount) {
@@ -230,9 +253,16 @@ async function ensureProfileAndMember(userId: string, email: string, account: Ex
     account.profile.display_name?.trim() ||
     account.user.username;
 
+  // Keep a real email (set by the admin import) — only fill it when missing.
+  const { data: existingProfile } = await admin
+    .from("profiles")
+    .select("email")
+    .eq("id", userId)
+    .maybeSingle<{ email: string | null }>();
+
   const { error: profileError } = await admin.from("profiles").upsert({
     id: userId,
-    email,
+    email: existingProfile?.email ?? email,
     full_name: fullName,
     avatar_url: profilePhotoUrl(account.user.profile_photo),
     role: "member",
@@ -321,11 +351,16 @@ export async function provisionOneGrindersLogin(
 ): Promise<ExternalLoginProvisionResult> {
   const account = await verifyExternalCredentials(username, password);
   const normalizedUsername = normalizeUsername(account.user.username || username);
-  const email = externalEmailForUsername(normalizedUsername);
-  const localPassword = `${randomBytes(24).toString("base64url")}Aa1!`;
 
-  const user = await ensureAuthUser(email, localPassword, account);
+  // Imported members may carry a real auth email, so resolve by username first;
+  // the synthetic-email lookup only covers first-time provisioning and legacy rows.
+  const profileId = await findProfileIdByUsername(normalizedUsername);
+  const user = profileId
+    ? await syncAuthUser(profileId, password, account)
+    : await ensureAuthUser(externalEmailForUsername(normalizedUsername), password, account);
+
+  const email = user.email ?? externalEmailForUsername(normalizedUsername);
   await ensureProfileAndMember(user.id, email, account);
 
-  return { email, password: localPassword };
+  return { email, password };
 }

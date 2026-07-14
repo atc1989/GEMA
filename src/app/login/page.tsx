@@ -9,9 +9,9 @@ import { LoginForm } from "./login-form";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ redirectTo?: string }>;
+  searchParams: Promise<{ redirectTo?: string; reset?: string }>;
 }) {
-  const { redirectTo } = await searchParams;
+  const { redirectTo, reset } = await searchParams;
 
   const profile = await getCurrentProfile();
   if (profile) {
@@ -30,7 +30,7 @@ export default async function LoginPage({
       title="Welcome back"
       subtitle="Sign in with your GEMA email or One Grinders Guild username."
     >
-      <LoginForm redirectTo={redirectTo} />
+      <LoginForm redirectTo={redirectTo} passwordReset={reset === "1"} />
     </AuthLayout>
   );
 }

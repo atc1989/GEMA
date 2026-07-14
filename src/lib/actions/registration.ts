@@ -64,7 +64,7 @@ export async function registerProspectForEvent(
     p_ref_code: values.refCode ?? null,
   });
 
-  if (eventError) return { ok: false, error: eventError.message };
+  if (eventError) return { ok: false, error: friendlyDbError(eventError.message) };
   const event = (
     inviteData as { event: { title: string; starts_at: string; timezone: string } } | null
   )?.event;
@@ -159,7 +159,7 @@ export async function rsvpMemberToEvent(
     .maybeSingle<{ id: string; pass_code: string; status: string }>();
 
   if (existing.error) {
-    return { ok: false, error: existing.error.message };
+    return { ok: false, error: friendlyDbError(existing.error.message) };
   }
   if (existing.data) {
     return {

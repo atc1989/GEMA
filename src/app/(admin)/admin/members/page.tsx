@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, IdCard } from "lucide-react";
+import { ChevronRight, IdCard, Upload } from "lucide-react";
 
 import { SetPasswordButton } from "@/components/admin/set-password-button";
 import { Card } from "@/components/ui/card";
@@ -91,12 +91,21 @@ export default async function AdminMembersPage({
 
   return (
     <div className="grid gap-4">
-      <div>
-        <h2 className="text-lg font-black tracking-tight">Members</h2>
-        <p className="mt-1 text-sm font-semibold text-muted-foreground">
-          Open a member to see their prospects and referral performance, or set a temporary
-          login password.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-black tracking-tight">Members</h2>
+          <p className="mt-1 text-sm font-semibold text-muted-foreground">
+            Open a member to see their prospects and referral performance, or set a temporary
+            login password.
+          </p>
+        </div>
+        <Link
+          href="/admin/members/import"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-secondary"
+        >
+          <Upload className="size-3.5" aria-hidden="true" />
+          Import credentials
+        </Link>
       </div>
 
       {rows.length === 0 ? (

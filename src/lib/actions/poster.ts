@@ -43,7 +43,10 @@ export async function setEventPosterTemplate(
     .update({ metadata: { ...(event.metadata ?? {}), poster_template: template } })
     .eq("id", eventId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[poster]", error.message);
+    return { ok: false, error: "Could not save the banner template. Please try again." };
+  }
 
   revalidatePath(`/member/events/${eventId}/banner`);
   return { ok: true, template };
@@ -77,7 +80,10 @@ export async function setEventPhotoFocus(
     .update({ metadata: { ...(event.metadata ?? {}), photo_focus: clean } })
     .eq("id", eventId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[poster]", error.message);
+    return { ok: false, error: "Could not save the photo framing. Please try again." };
+  }
 
   revalidatePath(`/member/events/${eventId}/banner`);
   return { ok: true, focus: clean };

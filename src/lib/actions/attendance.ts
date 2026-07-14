@@ -98,7 +98,7 @@ export async function lookupRegistrationForCheckIn(input: {
     : query.eq("pass_code", (code ?? "").toUpperCase());
 
   const { data: reg, error } = await query.maybeSingle();
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: friendlyDbError(error.message) };
   if (!reg) {
     return { ok: false, error: "No matching registration found for this event." };
   }

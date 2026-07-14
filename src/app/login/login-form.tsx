@@ -1,13 +1,20 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 
 import { loginAction, type LoginResult } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
-export function LoginForm({ redirectTo }: { redirectTo?: string }) {
+export function LoginForm({
+  redirectTo,
+  passwordReset,
+}: {
+  redirectTo?: string;
+  passwordReset?: boolean;
+}) {
   const [state, formAction, pending] = useActionState<LoginResult, FormData>(
     loginAction,
     undefined,
@@ -37,6 +44,19 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
           required
         />
       </Field>
+
+      <Link
+        href="/forgot-password"
+        className="-mt-2 justify-self-end text-xs font-bold text-brand hover:underline"
+      >
+        Forgot password?
+      </Link>
+
+      {passwordReset && !state ? (
+        <p className="rounded-lg bg-brand/10 px-3 py-2 text-sm font-semibold text-brand">
+          Your password has been updated. Sign in with your new password.
+        </p>
+      ) : null}
 
       {state?.ok === false ? (
         <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive">

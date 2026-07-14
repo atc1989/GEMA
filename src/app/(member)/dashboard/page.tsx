@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { BackupAccessBanner } from "@/components/dashboard/backup-access-banner";
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { DashboardTipsCard } from "@/components/dashboard/dashboard-tips-card";
 import { MusterReminder } from "@/components/dashboard/muster-reminder";
@@ -76,7 +77,12 @@ function currentWeekCells(monthCells: DayCell[]) {
   });
 }
 
-export default async function MemberDashboardPage() {
+export default async function MemberDashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ backup?: string }>;
+}) {
+  const backupLogin = (await searchParams)?.backup === "1";
   const ctx = await getCurrentMember();
   const member = ctx!.member;
   const profile = ctx!.profile;
@@ -190,6 +196,8 @@ export default async function MemberDashboardPage() {
 
   return (
     <div className="grid grid-cols-1 gap-4">
+      {backupLogin ? <BackupAccessBanner /> : null}
+
       <MusterReminder
         memberName={firstName(profile.fullName, member.username)}
         state={memberState}
