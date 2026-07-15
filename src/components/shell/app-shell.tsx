@@ -4,7 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState, type ReactNode } from "react";
-import { Monitor, MoreHorizontal, Moon, Sun } from "lucide-react";
+import { useFormStatus } from "react-dom";
+import { Loader2, LogOut, Monitor, MoreHorizontal, Moon, Sun } from "lucide-react";
+
+import { signOutAction } from "@/lib/actions/auth";
 
 import {
   adminNavigation,
@@ -123,6 +126,27 @@ function MobileThemeToggle() {
   );
 }
 
+function MobileSignOutIcon() {
+  const { pending } = useFormStatus();
+  const Icon = pending ? Loader2 : LogOut;
+  return <Icon className={cn("size-4", pending && "animate-spin")} aria-hidden="true" />;
+}
+
+/** Header sign-out for mobile/tablet; the desktop sidebar uses signOutSlot. */
+function MobileSignOutButton() {
+  return (
+    <form action={signOutAction} className="shrink-0">
+      <button
+        type="submit"
+        aria-label="Sign out"
+        className="flex size-9 items-center justify-center rounded-full border-2 border-white/30 text-white transition-colors hover:bg-white/10"
+      >
+        <MobileSignOutIcon />
+      </button>
+    </form>
+  );
+}
+
 // ─── Sidebar user block ───────────────────────────────────────────────────────
 
 function SidebarUserBlock({
@@ -232,13 +256,16 @@ export function AppShell({ role, eyebrow, title, subtitle, user, signOutSlot, ch
               </div>
               <MobileThemeToggle />
               {user ? (
-                <div
-                  className="flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-white/30 text-[11px] font-black text-white"
-                  style={{ backgroundColor: avatarBg(user.name) }}
-                  aria-hidden="true"
-                >
-                  {initials(user.name)}
-                </div>
+                <>
+                  <div
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-white/30 text-[11px] font-black text-white"
+                    style={{ backgroundColor: avatarBg(user.name) }}
+                    aria-hidden="true"
+                  >
+                    {initials(user.name)}
+                  </div>
+                  <MobileSignOutButton />
+                </>
               ) : null}
             </div>
           </header>
