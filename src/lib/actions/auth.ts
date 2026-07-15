@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { getCurrentProfile } from "@/lib/auth/require-admin";
@@ -10,6 +11,7 @@ import {
   ExternalLoginError,
   isSyntheticExternalEmail,
   provisionOneGrindersLogin,
+  syncExternalLoginInBackground,
 } from "@/lib/integrations/onegrinders-login";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -106,6 +108,26 @@ export async function loginAction(
   let backupLogin = false;
 
   if (!email.includes("@")) {
+    // Local-first: returning members sign in against the mirrored password in a
+    // few round trips instead of waiting on the external API. The external
+    // account is still re-verified — just off the critical path (see below).
+    const localEmail = await fallbackEmailForUsername(identifier);
+    if (localEmail) {
+      const { error: localError } = await supabase.auth.signInWithPassword({
+        email: localEmail,
+        password,
+      });
+      if (!localError) {
+        // Re-verify credentials/status with the external system and refresh the
+        // mirrored profile after the response is sent; a stale or deactivated
+        // mirror gets revoked there so it stops working on the next attempt.
+        after(() => syncExternalLoginInBackground(identifier, password));
+        await redirectAfterLogin(parsed.data.redirectTo, false);
+      }
+      // Local attempt failed (first login, changed external password, imported
+      // account) — fall through to the full external verification below.
+    }
+
     try {
       const provisioned = await provisionOneGrindersLogin(email, password);
       email = provisioned.email;
@@ -141,13 +163,21 @@ export async function loginAction(
     };
   }
 
+  await redirectAfterLogin(parsed.data.redirectTo, backupLogin);
+}
+
+/** Post-sign-in landing: honours an explicit redirect, then routes by role. */
+async function redirectAfterLogin(
+  redirectTo: string | undefined,
+  backupLogin: boolean,
+): Promise<never> {
   // Surfaces the "backup access" banner on the landing page.
   const withBackup = (path: string) =>
     backupLogin ? `${path}${path.includes("?") ? "&" : "?"}backup=1` : path;
 
   // Honour an explicit guard redirect (e.g. ?redirectTo=/admin/events/...).
-  if (parsed.data.redirectTo?.startsWith("/")) {
-    redirect(withBackup(parsed.data.redirectTo));
+  if (redirectTo?.startsWith("/")) {
+    redirect(withBackup(redirectTo));
   }
 
   // Smart role-based landing.

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { getCurrentProfile, type CurrentProfile } from "@/lib/auth/require-admin";
@@ -17,8 +18,11 @@ export type CurrentMemberContext = {
   member: CurrentMember;
 };
 
-/** Returns the signed-in user's profile + active member row, or null. */
-export async function getCurrentMember(): Promise<CurrentMemberContext | null> {
+/**
+ * Returns the signed-in user's profile + active member row, or null. Wrapped in
+ * React cache() so layout + page calls in one request share a single query.
+ */
+export const getCurrentMember = cache(async (): Promise<CurrentMemberContext | null> => {
   const profile = await getCurrentProfile();
   if (!profile) return null;
 
@@ -41,7 +45,7 @@ export async function getCurrentMember(): Promise<CurrentMemberContext | null> {
       sponsorMemberId: data.sponsor_member_id,
     },
   };
-}
+});
 
 /**
  * Guard for the member workspace. Redirects to /login when unauthenticated and

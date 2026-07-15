@@ -110,6 +110,8 @@ async function verifyExternalCredentials(username: string, password: string) {
       },
       body: JSON.stringify({ username: normalizeUsername(username), password }),
       cache: "no-store",
+      // A slow external API must fail over to the local backup path, not hang logins.
+      signal: AbortSignal.timeout(8_000),
     });
   } catch {
     throw new ExternalLoginError("Login service is temporarily unavailable.", "remote");
@@ -342,6 +344,38 @@ async function ensureProfileAndMember(userId: string, email: string, account: Ex
   const { error: memberError } = await memberWrite;
   if (memberError) {
     throw new ExternalLoginError("Unable to save the local member account.", "provisioning");
+  }
+}
+
+/**
+ * Post-login re-verification, run via next/server `after()` once a local-first
+ * sign-in has already succeeded. Re-checks the external account and refreshes
+ * the mirrored password/profile/member data. If the external system now rejects
+ * the credentials (password changed there, or the account was deactivated), the
+ * local mirrored password is scrambled so the stale one stops working on the
+ * next attempt — the user must then sign in with their current external password.
+ */
+export async function syncExternalLoginInBackground(username: string, password: string) {
+  try {
+    await provisionOneGrindersLogin(username, password);
+  } catch (error) {
+    if (error instanceof ExternalLoginError && error.kind === "credentials") {
+      const admin = createSupabaseAdminClient();
+      const { data: member } = await admin
+        .from("members")
+        .select("profile_id")
+        .eq("username", normalizeUsername(username))
+        .maybeSingle<{ profile_id: string }>();
+      if (member) {
+        await admin.auth.admin.updateUserById(member.profile_id, {
+          password: crypto.randomUUID(),
+        });
+        console.warn("[onegrinders-login] revoked stale mirrored password", { username });
+      }
+    } else {
+      // Remote/config hiccup: keep the mirror, the next login re-syncs.
+      console.error("[onegrinders-login] background sync skipped", error);
+    }
   }
 }
 

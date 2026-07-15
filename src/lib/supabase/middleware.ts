@@ -36,9 +36,11 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() verifies the JWT locally when the project uses asymmetric
+  // signing keys (no auth-server round trip); with a legacy symmetric secret it
+  // falls back to a server check, matching getUser(). Refreshes expired sessions.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims ? { id: data.claims.sub } : null;
 
   // Gate the admin workspace: unauthenticated users are sent to login.
   if (!user && request.nextUrl.pathname.startsWith("/admin")) {

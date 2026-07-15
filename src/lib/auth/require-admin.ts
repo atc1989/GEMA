@@ -21,16 +21,17 @@ export type CurrentProfile = {
 export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> => {
   const supabase = await createSupabaseServerClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Local JWT verification (asymmetric keys) instead of an auth-server round
+  // trip; falls back to a server check on legacy symmetric secrets.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims.sub;
 
-  if (!user) return null;
+  if (!userId) return null;
 
   const { data, error } = await supabase
     .from("profiles")
     .select("id, email, full_name, role, is_admin, can_publish_events")
-    .eq("id", user.id)
+    .eq("id", userId)
     .maybeSingle();
 
   if (error || !data) return null;
