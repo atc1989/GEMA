@@ -152,7 +152,7 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-      <form onSubmit={onSubmit} className="grid gap-4">
+      <form onSubmit={onSubmit} className="grid min-w-0 gap-4">
         <Card className="grid gap-4 p-5">
           <Field label="Title" htmlFor="title" required error={errors.title?.message}>
             <Input id="title" placeholder="Business Presentation Night" {...register("title")} />
@@ -339,7 +339,7 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
         </div>
       </form>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-4">
         <div className="lg:sticky lg:top-6">
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
             Live banner preview

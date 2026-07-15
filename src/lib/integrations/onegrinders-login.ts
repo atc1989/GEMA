@@ -21,6 +21,9 @@ type ExternalLoginUser = {
 type ExternalLoginProfile = {
   id: number;
   username: string;
+  first_name: string | null;
+  middle_name: string | null;
+  last_name: string | null;
   full_name: string | null;
   display_name: string | null;
   rank_title: string | null;
@@ -176,16 +179,32 @@ async function findAuthUserByEmail(email: string): Promise<User | null> {
   return null;
 }
 
+/**
+ * The name parts are authoritative: the external DB's stored full_name column
+ * has drifted on some rows (held another member's name), so only fall back to
+ * it when the parts are empty.
+ */
+function externalFullName(account: ExternalLoginAccount) {
+  const { profile, user } = account;
+  const fromParts = [profile.first_name, profile.middle_name, profile.last_name]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(" ");
+  return (
+    fromParts ||
+    profile.full_name?.trim() ||
+    profile.display_name?.trim() ||
+    user.username
+  );
+}
+
 function externalUserMetadata(account: ExternalLoginAccount) {
   return {
     provider: "onegrindersguild",
     external_user_id: account.user.id,
     external_profile_id: account.profile.id,
     username: account.user.username,
-    full_name:
-      account.profile.full_name?.trim() ||
-      account.profile.display_name?.trim() ||
-      account.user.username,
+    full_name: externalFullName(account),
   };
 }
 
@@ -250,10 +269,7 @@ async function ensureAuthUser(email: string, password: string, account: External
 async function ensureProfileAndMember(userId: string, email: string, account: ExternalLoginAccount) {
   const admin = createSupabaseAdminClient();
   const username = normalizeUsername(account.user.username || account.profile.username);
-  const fullName =
-    account.profile.full_name?.trim() ||
-    account.profile.display_name?.trim() ||
-    account.user.username;
+  const fullName = externalFullName(account);
 
   // Keep a real email (set by the admin import) — only fill it when missing.
   const { data: existingProfile } = await admin
