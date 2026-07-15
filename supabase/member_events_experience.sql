@@ -43,7 +43,18 @@ begin
     select e.*
     from public.events e
     where e.status = 'published'
-      and e.visibility in ('public', 'private')
+      and (
+        e.visibility = 'public'
+        -- private events only show to their host or invited (registered) members
+        or e.host_member_id = v_member_id
+        or exists (
+          select 1
+          from public.event_registrations er
+          where er.event_id = e.id
+            and er.member_id = v_member_id
+            and er.status <> 'cancelled'
+        )
+      )
       and (
         p_search is null
         or btrim(p_search) = ''

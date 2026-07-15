@@ -62,7 +62,7 @@ export function AttendanceTable({
         >
           {rows.map((row) => (
             <li key={row.id} className="grid gap-2 px-4 py-3 min-[520px]:flex min-[520px]:items-center min-[520px]:gap-3">
-              <div className="flex min-w-0 items-start gap-3">
+              <div className="flex min-w-0 flex-1 items-start gap-3">
               <div
                 className={cn(
                   "flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-black uppercase",
