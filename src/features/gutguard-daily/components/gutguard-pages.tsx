@@ -95,7 +95,8 @@ function isActivePath(href: string, activePath: string, exact?: boolean) {
 
 export function GutGuardSubnav({ activePath }: { activePath: string }) {
   return (
-    <nav className="mb-4 overflow-x-auto" aria-label="GutGuard Daily navigation">
+    // Desktop navigates via the sidebar's GutGuard Daily section; this subnav is mobile-only.
+    <nav className="mb-4 overflow-x-auto lg:hidden" aria-label="GutGuard Daily navigation">
       <div className="flex min-w-max gap-2 rounded-2xl border border-border/70 bg-card p-2">
         {subnav.map((item) => (
           <Link
@@ -677,6 +678,11 @@ function OnboardingStatus({
           Completed {new Date(progress.completed_at).toLocaleString()}
         </p>
       ) : null}
+      <div className="mt-4">
+        <Link className={buttonVariants({ variant: "outline", size: "sm" })} href="/gutguard-daily/onboarding">
+          {progress?.completed_at ? "Review onboarding" : "Continue onboarding"}
+        </Link>
+      </div>
     </Card>
   );
 }

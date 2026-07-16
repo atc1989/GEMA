@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { Loader2, LogOut, Monitor, MoreHorizontal, Moon, Sun } from "lucide-react";
 
@@ -226,14 +226,20 @@ export function AppShell({ role, eyebrow, title, subtitle, user, signOutSlot, ch
           </div>
           <nav className="flex-1 overflow-y-auto px-3 py-2" aria-label={`${role} navigation`}>
             <div className="grid gap-0.5">
-              {navigation.map((item) => (
-                <NavLink
-                  href={item.href}
-                  icon={item.icon}
-                  isActive={isItemActive(item)}
-                  key={`${item.href}-${item.label}`}
-                  label={item.label}
-                />
+              {navigation.map((item, index) => (
+                <Fragment key={`${item.href}-${item.label}`}>
+                  {item.section && item.section !== navigation[index - 1]?.section ? (
+                    <div className="mt-3 px-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                      {item.section}
+                    </div>
+                  ) : null}
+                  <NavLink
+                    href={item.href}
+                    icon={item.icon}
+                    isActive={isItemActive(item)}
+                    label={item.label}
+                  />
+                </Fragment>
               ))}
             </div>
           </nav>
@@ -301,12 +307,7 @@ export function AppShell({ role, eyebrow, title, subtitle, user, signOutSlot, ch
             aria-label={`${role} bottom navigation`}
           >
             {moreOpen ? (
-              <div
-                className="mb-1.5 grid gap-0.5 border-b border-border/70 pb-1.5"
-                style={{
-                  gridTemplateColumns: `repeat(${overflowItems.length}, minmax(0, 1fr))`,
-                }}
-              >
+              <div className="mb-1.5 grid grid-cols-4 gap-0.5 border-b border-border/70 pb-1.5">
                 {overflowItems.map((item) => (
                   <BottomNavLink
                     href={item.href}
