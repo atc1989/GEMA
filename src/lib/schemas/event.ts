@@ -137,8 +137,8 @@ export const publishReadinessSchema = z
     eventType: eventTypeSchema,
     visibility: eventVisibilitySchema,
     mode: eventModeSchema,
-    startsAt: z.string().refine((v) => Date.parse(v) > Date.now(), {
-      message: "Start time must be in the future to publish.",
+    startsAt: z.string().refine((v) => Number.isFinite(Date.parse(v)), {
+      message: "A valid start time is required to publish.",
     }),
     venueName: z.string().nullable().optional(),
     onlineUrl: z.string().nullable().optional(),

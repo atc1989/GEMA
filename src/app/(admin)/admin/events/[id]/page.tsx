@@ -267,8 +267,8 @@ function getPublishReadinessItems(event: ReturnType<typeof mapEventRow>) {
   return [
     { label: "Title", ready: Boolean(event.title.trim()) },
     {
-      label: "Future start time",
-      ready: Date.parse(event.startsAt) > Date.now(),
+      label: "Start time",
+      ready: Number.isFinite(Date.parse(event.startsAt)),
     },
     {
       label: "Venue",
