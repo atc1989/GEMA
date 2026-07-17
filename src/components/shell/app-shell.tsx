@@ -126,24 +126,61 @@ function MobileThemeToggle() {
   );
 }
 
-function MobileSignOutIcon() {
+function SignOutRow() {
   const { pending } = useFormStatus();
   const Icon = pending ? Loader2 : LogOut;
-  return <Icon className={cn("size-4", pending && "animate-spin")} aria-hidden="true" />;
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-[13px] font-bold text-foreground transition-colors hover:bg-muted"
+    >
+      <Icon className={cn("size-4", pending && "animate-spin")} aria-hidden="true" />
+      {pending ? "Signing out…" : "Sign out"}
+    </button>
+  );
 }
 
-/** Header sign-out for mobile/tablet; the desktop sidebar uses signOutSlot. */
-function MobileSignOutButton() {
+/** Mobile header avatar menu: user info, theme switcher, and sign out. */
+function MobileUserMenu({ user }: { user: AppShellUser }) {
+  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  useEffect(() => setOpen(false), [pathname]);
+
   return (
-    <form action={signOutAction} className="shrink-0">
+    <div className="relative shrink-0">
       <button
-        type="submit"
-        aria-label="Sign out"
-        className="flex size-9 items-center justify-center rounded-full border-2 border-white/30 text-white transition-colors hover:bg-white/10"
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-label="Account menu"
+        className="flex size-9 items-center justify-center rounded-full border-2 border-white/30 text-[11px] font-black text-white"
+        style={{ backgroundColor: avatarBg(user.name) }}
       >
-        <MobileSignOutIcon />
+        {initials(user.name)}
       </button>
-    </form>
+      {open ? (
+        <>
+          <div
+            className="fixed inset-0 z-20 bg-black/30"
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="absolute right-0 top-full z-30 mt-2 w-60 rounded-xl border border-border bg-background p-3 text-foreground shadow-lg">
+            <div className="mb-2.5 border-b border-border pb-2.5">
+              <div className="truncate text-[13px] font-bold">{user.name}</div>
+              <div className="mt-0.5 inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-bold text-brand">
+                {user.role}
+              </div>
+            </div>
+            <ThemeSwitcher />
+            <form action={signOutAction} className="mt-2 border-t border-border pt-2">
+              <SignOutRow />
+            </form>
+          </div>
+        </>
+      ) : null}
+    </div>
   );
 }
 
@@ -260,19 +297,7 @@ export function AppShell({ role, eyebrow, title, subtitle, user, signOutSlot, ch
                   {title}
                 </div>
               </div>
-              <MobileThemeToggle />
-              {user ? (
-                <>
-                  <div
-                    className="flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-white/30 text-[11px] font-black text-white"
-                    style={{ backgroundColor: avatarBg(user.name) }}
-                    aria-hidden="true"
-                  >
-                    {initials(user.name)}
-                  </div>
-                  <MobileSignOutButton />
-                </>
-              ) : null}
+              {user ? <MobileUserMenu user={user} /> : <MobileThemeToggle />}
             </div>
           </header>
 
