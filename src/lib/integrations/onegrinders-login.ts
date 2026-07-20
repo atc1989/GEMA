@@ -113,8 +113,13 @@ async function verifyExternalCredentials(username: string, password: string) {
       },
       body: JSON.stringify({ username: normalizeUsername(username), password }),
       cache: "no-store",
-      // A slow external API must fail over to the local backup path, not hang logins.
-      signal: AbortSignal.timeout(8_000),
+      // The upstream currently stalls ~29s per login (internal 30s timeout bug
+      // on their side) but then succeeds. Returning members never wait — the
+      // local-mirror fast path skips this call — so only first-time logins and
+      // changed passwords pay this, and for them a slow success beats a fast
+      // refusal. Needs maxDuration >= 60 on routes that call this (login page).
+      // Drop back to ~8s once the external API is fast again.
+      signal: AbortSignal.timeout(35_000),
     });
   } catch {
     throw new ExternalLoginError("Login service is temporarily unavailable.", "remote");
