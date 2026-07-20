@@ -59,16 +59,19 @@ function phoneVariants(input: string): string[] {
 export default async function PassesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; email?: string }>;
+  searchParams: Promise<{ q?: string; email?: string; name?: string }>;
 }) {
   const params = await searchParams;
   // `email` kept for old bookmarked links.
   const query = (params.q ?? params.email)?.trim();
+  const name = params.name?.trim();
 
   let passes: PassRow[] = [];
   let lookupError: string | null = null;
 
-  if (query) {
+  // Both name + credential required: an email/phone alone can be shared across
+  // registrations (group signups, reused numbers) and would leak others' passes.
+  if (query && name) {
     const supabase = createSupabaseAdminClient();
     let dbQuery = supabase
       .from("event_registrations")
@@ -77,6 +80,8 @@ export default async function PassesPage({
       )
       .eq("registration_kind", "prospect")
       .neq("status", "cancelled")
+      // Escape ilike wildcards so "%" in the input can't match everything.
+      .ilike("attendee_name", name.replace(/[\\%_]/g, "\\$&"))
       .order("registered_at", { ascending: false })
       .limit(100);
 
@@ -98,23 +103,24 @@ export default async function PassesPage({
       <div>
         <h2 className="text-lg font-black tracking-tight">My Passes</h2>
         <p className="mt-1 text-sm font-semibold text-muted-foreground">
-          Enter the email or mobile number you registered with to view your event QR passes.
+          Enter your full name and the email or mobile number you registered with to view
+          your event QR passes.
         </p>
       </div>
 
       <Card className="p-4">
-        <PassLookupForm defaultQuery={query} />
+        <PassLookupForm defaultQuery={query} defaultName={name} />
         {lookupError ? (
           <p className="mt-3 text-sm font-semibold text-destructive">{lookupError}</p>
         ) : null}
       </Card>
 
-      {query && !lookupError ? (
+      {query && name && !lookupError ? (
         passes.length === 0 ? (
           <EmptyState
             icon={Ticket}
             title="No passes found"
-            description="No registrations found. Make sure you use the same email or mobile number you registered with."
+            description="No registrations found. Make sure you use the same full name and email or mobile number you registered with."
           />
         ) : (
           <PaginatedList as="div" className="grid gap-6">
