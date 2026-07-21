@@ -6,7 +6,7 @@ import { z } from "zod";
 import { type ActionResult } from "@/lib/actions/types";
 import { requireMember } from "@/lib/auth/require-member";
 import { toEventRow } from "@/lib/database/mappers";
-import { eventFormSchema, type EventFormInput } from "@/lib/schemas/event";
+import { memberEventFormSchema, type EventFormInput } from "@/lib/schemas/event";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureUniqueEventSlug } from "@/lib/utils/slug";
 import { asPosterTemplateId } from "@/components/event/posters/types";
@@ -68,7 +68,7 @@ export async function createMemberEvent(
 ): Promise<ActionResult<{ id: string }>> {
   await requireMember();
 
-  const parsed = eventFormSchema.safeParse(input);
+  const parsed = memberEventFormSchema.safeParse(input);
   if (!parsed.success) {
     return {
       ok: false,
@@ -126,7 +126,7 @@ export async function updateMemberEvent(
 ): Promise<ActionResult<{ id: string }>> {
   const ctx = await requireMember();
 
-  const parsed = eventFormSchema.safeParse(input);
+  const parsed = memberEventFormSchema.safeParse(input);
   if (!parsed.success) {
     return {
       ok: false,

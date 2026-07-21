@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 import { createMemberEvent, updateMemberEvent } from "@/lib/actions/member-events";
-import { eventFormSchema, type EventFormInput } from "@/lib/schemas/event";
+import { memberEventFormSchema, type EventFormInput } from "@/lib/schemas/event";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ScaledPoster, DownloadBannerButton, type EventPosterData } from "@/components/event/event-poster";
 import { PosterTemplateThumbnails } from "@/components/event/posters/template-thumbnails";
@@ -85,7 +85,7 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
     setError,
     formState: { errors },
   } = useForm<EventFormInput>({
-    resolver: zodResolver(eventFormSchema),
+    resolver: zodResolver(memberEventFormSchema),
     defaultValues: {
       title: "",
       eventType: "presentation",
@@ -329,7 +329,7 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
             ) : null}
           </div>
 
-          <Field label="Description" htmlFor="description" error={errors.description?.message}>
+          <Field label="Description" htmlFor="description" required error={errors.description?.message}>
             <Textarea id="description" rows={4} placeholder="What will attendees learn or experience?" {...register("description")} />
           </Field>
         </Card>

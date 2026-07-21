@@ -128,6 +128,16 @@ export type EventFormInput = z.input<typeof eventFormSchema>;
 export type EventFormValues = z.output<typeof eventFormSchema>;
 
 /**
+ * Members with self-publish permission skip admin review entirely (the RPC
+ * publishes on create), so unlike the admin flow there's no later "Publish"
+ * step to catch a missing description — require it upfront instead.
+ */
+export const memberEventFormSchema = eventFormSchema.refine(
+  (data) => Boolean(data.description?.trim()),
+  { message: "Add a description before submitting.", path: ["description"] },
+);
+
+/**
  * Stricter gate applied at publish time. Validates the already-stored event
  * has the minimum fields the public-facing page needs.
  */
