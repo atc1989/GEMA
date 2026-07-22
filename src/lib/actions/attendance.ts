@@ -203,6 +203,44 @@ export async function cancelRegistration(input: {
   return { ok: true, data: null };
 }
 
+/**
+ * Sets (or clears, with an empty string) an admin-only note on a registration.
+ * Not visible to the attendee. RLS (registrations_manage_event) enforces the
+ * same can_manage_event gate server-side.
+ */
+export async function updateRegistrationNote(input: {
+  eventId: string;
+  registrationId: string;
+  note: string;
+}): Promise<ActionResult<{ note: string | null }>> {
+  const parsed = z
+    .object({
+      eventId: z.string().uuid(),
+      registrationId: z.string().uuid(),
+      note: z.string().trim().max(500),
+    })
+    .safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const perm = await canManage(parsed.data.eventId);
+  if (!perm.ok) return perm;
+
+  const note = parsed.data.note || null;
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("event_registrations")
+    .update({ admin_note: note })
+    .eq("id", parsed.data.registrationId)
+    .eq("event_id", parsed.data.eventId);
+
+  if (error) return { ok: false, error: friendlyDbError(error.message) };
+
+  revalidatePath(`/admin/events/${parsed.data.eventId}/attendance`);
+  return { ok: true, data: { note } };
+}
+
 function friendlyDbError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("not authorized")) return "You are not authorized to manage this event.";

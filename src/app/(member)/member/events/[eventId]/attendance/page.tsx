@@ -167,6 +167,7 @@ export default async function MemberEventAttendancePage({
         rows={checkedRows}
         emptyLabel="No check-ins yet."
         variant="checked"
+        eventId={eventId}
       />
 
       <AttendanceTable
@@ -175,6 +176,7 @@ export default async function MemberEventAttendancePage({
         rows={pendingRows}
         emptyLabel="Everyone registered has checked in."
         variant="pending"
+        eventId={eventId}
       />
     </div>
   );

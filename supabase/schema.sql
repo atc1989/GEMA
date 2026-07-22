@@ -208,6 +208,7 @@ create table public.event_registrations (
   registered_at timestamptz not null default now(),
   cancelled_at timestamptz,
   attended_at timestamptz,
+  admin_note text,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),

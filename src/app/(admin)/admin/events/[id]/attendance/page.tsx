@@ -24,6 +24,7 @@ type RegRow = {
   attendee_phone: string | null;
   registered_at: string;
   registration_kind: RegistrationKind;
+  admin_note: string | null;
 };
 
 type SponsorRow = {
@@ -51,7 +52,7 @@ export default async function EventAttendancePage({
   const [{ data: regs }, { data: atts }, { data: sponsors }] = await Promise.all([
     supabase
       .from("event_registrations")
-      .select("id, attendee_name, attendee_email, attendee_phone, registered_at, registration_kind")
+      .select("id, attendee_name, attendee_email, attendee_phone, registered_at, registration_kind, admin_note")
       .eq("event_id", id)
       .neq("status", "cancelled")
       .order("registered_at", { ascending: true })
@@ -82,6 +83,7 @@ export default async function EventAttendancePage({
     refCode: sponsorById.get(r.id)?.ref_code ?? null,
     registeredAt: r.registered_at,
     checkedInAt: checkedInAtById.get(r.id) ?? null,
+    adminNote: r.admin_note,
   });
 
   const checkedRows = registrations
@@ -163,6 +165,8 @@ export default async function EventAttendancePage({
         rows={checkedRows}
         emptyLabel="No check-ins yet."
         variant="checked"
+        eventId={id}
+        showNotes
       />
 
       <AttendanceTable
@@ -171,7 +175,9 @@ export default async function EventAttendancePage({
         rows={pendingRows}
         emptyLabel="Everyone registered has checked in."
         variant="pending"
-        removableEventId={id}
+        eventId={id}
+        removable
+        showNotes
       />
     </div>
   );

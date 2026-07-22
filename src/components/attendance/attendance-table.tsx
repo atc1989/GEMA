@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
+import { RegistrationNoteField } from "@/components/attendance/registration-note-field";
 import { RemoveRegistrationButton } from "@/components/attendance/remove-registration-button";
 import { Card } from "@/components/ui/card";
 import { PaginatedList } from "@/components/ui/paginated-list";
@@ -19,6 +20,7 @@ export type AttendanceRow = {
   refCode: string | null;
   registeredAt: string | null;
   checkedInAt: string | null;
+  adminNote?: string | null;
 };
 
 type AttendanceTableProps = {
@@ -27,8 +29,11 @@ type AttendanceTableProps = {
   rows: AttendanceRow[];
   emptyLabel: string;
   variant?: "checked" | "pending";
-  /** When set, each row gets a remove button that cancels the registration for this event. */
-  removableEventId?: string;
+  eventId: string;
+  /** When true, each row also gets a remove button that cancels the registration. */
+  removable?: boolean;
+  /** When true, each row gets an editable admin-only note field. Admin view only. */
+  showNotes?: boolean;
 };
 
 export function AttendanceTable({
@@ -37,7 +42,9 @@ export function AttendanceTable({
   rows,
   emptyLabel,
   variant = "pending",
-  removableEventId,
+  eventId,
+  removable = false,
+  showNotes = false,
 }: AttendanceTableProps) {
   return (
     <Card className="p-0">
@@ -86,6 +93,13 @@ export function AttendanceTable({
                     ) : null}
                   </p>
                 ) : null}
+                {showNotes ? (
+                  <RegistrationNoteField
+                    eventId={eventId}
+                    registrationId={row.id}
+                    initialNote={row.adminNote ?? null}
+                  />
+                ) : null}
               </div>
               </div>
               <div className="min-[520px]:shrink-0 min-[520px]:text-right">
@@ -102,10 +116,10 @@ export function AttendanceTable({
                   </span>
                 ) : null}
               </div>
-              {removableEventId ? (
+              {removable ? (
                 <div className="min-[520px]:shrink-0">
                 <RemoveRegistrationButton
-                  eventId={removableEventId}
+                  eventId={eventId}
                   registrationId={row.id}
                   attendeeName={row.name}
                 />
