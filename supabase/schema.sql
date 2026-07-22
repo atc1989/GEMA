@@ -13,7 +13,7 @@ create type public.app_role as enum ('prospect', 'member', 'host', 'admin');
 create type public.member_status as enum ('pending', 'active', 'suspended', 'inactive');
 create type public.prospect_stage as enum ('new', 'registered', 'attended', 'followup', 'converted', 'expired');
 create type public.event_type as enum ('presentation', 'business', 'training', 'sizzle', 'mentoring', 'fellowship', 'other');
-create type public.event_visibility as enum ('public', 'private');
+create type public.event_visibility as enum ('public', 'private', 'company_support');
 create type public.event_mode as enum ('in_person', 'online', 'hybrid');
 create type public.event_status as enum ('draft', 'published', 'cancelled', 'completed', 'archived');
 create type public.registration_status as enum ('registered', 'cancelled', 'attended', 'no_show', 'converted');

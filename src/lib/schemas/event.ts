@@ -18,7 +18,7 @@ export const eventStatusSchema = z.enum([
   "archived",
 ]);
 
-export const eventVisibilitySchema = z.enum(["public", "private"]);
+export const eventVisibilitySchema = z.enum(["public", "private", "company_support"]);
 
 export const eventModeSchema = z.enum(["in_person", "online", "hybrid"]);
 

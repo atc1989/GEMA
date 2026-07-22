@@ -15,7 +15,7 @@ export type EventType =
   | "mentoring"
   | "fellowship"
   | "other";
-export type EventVisibility = "public" | "private";
+export type EventVisibility = "public" | "private" | "company_support";
 export type EventMode = "in_person" | "online" | "hybrid";
 export type EventStatus =
   | "draft"

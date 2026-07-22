@@ -50,6 +50,27 @@ export const TYPE_META: Record<EventType, { label: string; className: string }> 
   other: { label: "Event", className: "bg-slate-100 text-muted-foreground" },
 };
 
+export const VISIBILITY_META: Record<
+  EventVisibility,
+  { label: string; helperText: string; className: string }
+> = {
+  public: {
+    label: "Public",
+    helperText: "Anyone with the link can register.",
+    className: "bg-emerald-50 text-success",
+  },
+  private: {
+    label: "Invite-only",
+    helperText: "Only people you invite can register.",
+    className: "bg-slate-100 text-muted-foreground",
+  },
+  company_support: {
+    label: "Company Support",
+    helperText: "Company-wide event — requires admin approval before it's visible.",
+    className: "bg-purple-50 text-purple",
+  },
+};
+
 export const REG_STATUS: Record<RegistrationStatus, { label: string; className: string }> = {
   registered: { label: "Registered", className: "bg-sky-50 text-sky-700" },
   attended: { label: "Attended", className: "bg-emerald-50 text-success" },

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CalendarDays, MapPin, Monitor, Users } from "lucide-react";
 
 import { EventStatusBadge } from "@/components/event/event-status-badge";
+import { VISIBILITY_META } from "@/components/event/event-meta";
 import { Card } from "@/components/ui/card";
 import { LinkSpinner } from "@/components/ui/link-pending";
 import { formatEventDateTime } from "@/lib/utils/format";
@@ -42,7 +43,7 @@ export function EventListItem({ event, href }: { event: Event; href?: string }) 
             <div className="mt-3 flex items-center gap-3 text-xs font-bold text-muted-foreground">
               <span className="capitalize">{event.eventType}</span>
               <span aria-hidden="true">·</span>
-              <span className="capitalize">{event.visibility}</span>
+              <span>{VISIBILITY_META[event.visibility].label}</span>
               {event.capacity ? (
                 <>
                   <span aria-hidden="true">·</span>

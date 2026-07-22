@@ -18,6 +18,7 @@ import {
   REG_STATUS,
   STATUS_BADGE,
   TYPE_META,
+  VISIBILITY_META,
   type HostedEventRow,
   type MemberEventCardRow,
 } from "@/components/event/event-meta";
@@ -149,8 +150,13 @@ function AllEventCard({ event }: { event: MemberEventCardRow }) {
             >
               {typeMeta.label}
             </span>
-            <span className="rounded-lg bg-secondary px-2 py-1 text-[10px] font-black uppercase tracking-wide text-brand">
-              {event.visibility === "public" ? "Public" : "Invite-only"}
+            <span
+              className={cn(
+                "rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-wide",
+                VISIBILITY_META[event.visibility].className,
+              )}
+            >
+              {VISIBILITY_META[event.visibility].label}
             </span>
             {registrationTone ? (
               <span
@@ -219,7 +225,11 @@ function AllEventCard({ event }: { event: MemberEventCardRow }) {
                   eventId={event.id}
                   disabled={!canRsvp}
                   disabledLabel={
-                    event.visibility !== "public" ? "Invite-only" : isFull ? "Full" : "Unavailable"
+                    event.visibility !== "public"
+                      ? VISIBILITY_META[event.visibility].label
+                      : isFull
+                        ? "Full"
+                        : "Unavailable"
                   }
                 />
               )}

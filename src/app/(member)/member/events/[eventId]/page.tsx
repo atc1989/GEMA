@@ -7,6 +7,7 @@ import {
   type InviteSpeaker,
 } from "@/components/event/event-invite-details";
 import { MemberRsvpButton } from "@/components/event/member-rsvp-button";
+import { VISIBILITY_META } from "@/components/event/event-meta";
 import { QRCodeCard } from "@/components/qr/qr-code-card";
 import { QrDownload } from "@/components/qr/qr-download";
 import { Card } from "@/components/ui/card";
@@ -149,7 +150,7 @@ export default async function MemberEventPage({
             disabled={!canRsvp}
             disabledLabel={
               event.visibility !== "public"
-                ? "Invite-only"
+                ? VISIBILITY_META[event.visibility].label
                 : isFull
                   ? "Full"
                   : "Unavailable"

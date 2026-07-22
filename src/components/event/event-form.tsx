@@ -172,6 +172,7 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
               <Select id="visibility" {...register("visibility")}>
                 <option value="public">Public</option>
                 <option value="private">Private</option>
+                <option value="company_support">Company Support</option>
               </Select>
             </Field>
             <Field label="Mode" htmlFor="mode" error={errors.mode?.message}>

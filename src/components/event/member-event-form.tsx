@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import {
+  Building2,
   Camera,
   Check,
   Globe,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { createMemberEvent, updateMemberEvent } from "@/lib/actions/member-events";
+import { VISIBILITY_META } from "@/components/event/event-meta";
 import { memberEventFormSchema, type EventFormInput } from "@/lib/schemas/event";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ScaledPoster, DownloadBannerButton, type EventPosterData } from "@/components/event/event-poster";
@@ -97,7 +99,7 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
   });
 
   const selectedType = (watch("eventType") ?? "presentation") as EventFormInput["eventType"];
-  const selectedVis = (watch("visibility") ?? "public") as "public" | "private";
+  const selectedVis = (watch("visibility") ?? "public") as "public" | "private" | "company_support";
   const selectedMode = (watch("mode") ?? "in_person") as "in_person" | "online" | "hybrid";
   const showVenue = selectedMode !== "online";
   const showOnline = selectedMode !== "in_person";
@@ -346,12 +348,11 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
               options={[
                 { value: "private", label: "Invite-only", icon: <Lock className="size-3.5" /> },
                 { value: "public", label: "Public", icon: <Globe className="size-3.5" /> },
+                { value: "company_support", label: "Company Support", icon: <Building2 className="size-3.5" /> },
               ]}
             />
             <p className="mt-2 text-[11px] font-semibold text-muted-foreground">
-              {selectedVis === "public"
-                ? "Anyone with the link can register."
-                : "Only people you invite can register."}
+              {VISIBILITY_META[selectedVis].helperText}
             </p>
           </div>
 

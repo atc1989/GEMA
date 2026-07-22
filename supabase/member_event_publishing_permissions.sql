@@ -183,7 +183,11 @@ begin
     p_event_type,
     p_visibility,
     p_mode,
-    case when v_can_publish_events then 'published'::public.event_status else 'draft'::public.event_status end,
+    case
+      when p_visibility = 'company_support' then 'draft'::public.event_status
+      when v_can_publish_events then 'published'::public.event_status
+      else 'draft'::public.event_status
+    end,
     p_starts_at,
     p_ends_at,
     coalesce(nullif(btrim(p_timezone), ''), 'Asia/Manila'),
