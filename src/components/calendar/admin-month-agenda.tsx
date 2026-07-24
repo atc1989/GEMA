@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import { CalendarX } from "lucide-react";
 
 import { EventFilterBar, matchesSearch } from "@/components/event/event-filter-bar";
+import { VISIBILITY_META } from "@/components/event/event-meta";
 import { EventListItem } from "@/components/event/event-list-item";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
-import type { Event, EventStatus } from "@/lib/database/types";
+import type { Event, EventStatus, EventVisibility } from "@/lib/database/types";
 
 const STATUS_TABS: { key: EventStatus | ""; label: string }[] = [
   { key: "", label: "All" },
@@ -16,6 +17,13 @@ const STATUS_TABS: { key: EventStatus | ""; label: string }[] = [
   { key: "cancelled", label: "Cancelled" },
   { key: "completed", label: "Completed" },
   { key: "archived", label: "Archived" },
+];
+
+const VISIBILITY_TABS: { key: EventVisibility | ""; label: string }[] = [
+  { key: "public", label: VISIBILITY_META.public.label },
+  { key: "private", label: VISIBILITY_META.private.label },
+  { key: "company_support", label: "Company Events" },
+  { key: "", label: "All" },
 ];
 
 function dayHeading(iso: string) {
@@ -34,6 +42,7 @@ export function AdminMonthAgenda({ events }: { events: Event[] }) {
   const [q, setQ] = useState("");
   const [type, setType] = useState("");
   const [status, setStatus] = useState<EventStatus | "">("");
+  const [visibility, setVisibility] = useState<EventVisibility | "">("");
 
   const filtered = useMemo(
     () =>
@@ -41,9 +50,10 @@ export function AdminMonthAgenda({ events }: { events: Event[] }) {
         (e) =>
           (!type || e.eventType === type) &&
           (!status || e.status === status) &&
+          (!visibility || e.visibility === visibility) &&
           matchesSearch(q, e.title, e.venueName),
       ),
-    [events, q, type, status],
+    [events, q, type, status, visibility],
   );
 
   const groups = useMemo(() => {
@@ -61,6 +71,23 @@ export function AdminMonthAgenda({ events }: { events: Event[] }) {
     <div className="grid gap-3">
       <div className="grid gap-2">
         <EventFilterBar q={q} onQ={setQ} type={type} onType={setType} />
+        <div className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-muted p-1">
+          {VISIBILITY_TABS.map((tab) => (
+            <button
+              key={tab.key || "all-visibility"}
+              type="button"
+              onClick={() => setVisibility(tab.key)}
+              className={cn(
+                "flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-center text-[11px] font-black transition-colors sm:text-xs",
+                visibility === tab.key
+                  ? "bg-brand text-brand-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-background hover:text-foreground",
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
         <div className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-muted p-1">
           {STATUS_TABS.map((tab) => (
             <button

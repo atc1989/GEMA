@@ -26,7 +26,7 @@ export type AdminMonth = {
   /** Number of blank cells before day 1 (Sunday-first grid). */
   leadingBlanks: number;
   cells: AdminDayCell[];
-  /** Flat, chronologically sorted — same rows as `cells`, for the agenda list. */
+  /** Flat, newest-first — same rows as `cells`, for the agenda list. */
   events: Event[];
 };
 
@@ -61,7 +61,7 @@ export async function buildAdminMonth(
     .select("*")
     .gte("starts_at", monthStart.toISOString())
     .lt("starts_at", monthEnd.toISOString())
-    .order("starts_at")
+    .order("starts_at", { ascending: false })
     .returns<EventRow[]>();
 
   const events = (data ?? []).map(mapEventRow);

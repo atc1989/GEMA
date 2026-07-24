@@ -6,6 +6,7 @@ import { VISIBILITY_META } from "@/components/event/event-meta";
 import { Card } from "@/components/ui/card";
 import { LinkSpinner } from "@/components/ui/link-pending";
 import { formatEventDateTime } from "@/lib/utils/format";
+import { cn } from "@/lib/utils";
 import type { Event } from "@/lib/database/types";
 
 export function EventListItem({ event, href }: { event: Event; href?: string }) {
@@ -14,10 +15,16 @@ export function EventListItem({ event, href }: { event: Event; href?: string }) 
       ? "Online event"
       : event.venueName ?? "Venue to be announced";
   const LocationIcon = event.mode === "online" ? Monitor : MapPin;
+  const isDraft = event.status === "draft";
 
   return (
     <Link href={href ?? `/admin/events/${event.id}`} className="block">
-      <Card className="p-4 transition-colors hover:border-brand/40">
+      <Card
+        className={cn(
+          "p-4 transition-colors hover:border-brand/40",
+          isDraft && "border-2 border-dashed border-gold-dark/70 bg-card",
+        )}
+      >
         <div className="flex items-start gap-3">
           <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-cream text-brand">
             <CalendarDays className="size-5" aria-hidden="true" />
