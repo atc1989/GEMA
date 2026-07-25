@@ -281,7 +281,7 @@ begin
 
   if v_event.id is null
     or v_event.status <> 'published'
-    or v_event.visibility <> 'public'
+    or v_event.visibility not in ('public', 'company_support')
     or v_event.cancelled_at is not null then
     raise exception 'event is not open for registration';
   end if;

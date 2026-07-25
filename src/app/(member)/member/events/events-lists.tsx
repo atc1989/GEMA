@@ -132,7 +132,8 @@ function AllEventCard({ event }: { event: MemberEventCardRow }) {
   const registrationTone = event.member_registration_status
     ? REG_STATUS[event.member_registration_status]
     : null;
-  const canRsvp = event.visibility === "public" && !isFull && !isRegistered;
+  const canRsvp =
+    event.visibility !== "private" && !isFull && !isRegistered;
 
   return (
     <Card className="p-4 transition-colors hover:border-brand/40">
@@ -225,8 +226,8 @@ function AllEventCard({ event }: { event: MemberEventCardRow }) {
                   eventId={event.id}
                   disabled={!canRsvp}
                   disabledLabel={
-                    event.visibility !== "public"
-                      ? VISIBILITY_META[event.visibility].label
+                    event.visibility === "private"
+                      ? VISIBILITY_META.private.label
                       : isFull
                         ? "Full"
                         : "Unavailable"

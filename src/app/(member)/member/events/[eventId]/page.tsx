@@ -91,7 +91,7 @@ export default async function MemberEventPage({
   const isFull =
     event.capacity != null && (regCount.count ?? 0) >= event.capacity;
   const canRsvp =
-    event.visibility === "public" && event.status === "published" && !isFull;
+    event.visibility !== "private" && event.status === "published" && !isFull;
   const tone = registration
     ? REG_STATUS[registration.status] ?? REG_STATUS.registered
     : null;
@@ -149,8 +149,8 @@ export default async function MemberEventPage({
             eventId={eventId}
             disabled={!canRsvp}
             disabledLabel={
-              event.visibility !== "public"
-                ? VISIBILITY_META[event.visibility].label
+              event.visibility === "private"
+                ? VISIBILITY_META.private.label
                 : isFull
                   ? "Full"
                   : "Unavailable"

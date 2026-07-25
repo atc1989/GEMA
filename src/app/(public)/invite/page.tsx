@@ -13,7 +13,7 @@ export default async function PublicEventsPage() {
     .from("events")
     .select("id, title, event_type, starts_at, timezone, venue_name, mode, description")
     .eq("status", "published")
-    .eq("visibility", "public")
+    .in("visibility", ["public", "company_support"])
     .order("starts_at", { ascending: true })
     // ponytail: capped fetch, paged client-side so instant search covers everything;
     // move search + paging server-side if upcoming public events ever exceed this.
