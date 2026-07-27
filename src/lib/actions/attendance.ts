@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { getCurrentProfile } from "@/lib/auth/require-admin";
+import { ensureLeadAccount } from "@/lib/actions/lead-accounts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { verifyRegistrationQrToken } from "@/lib/qr/token";
 import type { RegistrationKind, RegistrationStatus } from "@/lib/database/types";
@@ -158,6 +160,23 @@ export async function recordAttendance(input: {
   const result = data as { status: "checked_in" | "already"; checked_in_at: string };
   revalidatePath(`/admin/events/${parsed.data.eventId}/attendance`);
   revalidatePath(`/member/events/${parsed.data.eventId}/attendance`);
+
+  if (result.status === "checked_in") {
+    // First-ever check-in for this registration — if it's a prospect, this is
+    // the moment they become a "lead". Provisioning their account touches
+    // Supabase Admin Auth, so it runs after the response instead of blocking
+    // the scanner's confirmation.
+    after(async () => {
+      const { data: reg } = await supabase
+        .from("event_registrations")
+        .select("prospect_id")
+        .eq("id", parsed.data.registrationId)
+        .maybeSingle<{ prospect_id: string | null }>();
+      if (reg?.prospect_id) {
+        await ensureLeadAccount(reg.prospect_id);
+      }
+    });
+  }
 
   return {
     ok: true,

@@ -7,7 +7,12 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export default async function PublicEventsPage() {
+export default async function PublicEventsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ref?: string }>;
+}) {
+  const { ref } = await searchParams;
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("events")
@@ -38,7 +43,7 @@ export default async function PublicEventsPage() {
           description="Check back soon — events will appear here once they're published."
         />
       ) : (
-        <PublicEventsList events={events} />
+        <PublicEventsList events={events} refCode={ref} />
       )}
     </div>
   );

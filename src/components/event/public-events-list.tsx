@@ -26,7 +26,14 @@ export type PublicEventRow = {
 };
 
 /** Prospect-facing event list with the same instant search + category filter. */
-export function PublicEventsList({ events }: { events: PublicEventRow[] }) {
+export function PublicEventsList({
+  events,
+  refCode,
+}: {
+  events: PublicEventRow[];
+  /** Carried through to each event's invite link so referral attribution survives picking an event. */
+  refCode?: string;
+}) {
   const [q, setQ] = useState("");
   const [type, setType] = useState("");
   const [page, setPage] = useState(1);
@@ -94,7 +101,11 @@ export function PublicEventsList({ events }: { events: PublicEventRow[] }) {
                     ) : null}
                     <div className="mt-3">
                       <Link
-                        href={`/invite/${ev.id}`}
+                        href={
+                          refCode
+                            ? `/invite/${ev.id}?ref=${encodeURIComponent(refCode)}`
+                            : `/invite/${ev.id}`
+                        }
                         className={cn(
                           buttonVariants({ variant: "brand", size: "sm" }),
                           "h-7 text-xs",

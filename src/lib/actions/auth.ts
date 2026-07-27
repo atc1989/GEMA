@@ -6,6 +6,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { getCurrentProfile } from "@/lib/auth/require-admin";
+import { getCurrentLead } from "@/lib/auth/require-lead";
 import { getCurrentMember } from "@/lib/auth/require-member";
 import {
   ExternalLoginError,
@@ -180,11 +181,21 @@ async function redirectAfterLogin(
     redirect(withBackup(redirectTo));
   }
 
+  // A lead's temp password (set on first-attendance provisioning) must be
+  // changed before they see anything else.
+  const supabase = await createSupabaseServerClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (userData.user?.user_metadata?.must_reset_password) {
+    redirect(withBackup("/reset-password"));
+  }
+
   // Smart role-based landing.
   const profile = await getCurrentProfile();
   if (profile?.isAdmin) redirect(withBackup("/admin"));
   const ctx = await getCurrentMember();
-  redirect(withBackup(ctx ? "/dashboard" : "/onboarding"));
+  if (ctx) redirect(withBackup("/dashboard"));
+  const lead = await getCurrentLead();
+  redirect(withBackup(lead ? "/lead" : "/onboarding"));
 }
 
 export async function signOutAction() {
@@ -247,7 +258,10 @@ export async function resetPasswordAction(
     }
   }
 
-  const { error } = await supabase.auth.updateUser({ password });
+  const { error } = await supabase.auth.updateUser({
+    password,
+    data: { must_reset_password: false },
+  });
   if (error) {
     return { ok: false, error: "Could not update the password. Request a new reset link." };
   }

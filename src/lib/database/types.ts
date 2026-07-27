@@ -205,7 +205,8 @@ export interface AttendanceRecord {
 export interface Referral {
   id: string;
   refCode: string;
-  referrerMemberId: string;
+  referrerMemberId: string | null;
+  referrerProspectId: string | null;
   referredProfileId: string | null;
   prospectId: string | null;
   eventId: string | null;
