@@ -140,6 +140,7 @@ export interface Event {
   bannerUrl: string | null;
   cancelledAt: string | null;
   completedAt: string | null;
+  pinnedAt: string | null;
   metadata: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;

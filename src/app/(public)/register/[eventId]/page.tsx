@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, CalendarX } from "lucide-react";
 
 import { ProspectRegistrationForm } from "@/components/prospect/prospect-registration-form";
+import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatEventDateTime } from "@/lib/utils/format";
@@ -52,17 +53,20 @@ export default async function RegisterPage({
         </p>
       </div>
 
-      <ProspectRegistrationForm eventId={eventId} refCode={ref} />
-
-      <p className="text-center text-sm font-semibold text-muted-foreground">
-        Already a member?{" "}
+      {/* Asked up front, not buried below the form — the goal is to catch a
+          returning member (GEMA or One Grinders) before they fill out this
+          form and end up with a second, disconnected account. */}
+      <Card className="flex flex-wrap items-center justify-between gap-2 border-brand/20 bg-secondary/40 p-4">
+        <p className="text-sm font-semibold">Already have a GEMA or One Grinders account?</p>
         <Link
           href={`/login?redirectTo=${encodeURIComponent(`/register/${eventId}`)}`}
-          className="font-bold text-foreground underline underline-offset-4 hover:text-purple"
+          className="shrink-0 font-bold text-brand underline underline-offset-4 hover:text-purple"
         >
-          Log in
+          Log in instead
         </Link>
-      </p>
+      </Card>
+
+      <ProspectRegistrationForm eventId={eventId} refCode={ref} />
     </div>
   );
 }

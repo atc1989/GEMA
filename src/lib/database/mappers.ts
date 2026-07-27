@@ -25,6 +25,7 @@ export type EventRow = {
   banner_url: string | null;
   cancelled_at: string | null;
   completed_at: string | null;
+  pinned_at: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -53,6 +54,7 @@ export function mapEventRow(row: EventRow): Event {
     bannerUrl: row.banner_url,
     cancelledAt: row.cancelled_at,
     completedAt: row.completed_at,
+    pinnedAt: row.pinned_at,
     metadata: row.metadata ?? {},
     createdAt: row.created_at,
     updatedAt: row.updated_at,

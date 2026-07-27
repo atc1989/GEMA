@@ -43,6 +43,7 @@ export default async function AdminEventsPage({
   let query = supabase
     .from("events")
     .select("*", { count: "exact" })
+    .order("pinned_at", { ascending: false, nullsFirst: false })
     .order("starts_at", { ascending: false })
     .range(from, from + perPage - 1);
   if (active.status) query = query.eq("status", active.status);

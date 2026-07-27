@@ -247,6 +247,27 @@ export async function publishEvent(eventId: string): Promise<ActionResult<Event>
   return { ok: true, data: mapEventRow(data) };
 }
 
+/** Pins or unpins an event so it can be surfaced at the top of the events list. */
+export async function toggleEventPin(
+  eventId: string,
+  pinned: boolean,
+): Promise<ActionResult<{ pinnedAt: string | null }>> {
+  await requireAdmin();
+
+  const supabase = await createSupabaseServerClient();
+  const pinnedAt = pinned ? new Date().toISOString() : null;
+
+  const { error } = await supabase
+    .from("events")
+    .update({ pinned_at: pinnedAt })
+    .eq("id", eventId);
+
+  if (error) return { ok: false, error: friendlyDbError(error.message, "Failed to update pin.") };
+
+  revalidatePath(EVENTS_PATH);
+  return { ok: true, data: { pinnedAt } };
+}
+
 /** Cancels an event and records the reason + timestamp. */
 export async function cancelEvent(
   eventId: string,

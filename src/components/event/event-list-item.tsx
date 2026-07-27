@@ -1,21 +1,38 @@
+"use client";
+
 import Link from "next/link";
-import { CalendarDays, MapPin, Monitor, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { CalendarDays, MapPin, Monitor, Pin, Users } from "lucide-react";
 
 import { EventStatusBadge } from "@/components/event/event-status-badge";
 import { VISIBILITY_META } from "@/components/event/event-meta";
 import { Card } from "@/components/ui/card";
 import { LinkSpinner } from "@/components/ui/link-pending";
+import { toggleEventPin } from "@/lib/actions/events";
 import { formatEventDateTime } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import type { Event } from "@/lib/database/types";
 
 export function EventListItem({ event, href }: { event: Event; href?: string }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const locationLabel =
     event.mode === "online"
       ? "Online event"
       : event.venueName ?? "Venue to be announced";
   const LocationIcon = event.mode === "online" ? Monitor : MapPin;
   const isDraft = event.status === "draft";
+  const isPinned = Boolean(event.pinnedAt);
+
+  const onTogglePin = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    startTransition(async () => {
+      await toggleEventPin(event.id, !isPinned);
+      router.refresh();
+    });
+  };
 
   return (
     <Link href={href ?? `/admin/events/${event.id}`} className="block">
@@ -23,6 +40,7 @@ export function EventListItem({ event, href }: { event: Event; href?: string }) 
         className={cn(
           "p-4 transition-colors hover:border-brand/40",
           isDraft && "border-2 border-dashed border-gold-dark/70 bg-card",
+          isPinned && "border-brand/50 bg-cream/40",
         )}
       >
         <div className="flex items-start gap-3">
@@ -35,6 +53,19 @@ export function EventListItem({ event, href }: { event: Event; href?: string }) 
                 {event.title}
               </h2>
               <LinkSpinner className="size-4 shrink-0 text-brand" />
+              <button
+                type="button"
+                onClick={onTogglePin}
+                disabled={pending}
+                aria-pressed={isPinned}
+                title={isPinned ? "Unpin event" : "Pin to top"}
+                className={cn(
+                  "shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:text-brand disabled:opacity-50",
+                  isPinned && "text-brand",
+                )}
+              >
+                <Pin className={cn("size-4", isPinned && "fill-current")} aria-hidden="true" />
+              </button>
               <EventStatusBadge status={event.status} />
             </div>
             <div className="mt-2 grid gap-1 text-xs font-semibold text-muted-foreground">

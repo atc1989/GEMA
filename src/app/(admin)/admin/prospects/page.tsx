@@ -23,6 +23,7 @@ type ProspectRow = {
   created_at: string;
   converted_member_id: string | null;
   sponsor_member_id: string | null;
+  metadata: { possible_duplicate_member_id?: string } | null;
 };
 
 export default async function AdminProspectsPage({
@@ -38,9 +39,10 @@ export default async function AdminProspectsPage({
   const supabase = await createSupabaseServerClient();
   const { data, count } = await supabase
     .from("prospects")
-    .select("id, full_name, email, stage, created_at, converted_member_id, sponsor_member_id", {
-      count: "exact",
-    })
+    .select(
+      "id, full_name, email, stage, created_at, converted_member_id, sponsor_member_id, metadata",
+      { count: "exact" },
+    )
     .order("created_at", { ascending: false })
     .range(from, from + perPage - 1)
     .returns<ProspectRow[]>();
@@ -56,6 +58,21 @@ export default async function AdminProspectsPage({
       .in("id", sponsorIds)
       .returns<{ id: string; username: string }[]>();
     for (const s of sponsors ?? []) sponsorById.set(s.id, s.username);
+  }
+
+  // Rows flagged by ensureLeadAccount as a possible duplicate of an existing
+  // member (matched on exact full name — not proof, just worth a human look).
+  const duplicateIds = [
+    ...new Set(rows.map((p) => p.metadata?.possible_duplicate_member_id).filter(Boolean)),
+  ] as string[];
+  const duplicateById = new Map<string, string>();
+  if (duplicateIds.length > 0) {
+    const { data: duplicates } = await supabase
+      .from("members")
+      .select("id, username")
+      .in("id", duplicateIds)
+      .returns<{ id: string; username: string }[]>();
+    for (const d of duplicates ?? []) duplicateById.set(d.id, d.username);
   }
 
   return (
@@ -86,6 +103,12 @@ export default async function AdminProspectsPage({
                   {p.sponsor_member_id && sponsorById.has(p.sponsor_member_id) ? (
                     <p className="mt-0.5 truncate text-[11px] font-bold text-brand">
                       Invited by @{sponsorById.get(p.sponsor_member_id)}
+                    </p>
+                  ) : null}
+                  {p.metadata?.possible_duplicate_member_id &&
+                  duplicateById.has(p.metadata.possible_duplicate_member_id) ? (
+                    <p className="mt-0.5 truncate text-[11px] font-bold text-warning">
+                      Possible duplicate of @{duplicateById.get(p.metadata.possible_duplicate_member_id)}
                     </p>
                   ) : null}
                 </div>
