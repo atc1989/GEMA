@@ -14,7 +14,7 @@ import { formatEventDateTime } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import type { Event } from "@/lib/database/types";
 
-export function EventListItem({ event, href }: { event: Event; href?: string }) {
+export function EventListItem({ event, href, creatorName }: { event: Event; href?: string; creatorName?: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const locationLabel =
@@ -82,6 +82,12 @@ export function EventListItem({ event, href }: { event: Event; href?: string }) 
               <span className="capitalize">{event.eventType}</span>
               <span aria-hidden="true">·</span>
               <span>{VISIBILITY_META[event.visibility].label}</span>
+              {creatorName ? (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>by {creatorName}</span>
+                </>
+              ) : null}
               {event.capacity ? (
                 <>
                   <span aria-hidden="true">·</span>

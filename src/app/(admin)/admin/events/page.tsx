@@ -42,14 +42,17 @@ export default async function AdminEventsPage({
   const supabase = await createSupabaseServerClient();
   let query = supabase
     .from("events")
-    .select("*", { count: "exact" })
+    .select("*, profiles!created_by_profile_id(id, first_name, last_name)", { count: "exact" })
     .order("pinned_at", { ascending: false, nullsFirst: false })
     .order("starts_at", { ascending: false })
     .range(from, from + perPage - 1);
   if (active.status) query = query.eq("status", active.status);
 
-  const { data, error, count } = await query.returns<EventRow[]>();
-  const events = (data ?? []).map(mapEventRow);
+  const { data, error, count } = await query.returns<(EventRow & { profiles: { id: string; first_name: string | null; last_name: string | null } | null })[]>();
+  const events = (data ?? []).map((row) => ({
+    ...mapEventRow(row),
+    creatorName: row.profiles ? `${row.profiles.first_name || ''} ${row.profiles.last_name || ''}`.trim() || 'Unknown' : 'Unknown',
+  }));
 
   return (
     <div className="grid gap-4">
@@ -88,8 +91,8 @@ export default async function AdminEventsPage({
       ) : (
         <>
           <div className="grid gap-3">
-            {events.map((event) => (
-              <EventListItem key={event.id} event={event} />
+            {events.map(({ creatorName, ...event }) => (
+              <EventListItem key={event.id} event={event} creatorName={creatorName} />
             ))}
           </div>
           <Pagination
