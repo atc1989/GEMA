@@ -16,9 +16,10 @@ export default async function PublicEventsPage({
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("events")
-    .select("id, title, event_type, starts_at, timezone, venue_name, mode, description")
+    .select("id, title, event_type, starts_at, timezone, venue_name, mode, description, pinned_at")
     .eq("status", "published")
-    .eq("visibility", "public")
+    .in("visibility", ["public", "company_support"])
+    .order("pinned_at", { ascending: false, nullsFirst: true })
     .order("starts_at", { ascending: true })
     // ponytail: capped fetch, paged client-side so instant search covers everything;
     // move search + paging server-side if upcoming public events ever exceed this.

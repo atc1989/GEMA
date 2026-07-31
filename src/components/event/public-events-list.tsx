@@ -23,6 +23,7 @@ export type PublicEventRow = {
   venue_name: string | null;
   mode: string;
   description: string | null;
+  pinned_at?: string | null;
 };
 
 /** Prospect-facing event list with the same instant search + category filter. */

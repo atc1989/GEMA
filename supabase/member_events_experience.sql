@@ -23,7 +23,8 @@ returns table (
   member_registration_id uuid,
   member_registration_status public.registration_status,
   member_pass_code text,
-  member_qr_payload text
+  member_qr_payload text,
+  pinned_at timestamptz
 )
 language plpgsql
 security definer
@@ -95,7 +96,8 @@ begin
     mr.id as member_registration_id,
     mr.status as member_registration_status,
     mr.pass_code as member_pass_code,
-    mr.qr_payload as member_qr_payload
+    mr.qr_payload as member_qr_payload,
+    e.pinned_at
   from visible_events e
   left join registration_counts rc on rc.event_id = e.id
   left join first_speakers fs on fs.event_id = e.id
@@ -103,7 +105,7 @@ begin
     on mr.event_id = e.id
    and mr.member_id = v_member_id
    and mr.status <> 'cancelled'
-  order by e.starts_at asc
+  order by e.pinned_at desc nulls last, e.starts_at asc
   limit greatest(1, least(coalesce(p_limit, 50), 100));
 end;
 $$;

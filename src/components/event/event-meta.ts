@@ -27,6 +27,7 @@ export type MemberEventCardRow = {
   member_registration_status: RegistrationStatus | null;
   member_pass_code: string | null;
   member_qr_payload: string | null;
+  pinned_at?: string | null;
 };
 
 export type HostedEventRow = {
