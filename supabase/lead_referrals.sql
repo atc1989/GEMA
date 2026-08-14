@@ -1,10 +1,10 @@
 -- GEMA Leads: referral link for attended-but-unconverted prospects
 -- Run after private_event_link_access.sql / qr_attendance.sql. Safe to re-run.
 --
--- A prospect who has attended at least one event ("lead") gets a real login
--- (provisioned in the app, not here — see ensureLeadAccount in
--- src/lib/actions/lead-accounts.ts) and can own a referral link, without a
--- `members` row or any of the rest of the member workspace. This migration:
+-- A prospect who has attended at least one event ("lead") can own a referral
+-- link without a `members` row, an account, or any of the rest of the member
+-- workspace — they claim it from /passes with the same name + email/mobile
+-- lookup that shows their QR passes. This migration:
 --   1. Makes record_attendance() actually advance prospects.stage to
 --      'attended' (previously it only touched event_registrations.status).
 --   2. Lets a `referrals` row be owned by a prospect instead of a member.

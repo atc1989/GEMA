@@ -1,12 +1,15 @@
-import { CalendarDays, MapPin, Monitor, Ticket } from "lucide-react";
+import Link from "next/link";
+import { CalendarDays, Gift, MapPin, Monitor, Ticket } from "lucide-react";
 
 import { PassLookupForm } from "@/components/prospect/pass-lookup-form";
 import { QRCodeCard } from "@/components/qr/qr-code-card";
+import { LeadReferralCard } from "@/components/referral/lead-referral-card";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PaginatedList } from "@/components/ui/paginated-list";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatEventDateTime } from "@/lib/utils/format";
+import { escapeIlike, phoneVariants } from "@/lib/utils/phone";
 import type { RegistrationStatus } from "@/lib/database/types";
 
 type PassRow = {
@@ -16,6 +19,7 @@ type PassRow = {
   status: RegistrationStatus;
   attendee_name: string;
   registered_at: string;
+  prospect_id: string | null;
   events: {
     id: string;
     title: string;
@@ -34,28 +38,6 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   converted: { label: "Converted", className: "bg-purple-50 text-purple" },
 };
 
-/**
- * Candidate strings a stored PH mobile number may have been saved as, so
- * "09..." finds "+639..." registrations and vice versa.
- * ponytail: covers 0/63/+63 prefixes; stored numbers with spaces or dashes
- * won't match — normalize at registration write time if that shows up.
- */
-function phoneVariants(input: string): string[] {
-  const digits = input.replace(/\D/g, "");
-  const variants = new Set([input, digits]);
-  if (digits.startsWith("0")) {
-    variants.add(`+63${digits.slice(1)}`);
-    variants.add(`63${digits.slice(1)}`);
-  } else if (digits.startsWith("63")) {
-    variants.add(`+${digits}`);
-    variants.add(`0${digits.slice(2)}`);
-  } else if (digits.length === 10 && digits.startsWith("9")) {
-    variants.add(`0${digits}`);
-    variants.add(`+63${digits}`);
-  }
-  return [...variants].filter(Boolean);
-}
-
 export default async function PassesPage({
   searchParams,
 }: {
@@ -68,6 +50,10 @@ export default async function PassesPage({
 
   let passes: PassRow[] = [];
   let lookupError: string | null = null;
+  // Set once they've attended something — attending is what makes a prospect a
+  // "lead", which is what entitles them to a referral link.
+  let leadProspectId: string | null = null;
+  let leadRefCode: string | null = null;
 
   // Both name + credential required: an email/phone alone can be shared across
   // registrations (group signups, reused numbers) and would leak others' passes.
@@ -76,12 +62,12 @@ export default async function PassesPage({
     let dbQuery = supabase
       .from("event_registrations")
       .select(
-        "id, qr_payload, pass_code, status, attendee_name, registered_at, events!inner(id, title, starts_at, timezone, venue_name, mode)",
+        "id, qr_payload, pass_code, status, attendee_name, registered_at, prospect_id, events!inner(id, title, starts_at, timezone, venue_name, mode)",
       )
       .eq("registration_kind", "prospect")
       .neq("status", "cancelled")
       // Escape ilike wildcards so "%" in the input can't match everything.
-      .ilike("attendee_name", name.replace(/[\\%_]/g, "\\$&"))
+      .ilike("attendee_name", escapeIlike(name))
       .order("registered_at", { ascending: false })
       .limit(100);
 
@@ -95,6 +81,17 @@ export default async function PassesPage({
       lookupError = "Could not retrieve passes. Please try again.";
     } else {
       passes = data ?? [];
+      leadProspectId = passes.find((p) => p.status === "attended")?.prospect_id ?? null;
+
+      if (leadProspectId) {
+        const { data: referral } = await supabase
+          .from("referrals")
+          .select("ref_code")
+          .eq("referrer_prospect_id", leadProspectId)
+          .limit(1)
+          .maybeSingle<{ ref_code: string }>();
+        leadRefCode = referral?.ref_code ?? null;
+      }
     }
   }
 
@@ -113,7 +110,35 @@ export default async function PassesPage({
         {lookupError ? (
           <p className="mt-3 text-sm font-semibold text-destructive">{lookupError}</p>
         ) : null}
+        {/* An existing Guild member doesn't need this lookup at all — signing in
+            provisions their member account (provisionOneGrindersLogin), which
+            has their passes, referrals, and earnings in one place. */}
+        <p className="mt-4 border-t border-border/60 pt-3 text-xs font-semibold text-muted-foreground">
+          Already a One Grinders Guild member?{" "}
+          <Link href="/login" className="font-bold text-brand hover:underline">
+            Sign in
+          </Link>{" "}
+          with your Guild username and password instead.
+        </p>
       </Card>
+
+      {leadProspectId && query && name ? (
+        <Card className="p-4">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-brand">
+              <Gift className="size-5" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-sm font-black">Your referral link</p>
+              <p className="text-xs font-semibold text-muted-foreground">
+                You've attended an event — share this and anyone who registers through it
+                is credited to you.
+              </p>
+            </div>
+          </div>
+          <LeadReferralCard initialRefCode={leadRefCode} name={name} query={query} />
+        </Card>
+      ) : null}
 
       {query && name && !lookupError ? (
         passes.length === 0 ? (

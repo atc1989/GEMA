@@ -36,6 +36,18 @@ Apply these SQL files once (after `schema.sql`), in the Supabase SQL editor:
   recreates `onboard_member` to link genealogy, and adds
   `convert_prospect_to_member` + multi-level commission generation. Powers
   `/admin/prospects`, `/admin/commissions`, and `/member/earnings`.
+- `supabase/lead_referrals.sql` — **must run after `qr_attendance.sql`**, which it
+  supersedes: recreates `record_attendance` so checking a prospect in also advances
+  `prospects.stage` to `attended`, and lets that "lead" own a referral link
+  (`referrals.referrer_prospect_id`) whose credit rolls up to their sponsor. Without
+  it no prospect ever becomes a lead and no referral link can be issued.
+- `supabase/lead_backfill_host_fallback.sql` — run after `lead_referrals.sql`.
+  Advances anyone who checked in **since 1 Jan 2026** to stage `attended` (edit the
+  cutoff in the file to reach further back), and
+  makes a sponsorless lead's referral credit fall back to the event's
+  `host_member_id`. Nothing to run afterwards — a lead has no account; they get
+  their referral link from `/passes` by looking themselves up with the same name
+  and email/mobile they registered with.
 
 Auth uses cookie-based sessions via `@supabase/ssr`; `src/middleware.ts` refreshes
 the session and gates `/admin/*` (unauthenticated users are redirected to `/login`).

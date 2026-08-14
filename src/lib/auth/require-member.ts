@@ -2,7 +2,6 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { getCurrentProfile, type CurrentProfile } from "@/lib/auth/require-admin";
-import { getCurrentLead } from "@/lib/auth/require-lead";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { MemberStatus } from "@/lib/database/types";
 
@@ -49,9 +48,8 @@ export const getCurrentMember = cache(async (): Promise<CurrentMemberContext | n
 });
 
 /**
- * Guard for the member workspace. Redirects to /login when unauthenticated,
- * to /lead when signed in as a lead (attended, unconverted prospect), and to
- * /onboarding when signed in with neither a member nor a lead row.
+ * Guard for the member workspace. Redirects to /login when unauthenticated and
+ * to /onboarding when signed in without a member row.
  */
 export async function requireMember(redirectTo?: string): Promise<CurrentMemberContext> {
   const profile = await getCurrentProfile();
@@ -62,8 +60,7 @@ export async function requireMember(redirectTo?: string): Promise<CurrentMemberC
 
   const ctx = await getCurrentMember();
   if (!ctx) {
-    const lead = await getCurrentLead();
-    redirect(lead ? "/lead" : "/onboarding");
+    redirect("/onboarding");
   }
 
   return ctx;

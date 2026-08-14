@@ -268,6 +268,67 @@ export async function toggleEventPin(
   return { ok: true, data: { pinnedAt } };
 }
 
+/** Statuses an archived event can be restored to; anything else falls back to draft. */
+const RESTORABLE_STATUSES: Event["status"][] = ["draft", "published", "cancelled", "completed"];
+
+/**
+ * Archives or restores an event. Archiving remembers the pre-archive status in
+ * metadata so restoring puts the event back where it was, and clears the pin so
+ * an archived event can't keep holding the top of the list.
+ */
+export async function setEventArchived(
+  eventId: string,
+  archived: boolean,
+): Promise<ActionResult<{ status: Event["status"] }>> {
+  await requireAdmin();
+
+  const supabase = await createSupabaseServerClient();
+
+  const { data: row, error: loadError } = await supabase
+    .from("events")
+    .select("id, status, metadata")
+    .eq("id", eventId)
+    .maybeSingle<{
+      id: string;
+      status: Event["status"];
+      metadata: Record<string, unknown> | null;
+    }>();
+
+  if (loadError) return { ok: false, error: friendlyDbError(loadError.message) };
+  if (!row) return { ok: false, error: "Event not found." };
+  if (archived === (row.status === "archived")) return { ok: true, data: { status: row.status } };
+
+  const { archive, ...metadata } = row.metadata ?? {};
+  const previous = (archive as { from?: Event["status"] } | undefined)?.from;
+
+  const patch = archived
+    ? {
+        status: "archived" as const,
+        pinned_at: null,
+        metadata: { ...metadata, archive: { from: row.status, at: new Date().toISOString() } },
+      }
+    : {
+        status: previous && RESTORABLE_STATUSES.includes(previous) ? previous : ("draft" as const),
+        metadata,
+      };
+
+  const { error } = await supabase.from("events").update(patch).eq("id", eventId);
+
+  if (error) {
+    return {
+      ok: false,
+      error: friendlyDbError(
+        error.message,
+        archived ? "Failed to archive the event." : "Failed to restore the event.",
+      ),
+    };
+  }
+
+  revalidatePath(EVENTS_PATH);
+  revalidatePath(`${EVENTS_PATH}/${eventId}`);
+  return { ok: true, data: { status: patch.status } };
+}
+
 /** Cancels an event and records the reason + timestamp. */
 export async function cancelEvent(
   eventId: string,

@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { CheckCircle2, Pencil, XCircle } from "lucide-react";
+import { Archive, ArchiveRestore, CheckCircle2, Pencil, XCircle } from "lucide-react";
 
-import { cancelEvent, publishEvent } from "@/lib/actions/events";
+import { cancelEvent, publishEvent, setEventArchived } from "@/lib/actions/events";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,9 +25,22 @@ export function EventActions({
   const [cancelling, setCancelling] = useState(false);
   const [reason, setReason] = useState("");
 
-  const canEdit = status !== "cancelled";
+  const isArchived = status === "archived";
+  const canEdit = status !== "cancelled" && !isArchived;
   const canPublish = status === "draft";
   const canCancel = status === "draft" || status === "published";
+
+  const onToggleArchive = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await setEventArchived(eventId, !isArchived);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  };
 
   const onPublish = () => {
     setError(null);
@@ -85,6 +98,15 @@ export function EventActions({
             Cancel event
           </Button>
         ) : null}
+
+        <Button variant="outline" onClick={onToggleArchive} disabled={pending}>
+          {isArchived ? (
+            <ArchiveRestore aria-hidden="true" />
+          ) : (
+            <Archive aria-hidden="true" />
+          )}
+          {isArchived ? "Restore event" : "Archive event"}
+        </Button>
       </div>
 
       {cancelling ? (

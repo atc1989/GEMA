@@ -17,7 +17,19 @@ const FILTERS: { key: string; label: string; status?: EventStatus }[] = [
   { key: "draft", label: "Draft", status: "draft" },
   { key: "published", label: "Published", status: "published" },
   { key: "cancelled", label: "Cancelled", status: "cancelled" },
+  { key: "finished", label: "Finished" },
+  { key: "archived", label: "Archived", status: "archived" },
 ];
+
+/**
+ * An event is finished once its end time has passed — or its start time, when
+ * it is open-ended. Expressed as a PostgREST `or` group so the split happens in
+ * the database and pagination stays correct.
+ */
+function timeFilter(now: string, finished: boolean) {
+  const op = finished ? "lt" : "gte";
+  return `ends_at.${op}."${now}",and(ends_at.is.null,starts_at.${op}."${now}")`;
+}
 
 function pageHref(page: number, perPage: number, statusKey: string) {
   const params = new URLSearchParams();
@@ -46,7 +58,13 @@ export default async function AdminEventsPage({
     .order("pinned_at", { ascending: false, nullsFirst: false })
     .order("starts_at", { ascending: false })
     .range(from, from + perPage - 1);
+
   if (active.status) query = query.eq("status", active.status);
+
+  // Archived events live only in their own tab; finished ones only in theirs.
+  if (active.key !== "archived") {
+    query = query.neq("status", "archived").or(timeFilter(new Date().toISOString(), active.key === "finished"));
+  }
 
   const { data, error, count } = await query.returns<(EventRow & { profiles: { id: string; first_name: string | null; last_name: string | null } | null })[]>();
   const events = (data ?? []).map((row) => ({
@@ -85,8 +103,12 @@ export default async function AdminEventsPage({
       ) : events.length === 0 ? (
         <EmptyState
           icon={CalendarX}
-          title="No events yet"
-          description="Create your first event to start managing registrations and attendance."
+          title={active.key === "all" ? "No events yet" : `No ${active.label.toLowerCase()} events`}
+          description={
+            active.key === "all"
+              ? "Create your first event to start managing registrations and attendance."
+              : "Nothing here right now. Try another tab."
+          }
         />
       ) : (
         <>

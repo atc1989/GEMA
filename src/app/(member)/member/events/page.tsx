@@ -30,7 +30,12 @@ import {
 } from "@/components/event/event-meta";
 import { AllEventsList, HostedEventsList } from "./events-lists";
 
-type EventsTab = "all" | "mine" | "passes" | "hosting";
+type EventsTab = "all" | "past" | "mine" | "passes" | "hosting";
+
+/** An event is over once its end time passes — or its start time, when open-ended. */
+function hasEnded(event: MemberEventCardRow, now: number) {
+  return new Date(event.ends_at ?? event.starts_at).getTime() < now;
+}
 
 type RegistrationRow = {
   id: string;
@@ -59,6 +64,11 @@ const TABS: { key: EventsTab; label: string; description: string }[] = [
     description: "Browse upcoming Gutguard events and RSVP with one tap.",
   },
   {
+    key: "past",
+    label: "Past",
+    description: "Events that have already finished.",
+  },
+  {
     key: "mine",
     label: "My RSVPs",
     description: "Events you are registered for.",
@@ -76,7 +86,7 @@ const TABS: { key: EventsTab; label: string; description: string }[] = [
 ];
 
 function normalizeTab(tab?: string): EventsTab {
-  if (tab === "mine" || tab === "passes" || tab === "hosting") return tab;
+  if (tab === "past" || tab === "mine" || tab === "passes" || tab === "hosting") return tab;
   return "all";
 }
 
@@ -92,11 +102,15 @@ export default async function MemberEventsPage({
   const supabase = await createSupabaseServerClient();
 
   const [eventCardsRes, registrationsRes, hostedEventsRes] = await Promise.all([
-    activeTab === "all"
+    activeTab === "all" || activeTab === "past"
       ? supabase
+          // ponytail: one fetch feeds both tabs, split client-side. The RPC hard-caps
+          // p_limit at 100 and returns newest-first, so upcoming is always complete
+          // and only the oldest past events fall off the end — push the split into
+          // the RPC if that starts to bite.
           .rpc("get_member_event_cards", {
             p_search: null,
-            p_limit: 200,
+            p_limit: 100,
           })
           .returns<MemberEventCardRow[]>()
       : Promise.resolve({ data: [] as MemberEventCardRow[], error: null }),
@@ -123,9 +137,10 @@ export default async function MemberEventsPage({
       : Promise.resolve({ data: [] as HostedEventRow[], error: null }),
   ]);
 
-  const eventCards = Array.isArray(eventCardsRes.data)
-    ? (eventCardsRes.data as MemberEventCardRow[])
-    : [];
+  const now = Date.now();
+  const eventCards = (
+    Array.isArray(eventCardsRes.data) ? (eventCardsRes.data as MemberEventCardRow[]) : []
+  ).filter((event) => hasEnded(event, now) === (activeTab === "past"));
   const registrations = registrationsRes.data ?? [];
   const hostedEvents = hostedEventsRes.data ?? [];
 
@@ -152,8 +167,12 @@ export default async function MemberEventsPage({
         </p>
       </div>
 
-      {activeTab === "all" ? (
-        <AllEventsSection events={eventCards} error={eventCardsRes.error?.message ?? null} />
+      {activeTab === "all" || activeTab === "past" ? (
+        <AllEventsSection
+          events={eventCards}
+          error={eventCardsRes.error?.message ?? null}
+          past={activeTab === "past"}
+        />
       ) : activeTab === "mine" ? (
         <MyEventsSection
           registrations={registrations}
@@ -178,9 +197,11 @@ export default async function MemberEventsPage({
 function AllEventsSection({
   events,
   error,
+  past,
 }: {
   events: MemberEventCardRow[];
   error: string | null;
+  past: boolean;
 }) {
   if (error) {
     return <p className="text-sm font-semibold text-destructive">Failed to load events: {error}</p>;
@@ -190,13 +211,17 @@ function AllEventsSection({
     return (
       <EmptyState
         icon={CalendarDays}
-        title="No upcoming events"
-        description="Published events will appear here once they are available."
+        title={past ? "No past events" : "No upcoming events"}
+        description={
+          past
+            ? "Events you can see move here once they finish."
+            : "Published events will appear here once they are available."
+        }
       />
     );
   }
 
-  return <AllEventsList events={events} />;
+  return <AllEventsList events={events} past={past} />;
 }
 
 function MyEventsSection({

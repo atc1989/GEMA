@@ -605,6 +605,8 @@ with check (
     where e.id = event_id
       and e.status = 'published'
       and e.visibility = 'public'
+      -- a finished event is closed; open-ended ones close at their start time
+      and coalesce(e.ends_at, e.starts_at) >= now()
   )
   and consent_privacy = true
   and status = 'registered'

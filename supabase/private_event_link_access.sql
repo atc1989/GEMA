@@ -109,7 +109,10 @@ begin
     end if;
   end if;
 
-  if v_event.status <> 'published' then
+  -- A finished event is closed; open-ended ones close at their start time.
+  -- Same rule as register_member_for_event and the admin "Finished" tab.
+  if v_event.status <> 'published'
+    or coalesce(v_event.ends_at, v_event.starts_at) < now() then
     raise exception 'Event is not open for registration' using errcode = 'check_violation';
   end if;
 

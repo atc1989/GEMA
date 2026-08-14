@@ -62,7 +62,13 @@ function useFilteredPage<T>(items: T[], match: (item: T, q: string, type: string
   return { q, setQ, type, setType, filtered, visible, safePage, perPage, setPage, setPerPage };
 }
 
-export function AllEventsList({ events }: { events: MemberEventCardRow[] }) {
+export function AllEventsList({
+  events,
+  past = false,
+}: {
+  events: MemberEventCardRow[];
+  past?: boolean;
+}) {
   const list = useFilteredPage(
     events,
     (e, q, type) =>
@@ -77,7 +83,7 @@ export function AllEventsList({ events }: { events: MemberEventCardRow[] }) {
       ) : (
         <div className="grid gap-3">
           {list.visible.map((event) => (
-            <AllEventCard key={event.id} event={event} />
+            <AllEventCard key={event.id} event={event} past={past} />
           ))}
         </div>
       )}
@@ -121,7 +127,7 @@ export function HostedEventsList({ events }: { events: HostedEventRow[] }) {
   );
 }
 
-function AllEventCard({ event }: { event: MemberEventCardRow }) {
+function AllEventCard({ event, past }: { event: MemberEventCardRow; past: boolean }) {
   const typeMeta = TYPE_META[event.event_type] ?? TYPE_META.other;
   const LocationIcon = event.mode === "online" ? Monitor : MapPin;
   const location = event.mode === "online" ? "Online event" : event.venue_name ?? "Venue TBA";
@@ -133,7 +139,7 @@ function AllEventCard({ event }: { event: MemberEventCardRow }) {
     ? REG_STATUS[event.member_registration_status]
     : null;
   const canRsvp =
-    event.visibility !== "private" && !isFull && !isRegistered;
+    !past && event.visibility !== "private" && !isFull && !isRegistered;
 
   return (
     <Card className="p-4 transition-colors hover:border-brand/40">
@@ -226,11 +232,13 @@ function AllEventCard({ event }: { event: MemberEventCardRow }) {
                   eventId={event.id}
                   disabled={!canRsvp}
                   disabledLabel={
-                    event.visibility === "private"
-                      ? VISIBILITY_META.private.label
-                      : isFull
-                        ? "Full"
-                        : "Unavailable"
+                    past
+                      ? "Ended"
+                      : event.visibility === "private"
+                        ? VISIBILITY_META.private.label
+                        : isFull
+                          ? "Full"
+                          : "Unavailable"
                   }
                 />
               )}

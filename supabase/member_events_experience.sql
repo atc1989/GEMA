@@ -1,6 +1,8 @@
 -- Member Events UX support.
 -- Safe additive migration for the existing GEMA Supabase project.
 
+drop function if exists public.get_member_event_cards(text, integer);
+
 create or replace function public.get_member_event_cards(
   p_search text default null,
   p_limit integer default 50
@@ -13,6 +15,7 @@ returns table (
   mode public.event_mode,
   status public.event_status,
   starts_at timestamptz,
+  ends_at timestamptz,
   timezone text,
   venue_name text,
   online_url text,
@@ -45,7 +48,7 @@ begin
     from public.events e
     where e.status = 'published'
       and (
-        e.visibility = 'public'
+        e.visibility in ('public', 'company_support')
         -- private events only show to their host or invited (registered) members
         or e.host_member_id = v_member_id
         or exists (
@@ -86,6 +89,7 @@ begin
     e.mode,
     e.status,
     e.starts_at,
+    e.ends_at,
     e.timezone,
     e.venue_name,
     e.online_url,
@@ -105,7 +109,7 @@ begin
     on mr.event_id = e.id
    and mr.member_id = v_member_id
    and mr.status <> 'cancelled'
-  order by e.pinned_at desc nulls last, e.starts_at asc
+  order by e.pinned_at desc nulls last, e.starts_at desc
   limit greatest(1, least(coalesce(p_limit, 50), 100));
 end;
 $$;
@@ -284,7 +288,9 @@ begin
   if v_event.id is null
     or v_event.status <> 'published'
     or v_event.visibility not in ('public', 'company_support')
-    or v_event.cancelled_at is not null then
+    or v_event.cancelled_at is not null
+    -- an event that has already finished is closed, open-ended ones close at their start
+    or coalesce(v_event.ends_at, v_event.starts_at) < now() then
     raise exception 'event is not open for registration';
   end if;
 

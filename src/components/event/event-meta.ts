@@ -16,6 +16,7 @@ export type MemberEventCardRow = {
   mode: EventMode;
   status: EventStatus;
   starts_at: string;
+  ends_at: string | null;
   timezone: string;
   venue_name: string | null;
   online_url: string | null;

@@ -3,11 +3,24 @@
 import { useEffect, useState, useTransition } from "react";
 import { Link2, Sparkles } from "lucide-react";
 
-import { createLeadReferralLink } from "@/lib/actions/lead-referrals";
+import { createPassReferralLink } from "@/lib/actions/lead-referrals";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 
-export function LeadReferralCard({ initialRefCode }: { initialRefCode: string | null }) {
+/**
+ * Referral link for a lead, shown on /passes alongside their QR passes. The
+ * name/query pair is the same one that found the passes — the action re-checks
+ * it server-side.
+ */
+export function LeadReferralCard({
+  initialRefCode,
+  name,
+  query,
+}: {
+  initialRefCode: string | null;
+  name: string;
+  query: string;
+}) {
   const [refCode, setRefCode] = useState(initialRefCode);
   const [origin, setOrigin] = useState("");
   const [pending, startTransition] = useTransition();
@@ -22,7 +35,7 @@ export function LeadReferralCard({ initialRefCode }: { initialRefCode: string | 
   const onCreate = () => {
     setError(null);
     startTransition(async () => {
-      const result = await createLeadReferralLink();
+      const result = await createPassReferralLink({ name, query });
       if (!result.ok) {
         setError(result.error);
         return;
