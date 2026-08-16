@@ -2,6 +2,8 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
+import { GEMA_DB_SCHEMA } from "@/lib/supabase/schema";
+
 /**
  * Service-role Supabase client — BYPASSES RLS. Server-only, never import into a
  * client component. Used for privileged admin operations that the anon/session
@@ -18,6 +20,7 @@ export function createSupabaseAdminClient() {
   }
 
   return createClient(supabaseUrl, serviceRoleKey, {
+    db: { schema: GEMA_DB_SCHEMA },
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }

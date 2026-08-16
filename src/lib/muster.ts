@@ -3,9 +3,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 /**
  * Data layer for the Muster Reminder modal (read-only dashboard overlay).
  *
- * - "New Prospects" is derived from public.prospects (same query the dashboard
- *   already runs); the other efforts come from public.daily_musters.
- * - E-Points are an append-only ledger (public.epoint_entries); the weekly
+ * - "New Prospects" is derived from gema.prospects (same query the dashboard
+ *   already runs); the other efforts come from gema.daily_musters.
+ * - E-Points are an append-only ledger (gema.epoint_entries); the weekly
  *   caps below are applied at read time so they can change without touching data.
  */
 

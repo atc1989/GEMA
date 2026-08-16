@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { GEMA_DB_SCHEMA } from "@/lib/supabase/schema";
+
 /**
  * Refreshes the Supabase auth session on every matched request and keeps the
  * session cookies in sync between the browser and server. Returns the response
@@ -20,6 +22,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    db: { schema: GEMA_DB_SCHEMA },
     cookies: {
       getAll() {
         return request.cookies.getAll();

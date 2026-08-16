@@ -1,5 +1,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 
+import { GEMA_DB_SCHEMA } from "@/lib/supabase/schema";
+
 /**
  * Supabase client for use in Client Components. Shares the auth session with
  * the server via cookies managed by `@supabase/ssr`.
@@ -12,5 +14,7 @@ export function createSupabaseBrowserClient() {
     throw new Error("Missing Supabase browser environment variables.");
   }
 
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  return createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    db: { schema: GEMA_DB_SCHEMA },
+  });
 }

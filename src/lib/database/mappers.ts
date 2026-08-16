@@ -2,7 +2,7 @@ import type { Event } from "@/lib/database/types";
 import type { EventFormValues } from "@/lib/schemas/event";
 import { zonedDateTimeToIso } from "@/lib/utils/format";
 
-/** Raw shape of a `public.events` row as returned by Supabase (snake_case). */
+/** Raw shape of a `gema.events` row as returned by Supabase (snake_case). */
 export type EventRow = {
   id: string;
   created_by_profile_id: string;

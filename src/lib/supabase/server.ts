@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+import { GEMA_DB_SCHEMA } from "@/lib/supabase/schema";
+
 /**
  * Supabase client for use in Server Components, Server Actions, and Route
  * Handlers. Reads/writes the auth session from Next.js cookies so RLS runs as
@@ -20,6 +22,7 @@ export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
   return createServerClient(supabaseUrl, supabaseAnonKey, {
+    db: { schema: GEMA_DB_SCHEMA },
     cookies: {
       getAll() {
         return cookieStore.getAll();

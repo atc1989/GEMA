@@ -1,5 +1,11 @@
 # GEMA Supabase Data Architecture
 
+**Live layout (GutGuard LifeStyle, `rvwseybgimmewuoccecu`):** all GEMA base
+tables and app RPCs are in schema `gema`. Auth triggers remain in `public` but
+insert into `gema.profiles` / `gema.gutguard_*`. Landing-only commerce tables
+(`products`, `orders`, `order_items`, `addresses`) were removed from this
+project. Enum types such as `event_status` remain in `public`.
+
 This design normalizes the GEMA Member and Prospect prototypes into one
 Supabase-backed model for public registration, authenticated member activity,
 admin event management, MLM genealogy, referral attribution, QR check-ins,

@@ -1,4 +1,9 @@
 -- GEMA Supabase schema for a fresh database.
+--
+-- LIVE PROJECT: tables and RPCs were moved from public → gema. This file is
+-- historical and still uses public.*; do not run it on GutGuard LifeStyle.
+-- New SQL against the live project must target schema gema.
+--
 -- Do not run this file directly on an existing Supabase project that already
 -- has profiles/orders/products tables. Use gema_existing_project_migration.sql
 -- for the current project.
