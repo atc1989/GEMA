@@ -361,7 +361,7 @@ export function GutGuardCommunity({
           </p>
           <form action={createGutGuardCareRelationshipAction} className="mt-4 grid gap-3">
             <Field label="Caregiver profile ID">
-              <Input name="caregiverId" placeholder="uuid from public.profiles" required />
+              <Input name="caregiverId" placeholder="uuid from gema.profiles" required />
             </Field>
             <label className="flex items-center gap-2 text-sm font-bold">
               <Checkbox name="canRecordDoses" />

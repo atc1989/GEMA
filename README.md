@@ -2,6 +2,10 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Environment
 
+GEMA tables and RPCs live in the `gema` schema (not `public`). The app clients
+set `db: { schema: "gema" }`. Exposed schemas in the project API settings must
+include `gema` (see `supabase/README.md`).
+
 Create a `.env.local` in the project root:
 
 ```bash
@@ -23,7 +27,11 @@ ONEGRINDERS_API_KEY=<api-key-with-users.login-scope>
 ONEGRINDERS_LOGIN_URL=https://onegrindersguild.ph/api/v1/auth/login.php
 ```
 
-Apply these SQL files once (after `schema.sql`), in the Supabase SQL editor:
+Historical SQL under `supabase/` was written against `public` and then moved
+live into `gema`. Do not re-run those files against `public`. See
+`supabase/README.md` for the current layout.
+
+The original one-time patches (kept for history; already applied):
 - `supabase/qr_attendance.sql` — `record_attendance` routine for the scanner.
 - `supabase/prospect_registration.sql` — public prospect registration +
   referral resolution routines used by `/invite/[eventId]` and `/register/[eventId]`.
@@ -54,12 +62,12 @@ the session and gates `/admin/*` (unauthenticated users are redirected to `/logi
 
 ### Admin access
 
-The admin workspace requires a Supabase Auth user whose `public.profiles` row has
-`is_admin = true` (or `role = 'admin'`) — this is what RLS's `is_admin()` checks.
+The admin workspace requires a Supabase Auth user whose `gema.profiles` row has
+`is_admin = true` (or `role = 'admin'`) — this is what RLS's `gema.is_admin()` checks.
 After creating the auth user, ensure a matching profile exists, e.g.:
 
 ```sql
-insert into public.profiles (id, email, full_name, role, is_admin)
+insert into gema.profiles (id, email, full_name, role, is_admin)
 values ('<auth-user-uuid>', 'admin@example.com', 'Admin', 'admin', true)
 on conflict (id) do update set role = 'admin', is_admin = true;
 ```
