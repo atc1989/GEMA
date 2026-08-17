@@ -5,6 +5,7 @@ import {
 } from "@/components/referral/referral-links-view";
 import { getCurrentMember } from "@/lib/auth/require-member";
 import type { EventType } from "@/lib/database/types";
+import { eventTimeOrFilter } from "@/lib/event-time-filter";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatEventDateTime } from "@/lib/utils/format";
 
@@ -33,6 +34,7 @@ export default async function MemberReferralsPage() {
       .from("events")
       .select("id, title, starts_at, timezone, event_type")
       .eq("status", "published")
+      .or(eventTimeOrFilter())
       .order("starts_at", { ascending: true })
       .limit(200)
       .returns<EventRow[]>(),

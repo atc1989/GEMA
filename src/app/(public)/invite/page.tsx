@@ -6,6 +6,7 @@ import {
 } from "@/components/event/public-events-list";
 import { EmptyState } from "@/components/ui/empty-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { eventTimeOrFilter } from "@/lib/event-time-filter";
 
 export default async function PublicEventsPage({
   searchParams,
@@ -16,9 +17,10 @@ export default async function PublicEventsPage({
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("events")
-    .select("id, title, event_type, starts_at, timezone, venue_name, mode, description, pinned_at")
+    .select("id, title, event_type, starts_at, ends_at, timezone, venue_name, mode, description, pinned_at")
     .eq("status", "published")
     .in("visibility", ["public", "company_support"])
+    .or(eventTimeOrFilter())
     .order("pinned_at", { ascending: false, nullsFirst: true })
     .order("starts_at", { ascending: true })
     // ponytail: capped fetch, paged client-side so instant search covers everything;
