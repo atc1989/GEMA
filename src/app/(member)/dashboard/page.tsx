@@ -21,6 +21,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PaginatedList } from "@/components/ui/paginated-list";
 import { getCurrentMember } from "@/lib/auth/require-member";
 import { buildNoZeroMonth, type DayCell } from "@/lib/calendar/no-zero-month";
+import { eventTimeOrFilter } from "@/lib/event-time-filter";
 import { WEEK_GUIDE, WEEKDAY_LETTERS, WEEKDAY_NAMES } from "@/lib/calendar/weekly-guide";
 import type { EventMode, EventType, RegistrationStatus } from "@/lib/database/types";
 import { deriveMemberState, getMusterData, workingDaysThisMonth } from "@/lib/muster";
@@ -149,7 +150,7 @@ export default async function MemberDashboardPage({
       )
       .eq("member_id", member.id)
       .eq("status", "registered")
-      .gte("events.starts_at", `${today}T00:00:00.000Z`)
+      .or(eventTimeOrFilter(), { referencedTable: "events" })
       .limit(20)
       .returns<RegistrationEventRow[]>(),
     // Runs in the same round-trip wave: its queries don't depend on the streak

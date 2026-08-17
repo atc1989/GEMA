@@ -66,9 +66,14 @@ export async function registerProspectForEvent(
 
   if (eventError) return { ok: false, error: friendlyDbError(eventError.message) };
   const event = (
-    inviteData as { event: { title: string; starts_at: string; timezone: string } } | null
+    inviteData as {
+      event: { title: string; starts_at: string; ends_at: string | null; timezone: string };
+    } | null
   )?.event;
   if (!event) {
+    return { ok: false, error: "This event is not open for registration." };
+  }
+  if (new Date(event.ends_at ?? event.starts_at).getTime() < Date.now()) {
     return { ok: false, error: "This event is not open for registration." };
   }
 

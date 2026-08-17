@@ -19,6 +19,7 @@ import { LinkTabs } from "@/components/ui/link-tabs";
 import { PaginatedList } from "@/components/ui/paginated-list";
 import { requireMember } from "@/lib/auth/require-member";
 import type { EventMode, EventStatus, EventType, RegistrationStatus } from "@/lib/database/types";
+import { eventHasEnded } from "@/lib/event-time-filter";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { formatEventDateTime } from "@/lib/utils/format";
@@ -31,11 +32,6 @@ import {
 import { AllEventsList, HostedEventsList } from "./events-lists";
 
 type EventsTab = "all" | "past" | "mine" | "passes" | "hosting";
-
-/** An event is over once its end time passes — or its start time, when open-ended. */
-function hasEnded(event: MemberEventCardRow, now: number) {
-  return new Date(event.ends_at ?? event.starts_at).getTime() < now;
-}
 
 type RegistrationRow = {
   id: string;
@@ -140,7 +136,7 @@ export default async function MemberEventsPage({
   const now = Date.now();
   const eventCards = (
     Array.isArray(eventCardsRes.data) ? (eventCardsRes.data as MemberEventCardRow[]) : []
-  ).filter((event) => hasEnded(event, now) === (activeTab === "past"));
+  ).filter((event) => eventHasEnded(event, now) === (activeTab === "past"));
   const registrations = registrationsRes.data ?? [];
   const hostedEvents = hostedEventsRes.data ?? [];
 
