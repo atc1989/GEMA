@@ -12,5 +12,7 @@ export function createSupabaseBrowserClient() {
     throw new Error("Missing Supabase browser environment variables.");
   }
 
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  return createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    db: { schema: "gema" },
+  });
 }

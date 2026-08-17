@@ -19,5 +19,6 @@ export function createSupabaseAdminClient() {
 
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+    db: { schema: "gema" },
   });
 }

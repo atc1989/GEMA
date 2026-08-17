@@ -20,6 +20,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    db: { schema: "gema" },
     cookies: {
       getAll() {
         return request.cookies.getAll();
