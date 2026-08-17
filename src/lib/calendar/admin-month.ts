@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { GemaClient } from "@/lib/supabase/types";
 
 import { parseYm } from "@/lib/calendar/no-zero-month";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
@@ -33,7 +33,7 @@ export type AdminMonth = {
 const pad = (n: number) => String(n).padStart(2, "0");
 
 export async function buildAdminMonth(
-  supabase: SupabaseClient,
+  supabase: GemaClient,
   ym?: string | null,
 ): Promise<AdminMonth> {
   const { year, monthIndex } = parseYm(ym);

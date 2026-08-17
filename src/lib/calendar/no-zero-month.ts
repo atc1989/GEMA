@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { GemaClient } from "@/lib/supabase/types";
 
 import type { EventMode, EventType } from "@/lib/database/types";
 
@@ -127,7 +127,7 @@ type AttendeeRow = {
 const EVENT_COLS = "id, title, event_type, mode, starts_at, venue_name, capacity";
 
 export async function buildNoZeroMonth(
-  supabase: SupabaseClient,
+  supabase: GemaClient,
   member: {
     id: string;
     profileId: string;
@@ -308,7 +308,7 @@ type DownlineMemberRow = {
  * Always includes the member themselves so the card is never empty.
  */
 export async function buildTeamLeaderboard(
-  supabase: SupabaseClient,
+  supabase: GemaClient,
   member: { id: string; username: string; noZeroCurrentStreak: number },
   limit = 12,
 ): Promise<LeaderboardEntry[]> {
