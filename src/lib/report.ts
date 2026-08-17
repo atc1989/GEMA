@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { GemaClient } from "@/lib/supabase/types";
 
 /**
  * Event attendance/referral report shared by the per-event and bulk export
@@ -45,7 +45,7 @@ type RegRow = {
 type SponsorRow = { registration_id: string; ref_code: string | null; sponsor_name: string | null };
 
 export async function buildEventReportRows(
-  supabase: SupabaseClient,
+  supabase: GemaClient,
   event: ReportEvent,
 ): Promise<ReportRow[]> {
   const [regsRes, attsRes, sponsorsRes] = await Promise.all([

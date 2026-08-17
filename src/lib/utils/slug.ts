@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { GemaClient } from "@/lib/supabase/types";
 
 /** Turns a title into a URL-safe slug. */
 export function slugify(input: string): string {
@@ -22,7 +22,7 @@ export function slugify(input: string): string {
  * collisions and the insert would blow up on `events_slug_key`.
  */
 export async function ensureUniqueEventSlug(
-  supabase: SupabaseClient,
+  supabase: GemaClient,
   title: string,
   ignoreId?: string,
 ): Promise<string> {

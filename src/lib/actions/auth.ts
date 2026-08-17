@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { z } from "zod";
@@ -26,21 +27,30 @@ async function clientIp() {
 
 /** True when the identifier has too many recent failures to try again. */
 async function isThrottled(identifier: string) {
-  const since = new Date(Date.now() - THROTTLE_WINDOW_MINUTES * 60_000).toISOString();
-  const { count, error } = await createSupabaseAdminClient()
-    .from("login_attempts")
-    .select("id", { count: "exact", head: true })
-    .eq("username", identifier)
-    .gte("created_at", since);
-  // ponytail: per-identifier only; add a per-IP cap if bots rotate usernames.
-  return !error && (count ?? 0) >= THROTTLE_MAX_FAILURES;
+  try {
+    const since = new Date(Date.now() - THROTTLE_WINDOW_MINUTES * 60_000).toISOString();
+    const { count, error } = await createSupabaseAdminClient()
+      .from("login_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("username", identifier)
+      .gte("created_at", since);
+    // ponytail: per-identifier only; add a per-IP cap if bots rotate usernames.
+    return !error && (count ?? 0) >= THROTTLE_MAX_FAILURES;
+  } catch {
+    // Missing service role or login_attempts table must never block sign-in.
+    return false;
+  }
 }
 
 /** Fire-and-forget: a logging failure must never block a login. */
 async function recordFailedLogin(identifier: string) {
-  await createSupabaseAdminClient()
-    .from("login_attempts")
-    .insert({ username: identifier, client_ip: await clientIp() });
+  try {
+    await createSupabaseAdminClient()
+      .from("login_attempts")
+      .insert({ username: identifier, client_ip: await clientIp() });
+  } catch {
+    // Ignore missing table/key — throttle is best-effort.
+  }
 }
 
 /**
@@ -176,6 +186,7 @@ async function redirectAfterLogin(
     backupLogin ? `${path}${path.includes("?") ? "&" : "?"}backup=1` : path;
 
   // Honour an explicit guard redirect (e.g. ?redirectTo=/admin/events/...).
+  revalidatePath("/", "layout");
   if (redirectTo?.startsWith("/")) {
     redirect(withBackup(redirectTo));
   }

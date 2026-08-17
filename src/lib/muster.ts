@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { GemaClient } from "@/lib/supabase/types";
 
 /**
  * Data layer for the Muster Reminder modal (read-only dashboard overlay).
@@ -55,7 +55,7 @@ function weekStartIso(now = new Date()): string {
 }
 
 export async function getMusterData(
-  supabase: SupabaseClient,
+  supabase: GemaClient,
   memberId: string,
 ): Promise<{ today: MusterToday; epoints: EpointParamStatus[] }> {
   const todayIso = new Date().toISOString().slice(0, 10);

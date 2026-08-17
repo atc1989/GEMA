@@ -131,7 +131,7 @@ export default async function PassesPage({
             <div>
               <p className="text-sm font-black">Your referral link</p>
               <p className="text-xs font-semibold text-muted-foreground">
-                You've attended an event — share this and anyone who registers through it
+                You have attended an event — share this and anyone who registers through it
                 is credited to you.
               </p>
             </div>
