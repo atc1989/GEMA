@@ -21,7 +21,7 @@ export default async function MemberNewEventPage() {
         <h2 className="text-lg font-black tracking-tight">Create event</h2>
         <p className="mt-1 text-sm font-semibold text-muted-foreground">
           {ctx.profile.canPublishEvents
-            ? "Your event will be published after submission. Fill the details and download your banner to start sharing."
+            ? "Public and invite-only events publish immediately. Company Support events still need admin approval."
             : "Your event will be submitted for administrator review. Fill the details and download your banner to start sharing."}
         </p>
       </div>
