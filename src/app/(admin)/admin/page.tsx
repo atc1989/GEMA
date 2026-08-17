@@ -6,6 +6,7 @@ import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { signOutAction } from "@/lib/actions/auth";
 import { getCurrentProfile } from "@/lib/auth/require-admin";
+import { eventTimeOrFilter } from "@/lib/event-time-filter";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,7 @@ export default async function AdminPage() {
       .from("events")
       .select("*")
       .eq("status", "published")
-      .gte("starts_at", new Date().toISOString())
+      .or(eventTimeOrFilter())
       .order("starts_at", { ascending: true })
       .limit(5)
       .returns<EventRow[]>(),

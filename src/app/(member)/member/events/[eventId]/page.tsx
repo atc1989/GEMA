@@ -13,6 +13,7 @@ import { QrDownload } from "@/components/qr/qr-download";
 import { Card } from "@/components/ui/card";
 import { getCurrentMember } from "@/lib/auth/require-member";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
+import { eventHasEnded } from "@/lib/event-time-filter";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { slugify } from "@/lib/utils/slug";
@@ -91,7 +92,10 @@ export default async function MemberEventPage({
   const isFull =
     event.capacity != null && (regCount.count ?? 0) >= event.capacity;
   const canRsvp =
-    event.visibility !== "private" && event.status === "published" && !isFull;
+    event.visibility !== "private" &&
+    event.status === "published" &&
+    !isFull &&
+    !eventHasEnded(event);
   const tone = registration
     ? REG_STATUS[registration.status] ?? REG_STATUS.registered
     : null;

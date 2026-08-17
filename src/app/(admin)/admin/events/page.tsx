@@ -7,6 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LinkTabs } from "@/components/ui/link-tabs";
 import { cleanPage, cleanPerPage, DEFAULT_PER_PAGE, Pagination } from "@/components/ui/pagination";
+import { eventTimeOrFilter } from "@/lib/event-time-filter";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -27,8 +28,7 @@ const FILTERS: { key: string; label: string; status?: EventStatus }[] = [
  * the database and pagination stays correct.
  */
 function timeFilter(now: string, finished: boolean) {
-  const op = finished ? "lt" : "gte";
-  return `ends_at.${op}."${now}",and(ends_at.is.null,starts_at.${op}."${now}")`;
+  return eventTimeOrFilter(now, finished);
 }
 
 function pageHref(page: number, perPage: number, statusKey: string) {
