@@ -10,6 +10,7 @@ import { cleanPage, cleanPerPage, DEFAULT_PER_PAGE, Pagination } from "@/compone
 import { eventTimeOrFilter } from "@/lib/event-time-filter";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { profileDisplayName } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import type { EventStatus } from "@/lib/database/types";
 
@@ -54,7 +55,7 @@ export default async function AdminEventsPage({
   const supabase = await createSupabaseServerClient();
   let query = supabase
     .from("events")
-    .select("*, profiles!created_by_profile_id(id, first_name, last_name)", { count: "exact" })
+    .select("*, profiles!created_by_profile_id(id, first_name, last_name, full_name, email)", { count: "exact" })
     .order("pinned_at", { ascending: false, nullsFirst: false })
     .order("starts_at", { ascending: false })
     .range(from, from + perPage - 1);
@@ -66,10 +67,20 @@ export default async function AdminEventsPage({
     query = query.neq("status", "archived").or(timeFilter(new Date().toISOString(), active.key === "finished"));
   }
 
-  const { data, error, count } = await query.returns<(EventRow & { profiles: { id: string; first_name: string | null; last_name: string | null } | null })[]>();
+  const { data, error, count } = await query.returns<
+    (EventRow & {
+      profiles: {
+        id: string;
+        first_name: string | null;
+        last_name: string | null;
+        full_name: string | null;
+        email: string | null;
+      } | null;
+    })[]
+  >();
   const events = (data ?? []).map((row) => ({
     ...mapEventRow(row),
-    creatorName: row.profiles ? `${row.profiles.first_name || ''} ${row.profiles.last_name || ''}`.trim() || 'Unknown' : 'Unknown',
+    creatorName: profileDisplayName(row.profiles),
   }));
 
   return (
