@@ -19,14 +19,15 @@ export function MemberPermissionsSearch({ defaultValue = "" }: { defaultValue?: 
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      const next = new URLSearchParams(searchParams);
       const trimmed = value.trim();
+      // Only rewrite when the user actually changed the query. This effect also
+      // re-runs when `page` lands in the URL; wiping `page` then sent Next back
+      // to page 1.
+      if (trimmed === defaultValue.trim()) return;
 
-      if (trimmed) {
-        next.set("q", trimmed);
-      } else {
-        next.delete("q");
-      }
+      const next = new URLSearchParams(searchParams.toString());
+      if (trimmed) next.set("q", trimmed);
+      else next.delete("q");
       next.delete("page");
 
       const url = next.toString() ? `${pathname}?${next.toString()}` : pathname;
@@ -34,7 +35,7 @@ export function MemberPermissionsSearch({ defaultValue = "" }: { defaultValue?: 
     }, 300);
 
     return () => window.clearTimeout(timeout);
-  }, [pathname, router, searchParams, value]);
+  }, [defaultValue, pathname, router, searchParams, value]);
 
   return (
     <div className="relative max-w-lg">
