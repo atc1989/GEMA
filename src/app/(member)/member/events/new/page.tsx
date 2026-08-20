@@ -22,7 +22,7 @@ export default async function MemberNewEventPage() {
         <p className="mt-1 text-sm font-semibold text-muted-foreground">
           {ctx.profile.canPublishEvents
             ? "Public and invite-only events publish immediately. Company Support events still need admin approval."
-            : "Your event will be submitted for administrator review. Fill the details and download your banner to start sharing."}
+            : "Your event will be submitted for administrator review. Fill the details, pick a GEMA banner design or upload your own, then start sharing."}
         </p>
       </div>
       <MemberEventForm mode="create" selfName={selfName} />

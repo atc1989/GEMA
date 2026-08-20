@@ -196,11 +196,22 @@ export default async function EventDetailPage({
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-        <ScaledPoster
-          data={posterData}
-          template={asPosterTemplateId(event.metadata?.poster_template)}
-          className="rounded-xl border border-border/70 shadow-sm"
-        />
+        {event.bannerUrl ? (
+          <div className="overflow-hidden rounded-xl border border-border/70 bg-secondary/40">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={event.bannerUrl}
+              alt={event.title}
+              className="mx-auto max-h-[540px] w-full object-contain"
+            />
+          </div>
+        ) : (
+          <ScaledPoster
+            data={posterData}
+            template={asPosterTemplateId(event.metadata?.poster_template)}
+            className="rounded-xl border border-border/70 shadow-sm"
+          />
+        )}
 
         <Card className="flex flex-col gap-4 p-5">
           <div>

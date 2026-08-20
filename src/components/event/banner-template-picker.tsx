@@ -3,53 +3,84 @@
 import { useState, useTransition } from "react";
 import { Check, Loader2 } from "lucide-react";
 
-import { ScaledPoster, DownloadBannerButton } from "@/components/event/event-poster";
-import { PosterTemplateThumbnails } from "@/components/event/posters/template-thumbnails";
+import { BannerStudio, asBannerSource, type BannerSource } from "@/components/event/banner-studio";
 import { PhotoAdjuster } from "@/components/event/posters/photo-adjuster";
 import { asPhotoFocus, type PhotoFocus } from "@/components/event/posters/shared";
 import type { EventPosterData, PosterTemplateId } from "@/components/event/posters/types";
-import { setEventPosterTemplate, setEventPhotoFocus } from "@/lib/actions/poster";
+import {
+  setEventCustomBanner,
+  setEventPhotoFocus,
+  setEventPosterTemplate,
+} from "@/lib/actions/poster";
 
 export function BannerTemplatePicker({
   data,
   eventId,
   initialTemplate,
   initialFocus,
+  initialBannerUrl,
 }: {
   data: EventPosterData;
   eventId: string;
   initialTemplate: PosterTemplateId;
   initialFocus?: PhotoFocus;
+  initialBannerUrl?: string | null;
 }) {
   const [selected, setSelected] = useState<PosterTemplateId>(initialTemplate);
   const [focus, setFocus] = useState<PhotoFocus>(asPhotoFocus(initialFocus));
+  const [bannerUrl, setBannerUrl] = useState<string | undefined>(initialBannerUrl ?? undefined);
+  const [source, setSource] = useState<BannerSource>(
+    asBannerSource(undefined, Boolean(initialBannerUrl)),
+  );
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const previewData: EventPosterData = { ...data, photoFocus: focus };
 
-  const choose = (id: PosterTemplateId) => {
-    if (id === selected) return;
-    setSelected(id);
+  const persist = (work: () => Promise<{ ok: boolean }>) => {
     setSaved(false);
     startTransition(async () => {
-      const res = await setEventPosterTemplate(eventId, id);
+      const res = await work();
       if (res.ok) setSaved(true);
     });
   };
 
+  const chooseTemplate = (id: PosterTemplateId) => {
+    if (id === selected) return;
+    setSelected(id);
+    persist(() => setEventPosterTemplate(eventId, id));
+  };
+
+  const chooseSource = (next: BannerSource) => {
+    if (next === source) return;
+    setSource(next);
+    if (next === "maker") {
+      setBannerUrl(undefined);
+      persist(() => setEventCustomBanner(eventId, null));
+    }
+  };
+
+  const chooseBannerUrl = (url: string | undefined) => {
+    setBannerUrl(url);
+    persist(() => setEventCustomBanner(eventId, url ?? null));
+  };
+
   const commitFocus = (f: PhotoFocus) => {
-    setSaved(false);
-    startTransition(async () => {
-      const res = await setEventPhotoFocus(eventId, f);
-      if (res.ok) setSaved(true);
-    });
+    persist(() => setEventPhotoFocus(eventId, f));
   };
 
   return (
     <div className="grid gap-4">
-      {/* Main preview */}
-      <ScaledPoster data={previewData} template={selected} className="rounded-2xl shadow-lg" />
+      <BannerStudio
+        data={previewData}
+        template={selected}
+        onTemplate={chooseTemplate}
+        bannerUrl={bannerUrl}
+        onBannerUrl={chooseBannerUrl}
+        source={source}
+        onSource={chooseSource}
+        downloadLabel="Download banner"
+      />
 
       <div className="flex items-center justify-end text-[11px] font-bold text-muted-foreground">
         {pending ? (
@@ -63,8 +94,7 @@ export function BannerTemplatePicker({
         ) : null}
       </div>
 
-      {/* Framing adjuster (only when there's a photo) */}
-      {data.speakerPhotoUrl ? (
+      {source === "maker" && data.speakerPhotoUrl ? (
         <div>
           <p className="mb-2 text-xs font-black uppercase tracking-wide text-muted-foreground">
             Adjust framing
@@ -77,14 +107,6 @@ export function BannerTemplatePicker({
           />
         </div>
       ) : null}
-
-      {/* Template thumbnails */}
-      <div>
-        <p className="mb-2 text-xs font-black uppercase tracking-wide text-muted-foreground">Design</p>
-        <PosterTemplateThumbnails data={previewData} selected={selected} onSelect={choose} />
-      </div>
-
-      <DownloadBannerButton data={previewData} template={selected} />
     </div>
   );
 }
