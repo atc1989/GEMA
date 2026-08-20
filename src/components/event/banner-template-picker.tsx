@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Check, Loader2 } from "lucide-react";
 
-import { BannerStudio, asBannerSource, type BannerSource } from "@/components/event/banner-studio";
+import { BannerStudio } from "@/components/event/banner-studio";
 import { PhotoAdjuster } from "@/components/event/posters/photo-adjuster";
 import { asPhotoFocus, type PhotoFocus } from "@/components/event/posters/shared";
 import type { EventPosterData, PosterTemplateId } from "@/components/event/posters/types";
@@ -29,9 +29,6 @@ export function BannerTemplatePicker({
   const [selected, setSelected] = useState<PosterTemplateId>(initialTemplate);
   const [focus, setFocus] = useState<PhotoFocus>(asPhotoFocus(initialFocus));
   const [bannerUrl, setBannerUrl] = useState<string | undefined>(initialBannerUrl ?? undefined);
-  const [source, setSource] = useState<BannerSource>(
-    asBannerSource(undefined, Boolean(initialBannerUrl)),
-  );
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -51,15 +48,6 @@ export function BannerTemplatePicker({
     persist(() => setEventPosterTemplate(eventId, id));
   };
 
-  const chooseSource = (next: BannerSource) => {
-    if (next === source) return;
-    setSource(next);
-    if (next === "maker") {
-      setBannerUrl(undefined);
-      persist(() => setEventCustomBanner(eventId, null));
-    }
-  };
-
   const chooseBannerUrl = (url: string | undefined) => {
     setBannerUrl(url);
     persist(() => setEventCustomBanner(eventId, url ?? null));
@@ -77,24 +65,10 @@ export function BannerTemplatePicker({
         onTemplate={chooseTemplate}
         bannerUrl={bannerUrl}
         onBannerUrl={chooseBannerUrl}
-        source={source}
-        onSource={chooseSource}
         downloadLabel="Download banner"
       />
 
-      <div className="flex items-center justify-end text-[11px] font-bold text-muted-foreground">
-        {pending ? (
-          <span className="flex items-center gap-1">
-            <Loader2 className="size-3 animate-spin" aria-hidden="true" /> Saving…
-          </span>
-        ) : saved ? (
-          <span className="flex items-center gap-1">
-            <Check className="size-3 text-success" aria-hidden="true" /> Saved
-          </span>
-        ) : null}
-      </div>
-
-      {source === "maker" && data.speakerPhotoUrl ? (
+      {data.speakerPhotoUrl ? (
         <div>
           <p className="mb-2 text-xs font-black uppercase tracking-wide text-muted-foreground">
             Adjust framing
@@ -107,6 +81,18 @@ export function BannerTemplatePicker({
           />
         </div>
       ) : null}
+
+      <div className="flex items-center justify-end text-[11px] font-bold text-muted-foreground">
+        {pending ? (
+          <span className="flex items-center gap-1">
+            <Loader2 className="size-3 animate-spin" aria-hidden="true" /> Saving…
+          </span>
+        ) : saved ? (
+          <span className="flex items-center gap-1">
+            <Check className="size-3 text-success" aria-hidden="true" /> Saved
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 }

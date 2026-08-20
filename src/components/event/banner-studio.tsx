@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ImagePlus, Loader2, Palette, X } from "lucide-react";
+import { Check, ImagePlus, Loader2, X } from "lucide-react";
 
 import { DownloadBannerButton, ScaledPoster } from "@/components/event/event-poster";
 import { PosterTemplateThumbnails } from "@/components/event/posters/template-thumbnails";
@@ -9,118 +9,49 @@ import type { EventPosterData, PosterTemplateId } from "@/components/event/poste
 import { uploadEventPhoto } from "@/lib/storage/event-photos";
 import { cn } from "@/lib/utils";
 
-export type BannerSource = "maker" | "upload";
-
-export function asBannerSource(value: unknown, hasBannerUrl: boolean): BannerSource {
-  if (value === "maker" || value === "upload") return value;
-  return hasBannerUrl ? "upload" : "maker";
-}
-
+/** Built-in 1080×1350 poster maker plus an always-visible custom upload. */
 export function BannerStudio({
   data,
   template,
   onTemplate,
   bannerUrl,
   onBannerUrl,
-  source,
-  onSource,
   downloadLabel = "Download preview banner",
 }: {
   data: EventPosterData;
   template: PosterTemplateId;
   onTemplate: (id: PosterTemplateId) => void;
   bannerUrl?: string;
-  onBannerUrl: (url: string | undefined) => void;
-  source: BannerSource;
-  onSource: (source: BannerSource) => void;
+  onBannerUrl?: (url: string | undefined) => void;
   downloadLabel?: string;
 }) {
   return (
-    <div className="grid gap-4">
-      <BannerSourceToggle source={source} onSource={onSource} />
+    <div className="grid min-w-0 gap-4">
+      {onBannerUrl ? (
+        <div className="grid gap-2 rounded-2xl border-[1.5px] border-dashed border-brand/40 bg-brand/5 p-3">
+          <p className="text-xs font-black uppercase tracking-wide text-brand">Upload your own</p>
+          <CustomBannerUpload bannerUrl={bannerUrl} onBannerUrl={onBannerUrl} />
+        </div>
+      ) : null}
 
-      {source === "upload" ? (
-        <CustomBannerUpload bannerUrl={bannerUrl} onBannerUrl={onBannerUrl} />
-      ) : (
-        <>
-          <ScaledPoster data={data} template={template} className="rounded-2xl shadow-lg" />
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-              Design
-            </p>
-            <PosterTemplateThumbnails data={data} selected={template} onSelect={onTemplate} />
-          </div>
-          <DownloadBannerButton data={data} template={template} label={downloadLabel} />
-        </>
-      )}
+      <div>
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          Or use a GEMA design
+        </p>
+        <ScaledPoster data={data} template={template} className="rounded-2xl shadow-lg" />
+      </div>
+      <div>
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          Design
+        </p>
+        <PosterTemplateThumbnails data={data} selected={template} onSelect={onTemplate} />
+      </div>
+      <DownloadBannerButton data={data} template={template} label={downloadLabel} />
     </div>
   );
 }
 
-function BannerSourceToggle({
-  source,
-  onSource,
-}: {
-  source: BannerSource;
-  onSource: (source: BannerSource) => void;
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      <SourceButton
-        active={source === "maker"}
-        onClick={() => onSource("maker")}
-        icon={<Palette className="size-4" aria-hidden="true" />}
-        label="GEMA design"
-        hint="Built-in banner maker"
-      />
-      <SourceButton
-        active={source === "upload"}
-        onClick={() => onSource("upload")}
-        icon={<ImagePlus className="size-4" aria-hidden="true" />}
-        label="Upload my own"
-        hint="Custom image"
-      />
-    </div>
-  );
-}
-
-function SourceButton({
-  active,
-  onClick,
-  icon,
-  label,
-  hint,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-  hint: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "flex flex-col items-start gap-0.5 rounded-xl border-[1.5px] px-3 py-2.5 text-left transition-colors",
-        active
-          ? "border-brand bg-brand text-white"
-          : "border-border bg-card text-muted-foreground hover:border-brand/50",
-      )}
-    >
-      <span className="inline-flex items-center gap-1.5 text-xs font-black">
-        {icon}
-        {label}
-      </span>
-      <span className={cn("text-[11px] font-semibold", active ? "text-white/80" : "text-muted-foreground")}>
-        {hint}
-      </span>
-    </button>
-  );
-}
-
-function CustomBannerUpload({
+export function CustomBannerUpload({
   bannerUrl,
   onBannerUrl,
 }: {
@@ -153,7 +84,7 @@ function CustomBannerUpload({
           <img
             src={bannerUrl}
             alt="Custom event banner"
-            className="mx-auto max-h-[480px] w-full object-contain"
+            className="mx-auto max-h-[280px] w-full object-contain"
           />
           <button
             type="button"
@@ -164,15 +95,11 @@ function CustomBannerUpload({
             Remove
           </button>
         </div>
-      ) : (
-        <div className="flex aspect-[4/5] max-h-[420px] items-center justify-center rounded-2xl border border-dashed border-border bg-secondary/30 text-sm font-semibold text-muted-foreground">
-          No custom banner yet
-        </div>
-      )}
+      ) : null}
 
       <label
         className={cn(
-          "flex cursor-pointer items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-border px-3 py-3 text-xs font-bold text-muted-foreground transition-colors hover:border-brand hover:text-brand",
+          "flex cursor-pointer items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-border px-3 py-4 text-xs font-bold text-muted-foreground transition-colors hover:border-brand hover:text-brand",
           uploading && "pointer-events-none opacity-70",
         )}
       >
@@ -183,11 +110,11 @@ function CustomBannerUpload({
           </>
         ) : bannerUrl ? (
           <>
-            <Check className="size-4 text-success" aria-hidden="true" /> Banner added — tap to change
+            <Check className="size-4 text-success" aria-hidden="true" /> Custom banner added — tap to change
           </>
         ) : (
           <>
-            <ImagePlus className="size-4" aria-hidden="true" /> Upload banner image
+            <ImagePlus className="size-4" aria-hidden="true" /> Upload your own banner
           </>
         )}
       </label>

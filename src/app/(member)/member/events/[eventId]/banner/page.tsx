@@ -74,8 +74,8 @@ export default async function MemberEventBannerPage({
       <div>
         <h2 className="text-lg font-black tracking-tight">Event banner</h2>
         <p className="mt-1 text-sm font-semibold text-muted-foreground">
-          Use the built-in maker, or upload your own image. Maker downloads are 1080 × 1350 for
-          social media and Messenger.
+          Pick a design, download it for social, or scroll to Custom banner to upload your own image
+          for the invite page.
         </p>
       </div>
 
