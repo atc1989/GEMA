@@ -3,27 +3,19 @@
 -- external (OneGrinders) logins die with
 --   "Unable to create the local auth user".
 --
--- Cause: triggers on auth.users fire in ALPHABETICAL order.
--- gutguard_on_auth_user_created ('g') fired BEFORE on_auth_user_created
--- ('o'), and its insert into gutguard_onboarding_progress has a foreign
--- key to public.profiles(id) — a row that only exists after
--- handle_new_user runs. FK violation 23503 aborted the whole transaction.
---
--- Fix 1: rename the gutguard trigger so it sorts (and fires) after
---        on_auth_user_created.
--- Fix 2: handle_new_user always produces a non-null full_name, so
---        signups without name metadata (external logins) can't trip
---        profiles.full_name NOT NULL.
+-- Cause: triggers on auth.users fire in ALPHABETICAL order. A
+-- GutGuard Daily trigger (`gutguard_on_auth_user_created`) used to
+-- fire BEFORE on_auth_user_created and insert into
+-- gutguard_onboarding_progress before public.profiles existed.
+-- GutGuard Daily has been removed; this file now drops those
+-- leftover triggers and keeps the handle_new_user full_name fix.
 --
 -- Run in the Supabase SQL editor. Safe to re-run.
 -- =============================================================
 
--- 1) Reorder: 'zz_' sorts after 'on_auth_user_created'.
+-- 1) Drop leftover GutGuard Daily auth triggers if they still exist.
 drop trigger if exists gutguard_on_auth_user_created on auth.users;
 drop trigger if exists zz_gutguard_on_auth_user_created on auth.users;
-create trigger zz_gutguard_on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.gutguard_handle_new_user();
 
 -- 2) Never insert a null full_name.
 create or replace function public.handle_new_user()

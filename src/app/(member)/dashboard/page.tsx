@@ -208,7 +208,6 @@ export default async function MemberDashboardPage({
         monthlyTarget={workingDaysThisMonth()}
         today={muster.today}
         epoints={muster.epoints}
-        dailyUrl="/gutguard-daily"
         bulletinUrl={process.env.NEXT_PUBLIC_TELEGRAM_BULLETIN_URL ?? null}
       />
 
