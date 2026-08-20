@@ -43,7 +43,9 @@ export function BannerStudio({
           Updates live from the form — title, type, date, and venue.
         </p>
       </div>
-      <div>
+      {/* min-w-0: without it the scroll strip's 852px max-content width sizes
+          this grid's only track, so every row overflows the sidebar column. */}
+      <div className="min-w-0">
         <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
           Design
         </p>
