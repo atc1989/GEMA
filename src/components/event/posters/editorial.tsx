@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 
 import { accentForType } from "./accent";
 import { GemaWordmark } from "./gema-wordmark";
-import { POSTER_H, POSTER_W, posterDate, posterVenue } from "./shared";
+import { posterStageLock, posterDate, posterVenue } from "./shared";
 import type { EventPosterData } from "./types";
 
 /** Editorial Light — clean white/cream layout with an accent bar and structured
@@ -24,8 +24,7 @@ export const EditorialPoster = forwardRef<HTMLDivElement, { data: EventPosterDat
       <div
         ref={ref}
         style={{
-          width: POSTER_W,
-          height: POSTER_H,
+          ...posterStageLock,
           position: "relative",
           overflow: "hidden",
           background: "#ffffff",

@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useRef, useTransition } from "react";
+import { forwardRef, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { Download, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,9 +29,11 @@ export const EventPoster = forwardRef<
 
 /**
  * On-screen 4:5 poster that fills its container (capped at native 360px).
- * The canvas is taken out of flow so the 360px layout width cannot collapse
- * the frame; CSS container units scale the design to the visible box.
- * `className` styles that box (rounding, shadow…). Downloads are unaffected.
+ *
+ * Width is measured from a `w-full` host that does not shrink-wrap children.
+ * The visible frame then gets explicit pixel size (same pattern as the design
+ * thumbnails), and the 360×450 canvas is scaled inside it. That keeps height
+ * tied to width so the preview cannot collapse into a tall clipped strip.
  */
 export function ScaledPoster({
   data,
@@ -42,24 +44,39 @@ export function ScaledPoster({
   template?: PosterTemplateId;
   className?: string;
 }) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const update = () => {
+      const next = host.getBoundingClientRect().width;
+      setWidth(next > 0 ? next : 0);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(host);
+    return () => ro.disconnect();
+  }, []);
+
+  const frameW = width > 0 ? Math.min(width, POSTER_W) : POSTER_W;
+  const scale = frameW / POSTER_W;
+  const frameH = POSTER_H * scale;
+
   return (
-    <div
-      className="mx-auto w-full min-w-0 max-w-[360px]"
-      style={{ containerType: "inline-size" }}
-    >
+    <div ref={hostRef} className="mx-auto w-full min-w-0 max-w-[360px]">
       <div
-        className={cn("relative w-full overflow-hidden", className)}
-        style={{ aspectRatio: `${POSTER_W} / ${POSTER_H}` }}
+        className={cn("overflow-hidden", className)}
+        style={{ width: frameW, height: frameH }}
       >
         <div
           style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
             width: POSTER_W,
             height: POSTER_H,
-            transform: `scale(calc(100cqi / ${POSTER_W}))`,
+            transform: `scale(${scale})`,
             transformOrigin: "top left",
+            overflow: "hidden",
           }}
         >
           <EventPoster data={data} template={template} />
