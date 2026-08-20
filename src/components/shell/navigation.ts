@@ -41,7 +41,7 @@ export const memberNavigation: NavigationItem[] = [
   { href: "/member/calendar", label: "Calendar", icon: CalendarCheck },
   { href: "/member/referrals", label: "Referrals", icon: Gift },
   { href: "/member/prospects", label: "Prospects", icon: Users, mobilePrimary: true },
-  { href: "/member/earnings", label: "Earnings", icon: Coins, mobilePrimary: true },
+  { href: "/member/earnings", label: "Earnings", icon: Coins },
 ];
 
 export const adminNavigation: NavigationItem[] = [
