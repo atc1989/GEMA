@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { GemaClient } from "@/lib/supabase/types";
 
 export type NoZeroResult = {
   currentStreak: number;
@@ -27,7 +27,7 @@ type MemberNoZeroRow = {
  *  - Not active today + last date < previous working day + streak > 0 → broken, reset to 0.
  */
 export async function updateNoZeroStreak(
-  supabase: SupabaseClient,
+  supabase: GemaClient,
   memberId: string,
   todayProspectCount: number,
   memberRow: MemberNoZeroRow,

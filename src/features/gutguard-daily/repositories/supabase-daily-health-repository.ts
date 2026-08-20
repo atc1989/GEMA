@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { GemaClient } from "@/lib/supabase/types";
 
 import type {
   AdminOverview,
@@ -15,7 +15,7 @@ import type {
 } from "@/features/gutguard-daily/repositories/daily-health-repository";
 
 export class SupabaseDailyHealthRepository implements DailyHealthRepository {
-  constructor(private readonly supabase: SupabaseClient) {}
+  constructor(private readonly supabase: GemaClient) {}
 
   async listDoses(patientId: string, from: string, to: string) {
     const { data, error } = await this.supabase
