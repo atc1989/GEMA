@@ -389,12 +389,14 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
       <div className="flex min-w-0 flex-col gap-4">
         <div className="lg:sticky lg:top-6">
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            GEMA banner maker
+            Event banner
           </p>
           <BannerStudio
             data={posterData}
             template={template}
             onTemplate={setTemplate}
+            bannerUrl={bannerUrl}
+            onBannerUrl={setBannerUrl}
           />
         </div>
       </div>

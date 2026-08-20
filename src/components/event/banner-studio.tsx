@@ -9,21 +9,37 @@ import type { EventPosterData, PosterTemplateId } from "@/components/event/poste
 import { uploadEventPhoto } from "@/lib/storage/event-photos";
 import { cn } from "@/lib/utils";
 
-/** Built-in 1080×1350 poster maker. Custom uploads live in CustomBannerUpload. */
+/** Built-in 1080×1350 poster maker plus an always-visible custom upload. */
 export function BannerStudio({
   data,
   template,
   onTemplate,
+  bannerUrl,
+  onBannerUrl,
   downloadLabel = "Download preview banner",
 }: {
   data: EventPosterData;
   template: PosterTemplateId;
   onTemplate: (id: PosterTemplateId) => void;
+  bannerUrl?: string;
+  onBannerUrl?: (url: string | undefined) => void;
   downloadLabel?: string;
 }) {
   return (
     <div className="grid min-w-0 gap-4">
-      <ScaledPoster data={data} template={template} className="rounded-2xl shadow-lg" />
+      {onBannerUrl ? (
+        <div className="grid gap-2 rounded-2xl border-[1.5px] border-dashed border-brand/40 bg-brand/5 p-3">
+          <p className="text-xs font-black uppercase tracking-wide text-brand">Upload your own</p>
+          <CustomBannerUpload bannerUrl={bannerUrl} onBannerUrl={onBannerUrl} />
+        </div>
+      ) : null}
+
+      <div>
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          Or use a GEMA design
+        </p>
+        <ScaledPoster data={data} template={template} className="rounded-2xl shadow-lg" />
+      </div>
       <div>
         <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
           Design

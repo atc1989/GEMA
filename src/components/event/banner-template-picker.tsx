@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Check, Loader2 } from "lucide-react";
 
-import { BannerStudio, CustomBannerUpload } from "@/components/event/banner-studio";
+import { BannerStudio } from "@/components/event/banner-studio";
 import { PhotoAdjuster } from "@/components/event/posters/photo-adjuster";
 import { asPhotoFocus, type PhotoFocus } from "@/components/event/posters/shared";
 import type { EventPosterData, PosterTemplateId } from "@/components/event/posters/types";
@@ -63,6 +63,8 @@ export function BannerTemplatePicker({
         data={previewData}
         template={selected}
         onTemplate={chooseTemplate}
+        bannerUrl={bannerUrl}
+        onBannerUrl={chooseBannerUrl}
         downloadLabel="Download banner"
       />
 
@@ -79,13 +81,6 @@ export function BannerTemplatePicker({
           />
         </div>
       ) : null}
-
-      <div className="grid gap-2 rounded-2xl border border-border bg-card p-4">
-        <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
-          Or upload your own
-        </p>
-        <CustomBannerUpload bannerUrl={bannerUrl} onBannerUrl={chooseBannerUrl} />
-      </div>
 
       <div className="flex items-center justify-end text-[11px] font-bold text-muted-foreground">
         {pending ? (
