@@ -88,3 +88,43 @@ export async function setEventPhotoFocus(
   revalidatePath(`/member/events/${eventId}/banner`);
   return { ok: true, focus: clean };
 }
+
+export type SetBannerUrlResult =
+  | { ok: true; bannerUrl: string | null }
+  | { ok: false; error: string };
+
+/**
+ * Persists a custom uploaded banner on events.banner_url (or clears it so the
+ * built-in maker is used). Host only. banner_url already exists — no new column.
+ */
+export async function setEventCustomBanner(
+  eventId: string,
+  bannerUrl: string | null,
+): Promise<SetBannerUrlResult> {
+  const ctx = await getCurrentMember();
+  if (!ctx) return { ok: false, error: "Not authorized." };
+
+  const supabase = await createSupabaseServerClient();
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("host_member_id")
+    .eq("id", eventId)
+    .maybeSingle<{ host_member_id: string | null }>();
+
+  if (!event || event.host_member_id !== ctx.member.id) {
+    return { ok: false, error: "Event not found." };
+  }
+
+  const clean = bannerUrl?.trim() ? bannerUrl.trim() : null;
+  const { error } = await supabase.from("events").update({ banner_url: clean }).eq("id", eventId);
+
+  if (error) {
+    console.error("[poster]", error.message);
+    return { ok: false, error: "Could not save the custom banner. Please try again." };
+  }
+
+  revalidatePath(`/member/events/${eventId}/banner`);
+  revalidatePath(`/member/events/${eventId}/edit`);
+  return { ok: true, bannerUrl: clean };
+}

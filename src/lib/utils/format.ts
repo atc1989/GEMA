@@ -1,3 +1,22 @@
+/** Prefer full_name — most imported members have no first/last split. */
+export function profileDisplayName(
+  profile: {
+    full_name?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    email?: string | null;
+  } | null,
+  fallback = "Unknown",
+) {
+  if (!profile) return fallback;
+  const full = profile.full_name?.trim();
+  if (full) return full;
+  const parts = `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim();
+  if (parts) return parts;
+  const local = profile.email?.split("@")[0]?.trim();
+  return local || fallback;
+}
+
 /** Formats an ISO timestamp in the event's timezone (e.g. "Fri, Jun 20, 4:00 PM"). */
 export function formatEventDateTime(iso: string, timezone?: string): string {
   try {

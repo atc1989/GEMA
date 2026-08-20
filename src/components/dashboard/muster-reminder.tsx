@@ -21,7 +21,6 @@ const TARGETS = { prospects: 7, invited: 5, presentations: 2, baseActivations: 1
 const SALES_TARGET = 3000;
 
 const APP_TAG: Record<EpointParamStatus["app"], { label: string; className: string }> = {
-  daily: { label: "GUTGUARD DAILY", className: "bg-info/12 text-info" },
   gema: { label: "GEMA", className: "bg-brand/10 text-brand-dark dark:text-brand" },
 };
 
@@ -73,7 +72,6 @@ export function MusterReminder({
   monthlyTarget,
   today,
   epoints,
-  dailyUrl,
   bulletinUrl,
 }: {
   memberName: string;
@@ -84,7 +82,6 @@ export function MusterReminder({
   monthlyTarget: number;
   today: MusterToday;
   epoints: EpointParamStatus[];
-  dailyUrl: string | null;
   bulletinUrl: string | null;
 }) {
   const [open, setOpen] = useState(false);
@@ -134,12 +131,12 @@ export function MusterReminder({
     .reduce((s, p) => s + (p.max - p.earned), 0);
 
   const copy = {
-    active: { sub: "Have a No-Zero day today.", primary: "Open Gutguard Daily" },
+    active: { sub: "Have a No-Zero day today.", primary: "Sponsor a prospect" },
     lapsed: {
       sub: `Your ${bestStreak}-day streak is recoverable — log an activity to restore it.`,
-      primary: "Restore streak in Daily",
+      primary: "Restore your streak",
     },
-    recruit: { sub: "One activity a day keeps your streak alive.", primary: "Start in Gutguard Daily" },
+    recruit: { sub: "One activity a day keeps your streak alive.", primary: "Start with a prospect" },
   }[state];
 
   return (
@@ -432,24 +429,13 @@ export function MusterReminder({
                 </div>
               ) : null}
 
-              {dailyUrl ? (
-                <a
-                  href={dailyUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={cn(buttonVariants({ variant: "brand" }), "mt-4 w-full")}
-                >
-                  {copy.primary} &#8594;
-                </a>
-              ) : (
-                <Link
-                  href="/member/prospects"
-                  onClick={close}
-                  className={cn(buttonVariants({ variant: "brand" }), "mt-4 w-full")}
-                >
-                  Sponsor a prospect &#8594;
-                </Link>
-              )}
+              <Link
+                href="/member/prospects"
+                onClick={close}
+                className={cn(buttonVariants({ variant: "brand" }), "mt-4 w-full")}
+              >
+                {copy.primary} &#8594;
+              </Link>
               <button
                 type="button"
                 onClick={close}

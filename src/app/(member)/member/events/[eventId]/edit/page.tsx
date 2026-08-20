@@ -23,6 +23,7 @@ type EventEditRow = {
   capacity: number | null;
   description: string | null;
   host_member_id: string | null;
+  banner_url: string | null;
   metadata: Record<string, unknown>;
 };
 
@@ -37,7 +38,7 @@ export default async function MemberEditEventPage({
   const supabase = await createSupabaseServerClient();
   const { data: event } = await supabase
     .from("events")
-    .select("id, title, event_type, visibility, mode, starts_at, ends_at, timezone, venue_name, venue_address, map_url, online_url, capacity, description, host_member_id, metadata")
+    .select("id, title, event_type, visibility, mode, starts_at, ends_at, timezone, venue_name, venue_address, map_url, online_url, capacity, description, host_member_id, banner_url, metadata")
     .eq("id", eventId)
     .maybeSingle<EventEditRow>();
 
@@ -87,6 +88,7 @@ export default async function MemberEditEventPage({
           onlineUrl: event.online_url ?? undefined,
           capacity: event.capacity ?? undefined,
           description: event.description ?? undefined,
+          bannerUrl: event.banner_url ?? undefined,
           speakerName:
             (event.metadata?.speakerName as string | null) ?? speaker?.name ?? undefined,
           posterTemplate: (event.metadata?.poster_template as string | null) ?? undefined,

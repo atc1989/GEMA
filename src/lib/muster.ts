@@ -23,17 +23,14 @@ export type MusterToday = {
 export type EpointParamStatus = {
   key: string;
   name: string;
-  app: "daily" | "gema";
+  app: "gema";
   earned: number;
   max: number;
   tip: string;
 };
 
-/** The five real-system E-Points parameters with their weekly caps. */
+/** GEMA E-Points parameters with their weekly caps. */
 const EPOINT_PARAMS: Omit<EpointParamStatus, "earned">[] = [
-  { key: "daily_dose", name: "Daily dose", app: "daily", max: 50, tip: "Log your dose each day" },
-  { key: "daily_checkin", name: "Daily check-in", app: "daily", max: 30, tip: "Hydration + how you feel" },
-  { key: "my_journey", name: "My Journey", app: "daily", max: 20, tip: "Review your recovery progress" },
   { key: "events", name: "Events", app: "gema", max: 60, tip: "Join or check in at a GEMA event" },
   { key: "team_recognition", name: "Team & recognition", app: "gema", max: 40, tip: "Back your line, cheer a win" },
 ];

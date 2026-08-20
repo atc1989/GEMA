@@ -1,7 +1,6 @@
 /**
  * Fallback loading skeleton for the (member) route group.
- * Covers pages that don't have their own loading.tsx:
- * /gutguard-daily and any future member-root pages.
+ * Covers pages that don't have their own loading.tsx.
  */
 export default function MemberRootLoading() {
   return (
