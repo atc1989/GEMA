@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useEffect, useRef, useState, useTransition } from "react";
+import { forwardRef, useRef, useTransition } from "react";
 import { Download, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
   type EventPosterData,
   type PosterTemplateId,
 } from "@/components/event/posters/types";
+import { cn } from "@/lib/utils";
 
 export type { EventPosterData } from "@/components/event/posters/types";
 
@@ -27,9 +28,10 @@ export const EventPoster = forwardRef<
 });
 
 /**
- * On-screen poster that shrinks to fit its container (capped at native 360px).
- * `className` styles the box that hugs the scaled poster (rounding, shadow…).
- * Exports still use the fixed-size EventPoster, so downloads are unaffected.
+ * On-screen 4:5 poster that fills its container (capped at native 360px).
+ * The canvas is taken out of flow so the 360px layout width cannot collapse
+ * the frame; CSS container units scale the design to the visible box.
+ * `className` styles that box (rounding, shadow…). Downloads are unaffected.
  */
 export function ScaledPoster({
   data,
@@ -40,29 +42,26 @@ export function ScaledPoster({
   template?: PosterTemplateId;
   className?: string;
 }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([entry]) => {
-      setScale(Math.min(1, entry.contentRect.width / POSTER_W));
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
   return (
-    // min-w-0 lets grid/flex parents shrink this below the native 360px poster
-    // width on small screens; the ResizeObserver then scales the poster down.
-    <div ref={wrapRef} className="min-w-0">
+    <div
+      className="mx-auto w-full min-w-0 max-w-[360px]"
+      style={{ containerType: "inline-size" }}
+    >
       <div
-        className={className}
-        // maxWidth caps the first paint (scale=1 → 360px) before the ResizeObserver fires
-        style={{ width: POSTER_W * scale, maxWidth: "100%", height: POSTER_H * scale, margin: "0 auto", overflow: "hidden" }}
+        className={cn("relative w-full overflow-hidden", className)}
+        style={{ aspectRatio: `${POSTER_W} / ${POSTER_H}` }}
       >
-        <div style={{ width: POSTER_W, height: POSTER_H, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: POSTER_W,
+            height: POSTER_H,
+            transform: `scale(calc(100cqi / ${POSTER_W}))`,
+            transformOrigin: "top left",
+          }}
+        >
           <EventPoster data={data} template={template} />
         </div>
       </div>

@@ -34,7 +34,7 @@ export function BannerStudio({
         </div>
       ) : null}
 
-      <div>
+      <div className="min-w-0 w-full">
         <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
           Or use a GEMA design
         </p>
