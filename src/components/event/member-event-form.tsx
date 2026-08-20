@@ -182,7 +182,7 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
   });
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
       <form onSubmit={onSubmit} className="grid min-w-0 gap-4">
         {/* Basics */}
         <Card className="grid gap-4 p-5">

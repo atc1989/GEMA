@@ -65,7 +65,10 @@ function BannerSourceToggle({
   onSource: (source: BannerSource) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid min-w-0 gap-2">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+        Choose one
+      </p>
       <SourceButton
         active={source === "maker"}
         onClick={() => onSource("maker")}
@@ -78,7 +81,7 @@ function BannerSourceToggle({
         onClick={() => onSource("upload")}
         icon={<ImagePlus className="size-4" aria-hidden="true" />}
         label="Upload my own"
-        hint="Custom image"
+        hint="Use a custom image"
       />
     </div>
   );
@@ -103,10 +106,10 @@ function SourceButton({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "flex flex-col items-start gap-0.5 rounded-xl border-[1.5px] px-3 py-2.5 text-left transition-colors",
+        "flex w-full min-w-0 flex-col items-start gap-0.5 rounded-xl border-[1.5px] px-3 py-2.5 text-left transition-colors",
         active
           ? "border-brand bg-brand text-white"
-          : "border-border bg-card text-muted-foreground hover:border-brand/50",
+          : "border-border bg-secondary/60 text-muted-foreground hover:border-brand hover:text-brand",
       )}
     >
       <span className="inline-flex items-center gap-1.5 text-xs font-black">
