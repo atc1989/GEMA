@@ -7,6 +7,8 @@ import { EventFilterBar, matchesSearch } from "@/components/event/event-filter-b
 import { VISIBILITY_META } from "@/components/event/event-meta";
 import { EventListItem } from "@/components/event/event-list-item";
 import { EmptyState } from "@/components/ui/empty-state";
+import { effectiveEventStatus } from "@/lib/event-time-filter";
+import { zonedDateKey } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import type { Event, EventStatus, EventVisibility } from "@/lib/database/types";
 
@@ -49,7 +51,7 @@ export function AdminMonthAgenda({ events }: { events: Event[] }) {
       events.filter(
         (e) =>
           (!type || e.eventType === type) &&
-          (!status || e.status === status) &&
+          (!status || effectiveEventStatus(e) === status) &&
           (!visibility || e.visibility === visibility) &&
           matchesSearch(q, e.title, e.venueName),
       ),
@@ -59,7 +61,7 @@ export function AdminMonthAgenda({ events }: { events: Event[] }) {
   const groups = useMemo(() => {
     const byDay = new Map<string, Event[]>();
     for (const e of filtered) {
-      const key = e.startsAt.slice(0, 10);
+      const key = zonedDateKey(e.startsAt, e.timezone);
       const list = byDay.get(key) ?? [];
       list.push(e);
       byDay.set(key, list);

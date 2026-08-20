@@ -7,8 +7,10 @@ import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { ExportReportMenu } from "@/components/event/export-report-menu";
 import { buttonVariants } from "@/components/ui/button";
 import { buildAdminMonth } from "@/lib/calendar/admin-month";
+import { effectiveEventStatus } from "@/lib/event-time-filter";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
+import type { EventStatus } from "@/lib/database/types";
 
 export default async function AdminCalendarPage({
   searchParams,
@@ -19,9 +21,13 @@ export default async function AdminCalendarPage({
   const supabase = await createSupabaseServerClient();
   const data = await buildAdminMonth(supabase, month);
 
-  const published = data.events.filter((e) => e.status === "published").length;
-  const pending = data.events.filter((e) => e.status === "draft").length;
-  const cancelled = data.events.filter((e) => e.status === "cancelled").length;
+  // Same derivation the agenda tabs use, so a card's count matches its tab.
+  const count = (status: EventStatus) =>
+    data.events.filter((e) => effectiveEventStatus(e) === status).length;
+  const published = count("published");
+  const pending = count("draft");
+  const cancelled = count("cancelled");
+  const completed = count("completed");
 
   return (
     <div className="grid gap-4">
@@ -39,7 +45,7 @@ export default async function AdminCalendarPage({
         </div>
       </div>
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <DashboardCard icon={CalendarDays} label="This month" value={String(data.events.length)} />
         <DashboardCard
           icon={CalendarCheck2}
@@ -53,6 +59,7 @@ export default async function AdminCalendarPage({
           value={String(pending)}
           tone="gold"
         />
+        <DashboardCard icon={CalendarCheck2} label="Completed" value={String(completed)} />
         <DashboardCard icon={CalendarX2} label="Cancelled" value={String(cancelled)} tone="purple" />
       </section>
 

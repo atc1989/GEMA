@@ -15,3 +15,12 @@ export function eventHasEnded(
   const end = event.ends_at ?? event.endsAt ?? event.starts_at ?? event.startsAt;
   return end ? new Date(end).getTime() < now : false;
 }
+
+/** "Completed" is derived, never stored: nothing writes that status, so a
+ * published event reads as completed once it has ended. */
+export function effectiveEventStatus<T extends { status: string }>(
+  event: T & Parameters<typeof eventHasEnded>[0],
+  now = Date.now(),
+): T["status"] | "completed" {
+  return event.status === "published" && eventHasEnded(event, now) ? "completed" : event.status;
+}

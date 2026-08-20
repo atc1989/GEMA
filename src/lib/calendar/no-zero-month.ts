@@ -1,5 +1,6 @@
 import type { GemaClient } from "@/lib/supabase/types";
 
+import { zonedDateKey } from "@/lib/utils/format";
 import type { EventMode, EventType } from "@/lib/database/types";
 
 /**
@@ -77,7 +78,7 @@ export type NoZeroMonth = {
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** Parses "YYYY-MM" into a {year, monthIndex}; falls back to the current UTC month. */
+/** Parses "YYYY-MM" into a {year, monthIndex}; falls back to the current local month. */
 export function parseYm(ym?: string | null): { year: number; monthIndex: number } {
   const m = ym?.match(/^(\d{4})-(\d{2})$/);
   if (m) {
@@ -85,8 +86,9 @@ export function parseYm(ym?: string | null): { year: number; monthIndex: number 
     const monthIndex = Number(m[2]) - 1;
     if (monthIndex >= 0 && monthIndex <= 11) return { year, monthIndex };
   }
-  const now = new Date();
-  return { year: now.getUTCFullYear(), monthIndex: now.getUTCMonth() };
+  // Not UTC: before 08:00 Manila on the 1st, UTC still reads as last month.
+  const [year, month] = zonedDateKey(new Date()).split("-").map(Number);
+  return { year, monthIndex: month - 1 };
 }
 
 type ProspectRow = { id: string; full_name: string; stage: string; created_at: string };

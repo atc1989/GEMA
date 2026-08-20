@@ -14,6 +14,24 @@ export function formatEventDateTime(iso: string, timezone?: string): string {
   }
 }
 
+/** ponytail: single-region app — swap for a per-org setting if GEMA ever ships elsewhere. */
+export const APP_TIMEZONE = "Asia/Manila";
+
+/**
+ * Calendar day ("YYYY-MM-DD") an instant falls on *in `timeZone`*, not in UTC.
+ * Manila is UTC+8, so anything before 08:00 local buckets into the previous day
+ * when you slice a raw ISO string.
+ */
+export function zonedDateKey(iso: string | Date, timeZone: string = APP_TIMEZONE): string {
+  // en-CA renders as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: timeZone || APP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(iso));
+}
+
 /** Milliseconds `timeZone` is ahead of UTC at the given instant (e.g. Asia/Manila → +8h). */
 function tzOffsetMs(date: Date, timeZone: string): number {
   const parts = new Intl.DateTimeFormat("en-US", {

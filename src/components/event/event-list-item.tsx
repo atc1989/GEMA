@@ -10,6 +10,7 @@ import { VISIBILITY_META } from "@/components/event/event-meta";
 import { Card } from "@/components/ui/card";
 import { LinkSpinner } from "@/components/ui/link-pending";
 import { setEventArchived, toggleEventPin, type ActionResult } from "@/lib/actions/events";
+import { effectiveEventStatus } from "@/lib/event-time-filter";
 import { formatEventDateTime } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import type { Event } from "@/lib/database/types";
@@ -92,7 +93,7 @@ export function EventListItem({ event, href, creatorName }: { event: Event; href
                   <Archive className="size-4" aria-hidden="true" />
                 )}
               </button>
-              <EventStatusBadge status={event.status} />
+              <EventStatusBadge status={effectiveEventStatus(event)} />
             </div>
             {error ? (
               <p className="mt-1 text-xs font-semibold text-destructive">{error}</p>

@@ -2,6 +2,7 @@ import type { GemaClient } from "@/lib/supabase/types";
 
 import { parseYm } from "@/lib/calendar/no-zero-month";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
+import { APP_TIMEZONE, zonedDateKey, zonedDateTimeToIso } from "@/lib/utils/format";
 import type { Event } from "@/lib/database/types";
 
 /**
@@ -39,7 +40,6 @@ export async function buildAdminMonth(
   const { year, monthIndex } = parseYm(ym);
 
   const monthStart = new Date(Date.UTC(year, monthIndex, 1));
-  const monthEnd = new Date(Date.UTC(year, monthIndex + 1, 1));
   const daysInMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
   const leadingBlanks = monthStart.getUTCDay();
 
@@ -54,13 +54,15 @@ export async function buildAdminMonth(
     timeZone: "UTC",
   }).format(monthStart);
 
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = zonedDateKey(new Date());
 
+  // Month bounds are local midnights, not UTC ones: a 7am Manila event on the
+  // 1st is still 4pm UTC on the last of the previous month.
   const { data } = await supabase
     .from("events")
     .select("*")
-    .gte("starts_at", monthStart.toISOString())
-    .lt("starts_at", monthEnd.toISOString())
+    .gte("starts_at", zonedDateTimeToIso(`${ymStr}-01T00:00`, APP_TIMEZONE))
+    .lt("starts_at", zonedDateTimeToIso(`${nextYm}-01T00:00`, APP_TIMEZONE))
     .order("starts_at", { ascending: false })
     .returns<EventRow[]>();
 
@@ -68,7 +70,7 @@ export async function buildAdminMonth(
 
   const eventsByDay = new Map<string, Event[]>();
   for (const ev of events) {
-    const key = ev.startsAt.slice(0, 10);
+    const key = zonedDateKey(ev.startsAt, ev.timezone);
     const list = eventsByDay.get(key) ?? [];
     list.push(ev);
     eventsByDay.set(key, list);
