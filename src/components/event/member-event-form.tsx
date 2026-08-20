@@ -188,7 +188,7 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
   });
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,360px)]">
+    <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
       <form onSubmit={onSubmit} className="grid min-w-0 gap-4">
         {/* Basics */}
         <Card className="grid gap-4 p-5">
@@ -394,7 +394,7 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
       </form>
 
       {/* Live banner preview / custom upload */}
-      <div className="flex min-w-0 flex-col gap-4">
+      <div className="min-w-0 w-full lg:w-[360px]">
         <div className="w-full min-w-0 lg:sticky lg:top-6">
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
             Event banner
