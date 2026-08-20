@@ -52,11 +52,9 @@ with check (member_id = public.current_member_id() or public.is_admin());
 create table if not exists public.epoint_entries (
   id uuid primary key default gen_random_uuid(),
   member_id uuid not null references public.members(id) on delete cascade,
-  -- five real-system parameters; daily_* ones will be written by
-  -- Gutguard Daily once it exists, GEMA writes 'events' (trigger below)
-  -- and later 'team_recognition'.
+  -- GEMA writes 'events' (trigger below) and later 'team_recognition'.
   param text not null check (
-    param in ('daily_dose', 'daily_checkin', 'my_journey', 'events', 'team_recognition')
+    param in ('events', 'team_recognition')
   ),
   points integer not null check (points > 0),
   -- idempotency key, e.g. 'attendance:<uuid>'; null for manual admin awards

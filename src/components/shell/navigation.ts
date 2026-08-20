@@ -1,17 +1,13 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  Bell,
   CalendarCheck,
   CalendarDays,
   CalendarRange,
   Coins,
   Gift,
-  HeartPulse,
   Home,
   IdCard,
   LayoutDashboard,
-  MessageCircle,
-  Pill,
   PlayCircle,
   Settings,
   Ticket,
@@ -38,8 +34,6 @@ export const prospectNavigation: NavigationItem[] = [
   { href: "/passes", label: "Passes", icon: Ticket, exact: true },
 ];
 
-const GUTGUARD_SECTION = "GutGuard Daily";
-
 export const memberNavigation: NavigationItem[] = [
   { href: "/dashboard", label: "Home", icon: Home, exact: true, mobilePrimary: true },
   { href: "/member/profile", label: "Profile", icon: User, exact: true },
@@ -48,16 +42,10 @@ export const memberNavigation: NavigationItem[] = [
   { href: "/member/referrals", label: "Referrals", icon: Gift },
   { href: "/member/prospects", label: "Prospects", icon: Users, mobilePrimary: true },
   { href: "/member/earnings", label: "Earnings", icon: Coins, mobilePrimary: true },
-  { href: "/gutguard-daily", label: "GutGuard", icon: HeartPulse, exact: true, section: GUTGUARD_SECTION },
-  { href: "/gutguard-daily/tracker", label: "Tracker", icon: Pill, section: GUTGUARD_SECTION },
-  { href: "/gutguard-daily/reminders", label: "Reminders", icon: Bell, section: GUTGUARD_SECTION },
-  { href: "/gutguard-daily/journey", label: "Journey", icon: MessageCircle, section: GUTGUARD_SECTION },
-  { href: "/gutguard-daily/community", label: "Community", icon: Users, section: GUTGUARD_SECTION },
 ];
 
 export const adminNavigation: NavigationItem[] = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true, mobilePrimary: true },
-  { href: "/admin/gutguard", label: "GutGuard", icon: HeartPulse },
   { href: "/admin/events", label: "Events", icon: CalendarDays, mobilePrimary: true },
   { href: "/admin/calendar", label: "Calendar", icon: CalendarRange },
   { href: "/admin/prospects", label: "Prospects", icon: Users, mobilePrimary: true },

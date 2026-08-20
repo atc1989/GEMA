@@ -48,6 +48,9 @@ Apply these SQL files once (after `schema.sql`), in the Supabase SQL editor:
   `host_member_id`. Nothing to run afterwards — a lead has no account; they get
   their referral link from `/passes` by looking themselves up with the same name
   and email/mobile they registered with.
+- `supabase/drop_gutguard_daily.sql` — removes GutGuard Daily tables, types,
+  functions, and leftover auth.users triggers from `public` and `gema`. Run on
+  any project that previously applied the Daily module.
 
 Auth uses cookie-based sessions via `@supabase/ssr`; `src/middleware.ts` refreshes
 the session and gates `/admin/*` (unauthenticated users are redirected to `/login`).
