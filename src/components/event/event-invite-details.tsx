@@ -39,12 +39,12 @@ export function EventInviteDetails({
   return (
     <div className="grid grid-cols-1 gap-4">
       {event.bannerUrl ? (
-        <div className="overflow-hidden rounded-2xl border border-border/70">
+        <div className="overflow-hidden rounded-2xl border border-border/70 bg-secondary/40">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={event.bannerUrl}
             alt={event.title}
-            className="aspect-[16/9] w-full object-cover"
+            className="mx-auto max-h-[540px] w-full object-contain"
           />
         </div>
       ) : (

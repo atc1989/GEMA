@@ -7,13 +7,13 @@ import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 
 import { createEvent, updateEvent, type FieldErrors } from "@/lib/actions/events";
-import { DownloadBannerButton, ScaledPoster, type EventPosterData } from "@/components/event/event-poster";
+import { type EventPosterData } from "@/components/event/event-poster";
+import { BannerStudio, asBannerSource, type BannerSource } from "@/components/event/banner-studio";
 import { PhotoAdjuster } from "@/components/event/posters/photo-adjuster";
 import { asPhotoFocus, type PhotoFocus } from "@/components/event/posters/shared";
-import { PosterTemplateThumbnails } from "@/components/event/posters/template-thumbnails";
 import { asPosterTemplateId, type PosterTemplateId } from "@/components/event/posters/types";
 import { eventFormSchema, type EventFormInput } from "@/lib/schemas/event";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { uploadEventPhoto } from "@/lib/storage/event-photos";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
@@ -21,9 +21,6 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-
-const PHOTO_BUCKET = "event-photos";
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
 const EVENT_TYPES: EventFormInput["eventType"][] = [
   "presentation",
@@ -47,6 +44,12 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
   );
   const [photoUrl, setPhotoUrl] = useState<string | undefined>(
     typeof defaultValues?.speakerPhotoUrl === "string" ? defaultValues.speakerPhotoUrl : undefined,
+  );
+  const [bannerUrl, setBannerUrl] = useState<string | undefined>(
+    typeof defaultValues?.bannerUrl === "string" ? defaultValues.bannerUrl : undefined,
+  );
+  const [bannerSource, setBannerSource] = useState<BannerSource>(
+    asBannerSource(undefined, Boolean(defaultValues?.bannerUrl)),
   );
   const [focus, setFocus] = useState<PhotoFocus>(asPhotoFocus(defaultValues?.photoFocus));
   const [uploading, setUploading] = useState(false);
@@ -90,27 +93,15 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
     e.target.value = "";
     if (!file) return;
     setPhotoError(null);
-    if (file.size > MAX_PHOTO_BYTES) {
+    if (file.size > 5 * 1024 * 1024) {
       setPhotoError("Image must be under 5 MB.");
       return;
     }
     setUploading(true);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `speakers/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage
-        .from(PHOTO_BUCKET)
-        .upload(path, file, { contentType: file.type, upsert: false });
-
-      if (error) {
-        setPhotoError("Upload failed. Try again.");
-      } else {
-        const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
-        setPhotoUrl(data.publicUrl);
-      }
-    } catch {
-      setPhotoError("Upload failed. Try again.");
+      const result = await uploadEventPhoto(file, "speakers");
+      if (result.ok) setPhotoUrl(result.url);
+      else setPhotoError(result.error);
     } finally {
       setUploading(false);
     }
@@ -132,6 +123,7 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
         posterTemplate: template,
         speakerPhotoUrl: photoUrl,
         photoFocus: focus,
+        bannerUrl: bannerSource === "upload" ? bannerUrl : undefined,
       };
       const result =
         mode === "create"
@@ -310,20 +302,6 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
           <Field label="Description" htmlFor="description" error={errors.description?.message}>
             <Textarea id="description" rows={5} {...register("description")} />
           </Field>
-          <Field
-            label="Banner URL (optional)"
-            htmlFor="bannerUrl"
-            error={errors.bannerUrl?.message}
-            hint="Optional banner image link - leave blank if none."
-          >
-            <Input
-              id="bannerUrl"
-              type="text"
-              inputMode="url"
-              placeholder="example.com/banner.jpg"
-              {...register("bannerUrl")}
-            />
-          </Field>
         </Card>
 
         {errors.root?.message ? (
@@ -343,16 +321,20 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
       <div className="flex min-w-0 flex-col gap-4">
         <div className="lg:sticky lg:top-6">
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            Live banner preview
+            Event banner
           </p>
-          <ScaledPoster data={posterData} template={template} className="rounded-2xl shadow-lg" />
-          <div className="mt-3">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Design</p>
-            <PosterTemplateThumbnails data={posterData} selected={template} onSelect={setTemplate} />
-          </div>
-          <div className="mt-3">
-            <DownloadBannerButton data={posterData} template={template} label="Download preview banner" />
-          </div>
+          <BannerStudio
+            data={posterData}
+            template={template}
+            onTemplate={setTemplate}
+            bannerUrl={bannerUrl}
+            onBannerUrl={setBannerUrl}
+            source={bannerSource}
+            onSource={(next) => {
+              setBannerSource(next);
+              if (next === "maker") setBannerUrl(undefined);
+            }}
+          />
         </div>
       </div>
     </div>

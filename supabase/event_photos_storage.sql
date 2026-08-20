@@ -1,6 +1,7 @@
--- Storage bucket for uploaded event/speaker photos.
--- Run once in the Supabase SQL editor. Powers the speaker-photo upload in the
--- member event-creation form (src/components/event/member-event-form.tsx).
+-- Storage bucket for uploaded event/speaker photos and custom event banners.
+-- The re-runnable staging/Lifestyle file is supabase/event_custom_banner.sql
+-- (same bucket + policies, plus create_member_event / event_slug_exists).
+-- Run once in the Supabase SQL editor if you only need the bucket.
 
 -- 1) Public bucket so getPublicUrl() links render on posters and the invite page.
 insert into storage.buckets (id, name, public)

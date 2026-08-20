@@ -18,6 +18,7 @@ type BannerEventRow = {
   venue_name: string | null;
   venue_address: string | null;
   host_member_id: string | null;
+  banner_url: string | null;
   metadata: Record<string, unknown>;
 };
 
@@ -32,7 +33,7 @@ export default async function MemberEventBannerPage({
   const supabase = await createSupabaseServerClient();
   const { data: event } = await supabase
     .from("events")
-    .select("id, title, event_type, mode, starts_at, venue_name, venue_address, host_member_id, metadata")
+    .select("id, title, event_type, mode, starts_at, venue_name, venue_address, host_member_id, banner_url, metadata")
     .eq("id", eventId)
     .maybeSingle<BannerEventRow>();
 
@@ -73,7 +74,8 @@ export default async function MemberEventBannerPage({
       <div>
         <h2 className="text-lg font-black tracking-tight">Event banner</h2>
         <p className="mt-1 text-sm font-semibold text-muted-foreground">
-          Pick a design, then download your 1080 × 1350 poster for social media and Messenger.
+          Use the built-in maker, or upload your own image. Maker downloads are 1080 × 1350 for
+          social media and Messenger.
         </p>
       </div>
 
@@ -82,6 +84,7 @@ export default async function MemberEventBannerPage({
         eventId={eventId}
         initialTemplate={initialTemplate}
         initialFocus={initialFocus}
+        initialBannerUrl={event.banner_url}
       />
 
       <Link

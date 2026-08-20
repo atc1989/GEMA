@@ -22,22 +22,18 @@ import {
 import { createMemberEvent, updateMemberEvent } from "@/lib/actions/member-events";
 import { VISIBILITY_META } from "@/components/event/event-meta";
 import { memberEventFormSchema, type EventFormInput } from "@/lib/schemas/event";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { ScaledPoster, DownloadBannerButton, type EventPosterData } from "@/components/event/event-poster";
-import { PosterTemplateThumbnails } from "@/components/event/posters/template-thumbnails";
+import { type EventPosterData } from "@/components/event/event-poster";
+import { BannerStudio, asBannerSource, type BannerSource } from "@/components/event/banner-studio";
 import { asPosterTemplateId, type PosterTemplateId } from "@/components/event/posters/types";
 import { PhotoAdjuster } from "@/components/event/posters/photo-adjuster";
 import { asPhotoFocus, type PhotoFocus } from "@/components/event/posters/shared";
+import { uploadEventPhoto } from "@/lib/storage/event-photos";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-
-/** Public Storage bucket for uploaded event/speaker photos (see setup SQL). */
-const PHOTO_BUCKET = "event-photos";
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
 const TYPE_OPTIONS: { value: EventFormInput["eventType"]; label: string }[] = [
   { value: "presentation", label: "Presentation" },
@@ -74,6 +70,12 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
   );
   const [photoUrl, setPhotoUrl] = useState<string | undefined>(
     typeof defaultValues?.speakerPhotoUrl === "string" ? defaultValues.speakerPhotoUrl : undefined,
+  );
+  const [bannerUrl, setBannerUrl] = useState<string | undefined>(
+    typeof defaultValues?.bannerUrl === "string" ? defaultValues.bannerUrl : undefined,
+  );
+  const [bannerSource, setBannerSource] = useState<BannerSource>(
+    asBannerSource(undefined, Boolean(defaultValues?.bannerUrl)),
   );
   const [uploading, setUploading] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -133,26 +135,15 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
     e.target.value = ""; // allow re-selecting the same file
     if (!file) return;
     setPhotoError(null);
-    if (file.size > MAX_PHOTO_BYTES) {
+    if (file.size > 5 * 1024 * 1024) {
       setPhotoError("Image must be under 5 MB.");
       return;
     }
     setUploading(true);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `speakers/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage
-        .from(PHOTO_BUCKET)
-        .upload(path, file, { contentType: file.type, upsert: false });
-      if (error) {
-        setPhotoError("Upload failed. Try again.");
-      } else {
-        const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
-        setPhotoUrl(data.publicUrl);
-      }
-    } catch {
-      setPhotoError("Upload failed. Try again.");
+      const result = await uploadEventPhoto(file, "speakers");
+      if (result.ok) setPhotoUrl(result.url);
+      else setPhotoError(result.error);
     } finally {
       setUploading(false);
     }
@@ -167,7 +158,13 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
 
   const onSubmit = handleSubmit((values) => {
     startTransition(async () => {
-      const payload = { ...values, posterTemplate: template, speakerPhotoUrl: photoUrl, photoFocus: focus };
+      const payload = {
+        ...values,
+        posterTemplate: template,
+        speakerPhotoUrl: photoUrl,
+        photoFocus: focus,
+        bannerUrl: bannerSource === "upload" ? bannerUrl : undefined,
+      };
       const result =
         mode === "create"
           ? await createMemberEvent(payload)
@@ -382,20 +379,24 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
         </div>
       </form>
 
-      {/* Live banner preview */}
+      {/* Live banner preview / custom upload */}
       <div className="flex min-w-0 flex-col gap-4">
         <div className="lg:sticky lg:top-6">
           <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            Live banner preview
+            Event banner
           </p>
-          <ScaledPoster data={posterData} template={template} className="rounded-2xl shadow-lg" />
-          <div className="mt-3">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Design</p>
-            <PosterTemplateThumbnails data={posterData} selected={template} onSelect={setTemplate} />
-          </div>
-          <div className="mt-3">
-            <DownloadBannerButton data={posterData} template={template} label="Download preview banner" />
-          </div>
+          <BannerStudio
+            data={posterData}
+            template={template}
+            onTemplate={setTemplate}
+            bannerUrl={bannerUrl}
+            onBannerUrl={setBannerUrl}
+            source={bannerSource}
+            onSource={(next) => {
+              setBannerSource(next);
+              if (next === "maker") setBannerUrl(undefined);
+            }}
+          />
         </div>
       </div>
     </div>
