@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 
 import { accentForType } from "./accent";
 import { GemaWordmark } from "./gema-wordmark";
-import { POSTER_H, POSTER_W, posterDate, posterVenue } from "./shared";
+import { posterStageLock, posterDate, posterVenue } from "./shared";
 import type { EventPosterData } from "./types";
 
 /** Bold Type — solid accent field, oversized title fills the canvas, compact
@@ -17,8 +17,7 @@ export const BoldTypePoster = forwardRef<HTMLDivElement, { data: EventPosterData
       <div
         ref={ref}
         style={{
-          width: POSTER_W,
-          height: POSTER_H,
+          ...posterStageLock,
           position: "relative",
           overflow: "hidden",
           background: ac.accent,
@@ -40,8 +39,8 @@ export const BoldTypePoster = forwardRef<HTMLDivElement, { data: EventPosterData
         </div>
 
         {/* Giant title */}
-        <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
-          <div style={{ fontSize: 46, fontWeight: 900, lineHeight: 0.98, textTransform: "uppercase", letterSpacing: -1.5, wordBreak: "break-word" }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", minHeight: 0, minWidth: 0, width: "100%" }}>
+          <div style={{ fontSize: 46, fontWeight: 900, lineHeight: 0.98, textTransform: "uppercase", letterSpacing: -1.5, wordBreak: "break-word", overflowWrap: "anywhere", width: "100%" }}>
             {data.title || "Your Event Title"}
           </div>
         </div>

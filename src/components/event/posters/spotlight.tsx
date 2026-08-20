@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 
 import { accentForType } from "./accent";
 import { GemaWordmark } from "./gema-wordmark";
-import { hostPhotoStyle, POSTER_H, POSTER_W, posterDate, posterInitials, posterVenue } from "./shared";
+import { hostPhotoStyle, posterStageLock, posterDate, posterInitials, posterVenue } from "./shared";
 import type { EventPosterData } from "./types";
 
 /** Spotlight — speaker photo as the hero (falls back to a large monogram), with
@@ -18,8 +18,7 @@ export const SpotlightPoster = forwardRef<HTMLDivElement, { data: EventPosterDat
       <div
         ref={ref}
         style={{
-          width: POSTER_W,
-          height: POSTER_H,
+          ...posterStageLock,
           position: "relative",
           overflow: "hidden",
           background: ac.deep,

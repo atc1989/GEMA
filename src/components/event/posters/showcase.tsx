@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 
 import { accentForType } from "./accent";
 import { GemaWordmark } from "./gema-wordmark";
-import { hostPhotoStyle, POSTER_H, POSTER_W, posterDate, posterInitials, posterVenue } from "./shared";
+import { hostPhotoStyle, posterStageLock, posterDate, posterInitials, posterVenue } from "./shared";
 import type { EventPosterData } from "./types";
 
 /** Showcase — full host photo (uncropped, contain) on an accent-gradient panel,
@@ -18,8 +18,7 @@ export const ShowcasePoster = forwardRef<HTMLDivElement, { data: EventPosterData
       <div
         ref={ref}
         style={{
-          width: POSTER_W,
-          height: POSTER_H,
+          ...posterStageLock,
           position: "relative",
           overflow: "hidden",
           background: ac.deep,

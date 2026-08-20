@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 
 import { accentForType } from "./accent";
 import { GemaWordmark } from "./gema-wordmark";
-import { POSTER_H, POSTER_W, posterDate, posterVenue } from "./shared";
+import { posterStageLock, posterDate, posterVenue } from "./shared";
 import type { EventPosterData } from "./types";
 
 /** Aurora — navy/accent gradient with soft blobs (the original design, now
@@ -18,8 +18,7 @@ export const AuroraPoster = forwardRef<HTMLDivElement, { data: EventPosterData }
       <div
         ref={ref}
         style={{
-          width: POSTER_W,
-          height: POSTER_H,
+          ...posterStageLock,
           position: "relative",
           overflow: "hidden",
           background: `linear-gradient(145deg, ${ac.accent} 0%, ${ac.deep} 60%, #07172b 100%)`,
@@ -46,8 +45,8 @@ export const AuroraPoster = forwardRef<HTMLDivElement, { data: EventPosterData }
           {ac.label}
         </div>
 
-        <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
-          <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1.18, textTransform: "uppercase", letterSpacing: -0.3, wordBreak: "break-word" }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", minHeight: 0, minWidth: 0, width: "100%" }}>
+          <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1.18, textTransform: "uppercase", letterSpacing: -0.3, wordBreak: "break-word", overflowWrap: "anywhere", width: "100%" }}>
             {data.title || "Your Event Title"}
           </div>
         </div>

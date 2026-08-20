@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 
 import { accentForType } from "./accent";
 import { GemaWordmark } from "./gema-wordmark";
-import { POSTER_H, POSTER_W, posterDate, posterInitials, posterVenue } from "./shared";
+import { posterStageLock, posterDate, posterInitials, posterVenue } from "./shared";
 import type { EventPosterData } from "./types";
 
 /** Framed — host photo (uncropped, contain) inside a white-bordered card centered
@@ -17,8 +17,7 @@ export const FramedPoster = forwardRef<HTMLDivElement, { data: EventPosterData }
       <div
         ref={ref}
         style={{
-          width: POSTER_W,
-          height: POSTER_H,
+          ...posterStageLock,
           position: "relative",
           overflow: "hidden",
           background: `linear-gradient(155deg, ${ac.accent}, ${ac.deep})`,
