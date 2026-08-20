@@ -4,11 +4,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Camera, Check, Loader2, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
 import { createEvent, updateEvent, type FieldErrors } from "@/lib/actions/events";
-import { type EventPosterData } from "@/components/event/event-poster";
-import { BannerStudio, CustomBannerUpload } from "@/components/event/banner-studio";
+import { BannerStudio } from "@/components/event/banner-studio";
+import { ADMIN_POSTER_FALLBACKS, livePosterData } from "@/components/event/live-poster-data";
 import { PhotoAdjuster } from "@/components/event/posters/photo-adjuster";
 import { asPhotoFocus, type PhotoFocus } from "@/components/event/posters/shared";
 import { asPosterTemplateId, type PosterTemplateId } from "@/components/event/posters/types";
@@ -56,6 +56,7 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
     register,
     handleSubmit,
     watch,
+    control,
     setError,
     formState: { errors },
   } = useForm<EventFormInput>({
@@ -73,17 +74,25 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
   const selectedMode = watch("mode") ?? "in_person";
   const showVenue = selectedMode !== "online";
   const showOnline = selectedMode !== "in_person";
-  const posterData: EventPosterData = {
-    title: watch("title") || "",
-    eventType: watch("eventType"),
+  const titleWatch = useWatch({ control, name: "title" });
+  const typeWatch = useWatch({ control, name: "eventType" });
+  const startsWatch = useWatch({ control, name: "startsAt" });
+  const venueWatch = useWatch({ control, name: "venueName" });
+  const addressWatch = useWatch({ control, name: "venueAddress" });
+  const speakerWatch = useWatch({ control, name: "speakerName" });
+  const posterData = livePosterData({
+    title: titleWatch,
+    eventType: typeWatch,
     mode: selectedMode,
-    startsAt: watch("startsAt"),
-    venueName: watch("venueName"),
-    venueAddress: watch("venueAddress"),
-    speakerName: watch("speakerName"),
+    startsAt: startsWatch,
+    venueName: venueWatch,
+    venueAddress: addressWatch,
+    speakerName: speakerWatch,
     speakerPhotoUrl: photoUrl,
     photoFocus: focus,
-  };
+    fallbackTitle: ADMIN_POSTER_FALLBACKS.title,
+    fallbackVenue: ADMIN_POSTER_FALLBACKS.venueName,
+  });
 
   const onPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -144,7 +153,7 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
       <form onSubmit={onSubmit} className="grid min-w-0 gap-4">
         <Card className="grid gap-4 p-5">
           <Field label="Title" htmlFor="title" required error={errors.title?.message}>
-            <Input id="title" placeholder="Business Presentation Night" {...register("title")} />
+            <Input id="title" placeholder={ADMIN_POSTER_FALLBACKS.title} {...register("title")} />
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-3">
@@ -192,7 +201,7 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
               Venue
             </p>
             <Field label="Venue name" htmlFor="venueName" error={errors.venueName?.message}>
-              <Input id="venueName" {...register("venueName")} />
+              <Input id="venueName" placeholder={ADMIN_POSTER_FALLBACKS.venueName} {...register("venueName")} />
             </Field>
             <Field
               label="Venue address"
@@ -299,17 +308,6 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
           <Field label="Description" htmlFor="description" error={errors.description?.message}>
             <Textarea id="description" rows={5} {...register("description")} />
           </Field>
-        </Card>
-
-        <Card className="grid gap-4 p-5">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            Custom banner
-          </p>
-          <p className="text-[11px] font-semibold text-muted-foreground">
-            Optional. Upload an image for the invite page. The GEMA maker on the right is still for
-            social downloads.
-          </p>
-          <CustomBannerUpload bannerUrl={bannerUrl} onBannerUrl={setBannerUrl} />
         </Card>
 
         {errors.root?.message ? (

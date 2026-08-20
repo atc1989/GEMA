@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import {
   Building2,
   Camera,
@@ -22,8 +22,8 @@ import {
 import { createMemberEvent, updateMemberEvent } from "@/lib/actions/member-events";
 import { VISIBILITY_META } from "@/components/event/event-meta";
 import { memberEventFormSchema, type EventFormInput } from "@/lib/schemas/event";
-import { type EventPosterData } from "@/components/event/event-poster";
-import { BannerStudio, CustomBannerUpload } from "@/components/event/banner-studio";
+import { BannerStudio } from "@/components/event/banner-studio";
+import { livePosterData, MEMBER_POSTER_FALLBACKS } from "@/components/event/live-poster-data";
 import { asPosterTemplateId, type PosterTemplateId } from "@/components/event/posters/types";
 import { PhotoAdjuster } from "@/components/event/posters/photo-adjuster";
 import { asPhotoFocus, type PhotoFocus } from "@/components/event/posters/shared";
@@ -82,6 +82,7 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
     register,
     handleSubmit,
     watch,
+    control,
     setValue,
     setError,
     formState: { errors },
@@ -106,21 +107,29 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
   const capRaw = watch("capacity");
   const capacity = capRaw === "" || capRaw == null ? undefined : Number(capRaw);
 
-  const posterData: EventPosterData = {
-    title: watch("title") || "",
+  const titleWatch = useWatch({ control, name: "title" });
+  const venueWatch = useWatch({ control, name: "venueName" });
+  const startsWatch = useWatch({ control, name: "startsAt" });
+  const speakerWatch = useWatch({ control, name: "speakerName" });
+  const addressWatch = useWatch({ control, name: "venueAddress" });
+
+  const posterData = livePosterData({
+    title: titleWatch,
     eventType: selectedType,
     mode: selectedMode ?? "in_person",
-    startsAt: watch("startsAt"),
-    venueName: watch("venueName"),
-    venueAddress: watch("venueAddress"),
-    speakerName: watch("speakerName"),
+    startsAt: startsWatch,
+    venueName: venueWatch,
+    venueAddress: addressWatch,
+    speakerName: speakerWatch,
     speakerPhotoUrl: photoUrl,
     photoFocus: focus,
-  };
+    fallbackTitle: MEMBER_POSTER_FALLBACKS.title,
+    fallbackVenue: MEMBER_POSTER_FALLBACKS.venueName,
+  });
 
   const pickName = (label: string, type: EventFormInput["eventType"]) => {
-    setValue("title", label, { shouldDirty: true, shouldValidate: true });
-    setValue("eventType", type, { shouldDirty: true });
+    setValue("title", label, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+    setValue("eventType", type, { shouldDirty: true, shouldTouch: true });
   };
 
   const useMyName = () => {
@@ -197,7 +206,11 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
                 </button>
               ))}
             </div>
-            <Input id="title" placeholder="Saturday Sizzle" {...register("title")} />
+            <Input
+              id="title"
+              placeholder={MEMBER_POSTER_FALLBACKS.title}
+              {...register("title")}
+            />
           </Field>
 
           <div>
@@ -238,7 +251,11 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
           {showVenue ? (
             <div className="grid gap-4 rounded-xl border border-border/60 bg-secondary/30 p-4">
               <Field label="Venue name" htmlFor="venueName" required error={errors.venueName?.message}>
-                <Input id="venueName" placeholder="Davao Hub Center" {...register("venueName")} />
+                <Input
+                  id="venueName"
+                  placeholder={MEMBER_POSTER_FALLBACKS.venueName}
+                  {...register("venueName")}
+                />
               </Field>
               <Field label="Venue address" htmlFor="venueAddress" error={errors.venueAddress?.message}>
                 <Input id="venueAddress" placeholder="Street, Barangay, City" {...register("venueAddress")} />
@@ -328,15 +345,6 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
           <Field label="Description" htmlFor="description" required error={errors.description?.message}>
             <Textarea id="description" rows={4} placeholder="What will attendees learn or experience?" {...register("description")} />
           </Field>
-        </Card>
-
-        <Card className="grid gap-4 p-5">
-          <SectionLabel>Custom banner</SectionLabel>
-          <p className="text-[11px] font-semibold text-muted-foreground">
-            Optional. Upload an image for the invite page. The GEMA maker on the right is still for
-            social downloads.
-          </p>
-          <CustomBannerUpload bannerUrl={bannerUrl} onBannerUrl={setBannerUrl} />
         </Card>
 
         {/* Settings */}

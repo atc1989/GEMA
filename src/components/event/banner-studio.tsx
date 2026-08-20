@@ -39,6 +39,9 @@ export function BannerStudio({
           Or use a GEMA design
         </p>
         <ScaledPoster data={data} template={template} className="rounded-2xl shadow-lg" />
+        <p className="mt-2 text-[11px] font-semibold text-muted-foreground">
+          Updates live from the form — title, type, date, and venue.
+        </p>
       </div>
       <div>
         <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
