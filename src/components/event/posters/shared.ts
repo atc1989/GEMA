@@ -79,3 +79,13 @@ export function posterInitials(name?: string): string {
 /** Canvas size shared by every template: rendered at 360×450, exported ×3 → 1080×1350. */
 export const POSTER_W = 360;
 export const POSTER_H = 450;
+
+/** Locked stage so intrinsic SVG/img size cannot stretch a template past 360×450. */
+export const posterStageLock = {
+  width: POSTER_W,
+  height: POSTER_H,
+  minWidth: POSTER_W,
+  maxWidth: POSTER_W,
+  minHeight: POSTER_H,
+  maxHeight: POSTER_H,
+} as const;
