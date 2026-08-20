@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 
 import { createEvent, updateEvent, type FieldErrors } from "@/lib/actions/events";
 import { type EventPosterData } from "@/components/event/event-poster";
-import { BannerStudio, asBannerSource, type BannerSource } from "@/components/event/banner-studio";
+import { BannerStudio, CustomBannerUpload } from "@/components/event/banner-studio";
 import { PhotoAdjuster } from "@/components/event/posters/photo-adjuster";
 import { asPhotoFocus, type PhotoFocus } from "@/components/event/posters/shared";
 import { asPosterTemplateId, type PosterTemplateId } from "@/components/event/posters/types";
@@ -47,9 +47,6 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
   );
   const [bannerUrl, setBannerUrl] = useState<string | undefined>(
     typeof defaultValues?.bannerUrl === "string" ? defaultValues.bannerUrl : undefined,
-  );
-  const [bannerSource, setBannerSource] = useState<BannerSource>(
-    asBannerSource(undefined, Boolean(defaultValues?.bannerUrl)),
   );
   const [focus, setFocus] = useState<PhotoFocus>(asPhotoFocus(defaultValues?.photoFocus));
   const [uploading, setUploading] = useState(false);
@@ -123,7 +120,7 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
         posterTemplate: template,
         speakerPhotoUrl: photoUrl,
         photoFocus: focus,
-        bannerUrl: bannerSource === "upload" ? bannerUrl : undefined,
+        bannerUrl,
       };
       const result =
         mode === "create"
@@ -143,7 +140,7 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
   });
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
       <form onSubmit={onSubmit} className="grid min-w-0 gap-4">
         <Card className="grid gap-4 p-5">
           <Field label="Title" htmlFor="title" required error={errors.title?.message}>
@@ -304,6 +301,17 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
           </Field>
         </Card>
 
+        <Card className="grid gap-4 p-5">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            Custom banner
+          </p>
+          <p className="text-[11px] font-semibold text-muted-foreground">
+            Optional. Upload an image for the invite page. The GEMA maker on the right is still for
+            social downloads.
+          </p>
+          <CustomBannerUpload bannerUrl={bannerUrl} onBannerUrl={setBannerUrl} />
+        </Card>
+
         {errors.root?.message ? (
           <p className="text-sm font-semibold text-destructive">{errors.root.message}</p>
         ) : null}
@@ -329,11 +337,6 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
             onTemplate={setTemplate}
             bannerUrl={bannerUrl}
             onBannerUrl={setBannerUrl}
-            source={bannerSource}
-            onSource={(next) => {
-              setBannerSource(next);
-              if (next === "maker") setBannerUrl(undefined);
-            }}
           />
         </div>
       </div>
