@@ -257,7 +257,7 @@ export function AppShell({ role, eyebrow, title, subtitle, user, signOutSlot, ch
     <div className="min-h-dvh bg-background text-foreground lg:bg-[#dce3ee] dark:lg:bg-[#0a1220]">
       <div className="flex min-h-dvh w-full lg:items-stretch">
         {/* Desktop sidebar */}
-        <aside className="hidden w-[240px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:sticky lg:top-0 lg:flex lg:h-dvh">
+        <aside className="hidden w-[240px] min-w-[240px] max-w-[240px] shrink-0 overflow-hidden flex-col border-r border-sidebar-border bg-sidebar lg:sticky lg:top-0 lg:flex lg:h-dvh">
           <div className="p-4 pb-3">
             <BrandBlock />
           </div>
@@ -384,7 +384,7 @@ export function AppShell({ role, eyebrow, title, subtitle, user, signOutSlot, ch
 
 function BrandBlock() {
   return (
-    <div className="border-b border-sidebar-border pb-3">
+    <div className="overflow-hidden border-b border-sidebar-border pb-3">
       <GemaWordmark height={22} color="var(--sidebar-foreground)" />
       <div className="mt-1.5 text-[11px] font-semibold text-muted-foreground">
         Event Management App

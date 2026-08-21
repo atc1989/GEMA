@@ -26,9 +26,9 @@ export function BannerStudio({
   downloadLabel?: string;
 }) {
   return (
-    <div className="grid min-w-0 gap-4">
+    <div className="grid w-full min-w-0 gap-4">
       {onBannerUrl ? (
-        <div className="grid gap-2 rounded-2xl border-[1.5px] border-dashed border-brand/40 bg-brand/5 p-3">
+        <div className="grid min-w-0 gap-2 rounded-2xl border-[1.5px] border-dashed border-brand/40 bg-brand/5 p-3">
           <p className="text-xs font-black uppercase tracking-wide text-brand">Upload your own</p>
           <CustomBannerUpload bannerUrl={bannerUrl} onBannerUrl={onBannerUrl} />
         </div>
@@ -43,9 +43,9 @@ export function BannerStudio({
           Updates live from the form — title, type, date, and venue.
         </p>
       </div>
-      {/* min-w-0: without it the scroll strip's 852px max-content width sizes
+      {/* min-w-0: without it the scroll strip's max-content width sizes
           this grid's only track, so every row overflows the sidebar column. */}
-      <div className="min-w-0">
+      <div className="min-w-0 w-full">
         <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
           Design
         </p>
@@ -84,12 +84,12 @@ export function CustomBannerUpload({
   return (
     <div className="grid gap-3">
       {bannerUrl ? (
-        <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-secondary/40">
+        <div className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-border/70 bg-secondary/40">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={bannerUrl}
             alt="Custom event banner"
-            className="mx-auto max-h-[280px] w-full object-contain"
+            className="block h-auto max-h-[280px] w-full object-contain object-left"
           />
           <button
             type="button"

@@ -28,12 +28,9 @@ export const EventPoster = forwardRef<
 });
 
 /**
- * On-screen 4:5 poster that fills its container (capped at native 360px).
- *
- * Width is measured from a `w-full` host that does not shrink-wrap children.
- * The visible frame then gets explicit pixel size (same pattern as the design
- * thumbnails), and the 360×450 canvas is scaled inside it. That keeps height
- * tied to width so the preview cannot collapse into a tall clipped strip.
+ * 4:5 on-screen poster. Aspect-ratio sizes the frame from width alone, so the
+ * inner 360×450 canvas cannot stretch or collapse the box. The canvas is
+ * absolutely positioned and scaled to the measured width.
  */
 export function ScaledPoster({
   data,
@@ -45,14 +42,14 @@ export function ScaledPoster({
   className?: string;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
+  const [scale, setScale] = useState(1);
 
   useLayoutEffect(() => {
     const host = hostRef.current;
     if (!host) return;
     const update = () => {
-      const next = host.getBoundingClientRect().width;
-      setWidth(next > 0 ? next : 0);
+      const w = host.getBoundingClientRect().width;
+      if (w > 0) setScale(Math.min(1, w / POSTER_W));
     };
     update();
     const ro = new ResizeObserver(update);
@@ -60,26 +57,24 @@ export function ScaledPoster({
     return () => ro.disconnect();
   }, []);
 
-  const frameW = width > 0 ? Math.min(width, POSTER_W) : POSTER_W;
-  const scale = frameW / POSTER_W;
-  const frameH = POSTER_H * scale;
-
   return (
-    <div ref={hostRef} className="mx-auto w-full min-w-0 max-w-[360px]">
+    <div ref={hostRef} className="w-full min-w-0 max-w-[360px]">
       <div
-        className={cn("overflow-hidden", className)}
-        style={{ width: frameW, height: frameH }}
+        className={cn("relative w-full overflow-hidden", className)}
+        style={{ aspectRatio: `${POSTER_W} / ${POSTER_H}` }}
       >
-        <div
-          style={{
-            width: POSTER_W,
-            height: POSTER_H,
-            transform: `scale(${scale})`,
-            transformOrigin: "top left",
-            overflow: "hidden",
-          }}
-        >
-          <EventPoster data={data} template={template} />
+        <div className="absolute inset-0 overflow-hidden">
+          <div
+            style={{
+              width: POSTER_W,
+              height: POSTER_H,
+              transform: `scale(${scale})`,
+              transformOrigin: "top left",
+              overflow: "hidden",
+            }}
+          >
+            <EventPoster data={data} template={template} />
+          </div>
         </div>
       </div>
     </div>
