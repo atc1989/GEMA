@@ -1,7 +1,14 @@
-import { GinhawaLandingEditor } from "@/components/ginhawa/ginhawa-landing-editor";
+import Link from "next/link";
+import { CalendarDays } from "lucide-react";
+
 import { GinhawaPublishedBanner } from "@/components/ginhawa/ginhawa-published-banner";
+import { EventStatusBadge } from "@/components/event/event-status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { LinkSpinner } from "@/components/ui/link-pending";
 import { mapLandingRow, type GinhawaLandingRow } from "@/lib/ginhawa/prefill";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { formatEventDateTime } from "@/lib/utils/format";
+import { cn } from "@/lib/utils";
 import type { EventStatus } from "@/lib/database/types";
 
 type EventPickRow = {
@@ -28,14 +35,7 @@ export default async function AdminGinhawaPage() {
   ]);
 
   const landing = landingRow ? mapLandingRow(landingRow) : null;
-  const events = (eventRows ?? []).map((event) => ({
-    id: event.id,
-    title: event.title,
-    startsAt: event.starts_at,
-    timezone: event.timezone,
-    status: event.status,
-    venueName: event.venue_name,
-  }));
+  const events = eventRows ?? [];
 
   return (
     <div className="grid gap-4">
@@ -48,10 +48,54 @@ export default async function AdminGinhawaPage() {
       </div>
 
       {landing?.published ? (
-        <GinhawaPublishedBanner eventTitle={landing.title} publishedAt={landing.publishedAt} />
+        <GinhawaPublishedBanner
+          eventTitle={landing.title}
+          publishedAt={landing.publishedAt}
+          editHref={`/admin/ginhawa/${landing.sourceEventId}`}
+        />
       ) : null}
 
-      <GinhawaLandingEditor events={events} landing={landing} />
+      <div>
+        <h3 className="mb-2 text-sm font-black tracking-tight">Choose an event</h3>
+        {events.length === 0 ? (
+          <EmptyState
+            icon={CalendarDays}
+            title="No events to pick"
+            description="Create and publish an event first, then come back to post it on Ginhawa."
+          />
+        ) : (
+          <div className="grid gap-2">
+            {events.map((event) => {
+              const live = landing?.published && landing.sourceEventId === event.id;
+              return (
+                <Link
+                  key={event.id}
+                  href={`/admin/ginhawa/${event.id}`}
+                  className={cn(
+                    "block rounded-2xl border px-4 py-3 transition-colors hover:border-brand/40",
+                    live ? "border-brand bg-cream/50" : "border-border/70 bg-card",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold">{event.title}</p>
+                      <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+                        {formatEventDateTime(event.starts_at, event.timezone)}
+                        {event.venue_name ? ` · ${event.venue_name}` : ""}
+                        {live ? " · live on Ginhawa" : ""}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <LinkSpinner className="size-4 text-brand" />
+                      <EventStatusBadge status={event.status} />
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

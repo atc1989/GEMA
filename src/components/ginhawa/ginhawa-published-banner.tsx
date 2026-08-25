@@ -1,19 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { unpublishGinhawaLanding } from "@/lib/actions/ginhawa-landing";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatEventDateTime } from "@/lib/utils/format";
+import { cn } from "@/lib/utils";
 
 export function GinhawaPublishedBanner({
   eventTitle,
   publishedAt,
+  editHref,
 }: {
   eventTitle: string;
   publishedAt: string | null;
+  editHref?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -32,17 +36,24 @@ export function GinhawaPublishedBanner({
             </p>
           ) : null}
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setError(null);
-            setOpen(true);
-          }}
-        >
-          Unpublish
-        </Button>
+        <div className="flex items-center gap-2">
+          {editHref ? (
+            <Link href={editHref} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+              Edit
+            </Link>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setError(null);
+              setOpen(true);
+            }}
+          >
+            Unpublish
+          </Button>
+        </div>
       </div>
       <ConfirmDialog
         open={open}

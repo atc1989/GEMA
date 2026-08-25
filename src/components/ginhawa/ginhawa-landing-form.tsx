@@ -62,6 +62,7 @@ export function GinhawaLandingForm({
         applyFieldErrors(result.fieldErrors);
         return;
       }
+      router.push("/admin/ginhawa");
       router.refresh();
     });
   };
