@@ -278,3 +278,40 @@ export interface Notification {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface GinhawaClinician {
+  id: string;
+  name: string;
+  suffix: string;
+  role: string;
+  initials: string;
+  photo: string | null;
+  licence: string;
+  credentialsMd: string;
+}
+
+export interface GinhawaLanding {
+  sourceEventId: string;
+  title: string;
+  dateLabel: string;
+  timeLabel: string;
+  heroWhat: string;
+  giftPoints: number;
+  giftPeso: number;
+  capacity: number | null;
+  clinicians: GinhawaClinician[];
+  videoUrl: string | null;
+  videoLength: string | null;
+  videoCaption: string | null;
+  askTitle: string;
+  askBody: string;
+  askHit: string;
+  gutTitle: string;
+  gutBody: string;
+  gutClose: string;
+  venueName: string | null;
+  venueAddress: string | null;
+  mapUrl: string | null;
+  published: boolean;
+  publishedAt: string | null;
+}
