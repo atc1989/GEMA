@@ -96,6 +96,21 @@ export function GinhawaLandingForm({
           <Textarea id="heroWhat" rows={3} {...register("heroWhat")} />
         </Field>
 
+        <Field
+          label="Book my seat URL"
+          htmlFor="bookUrl"
+          error={errors.bookUrl?.message}
+          hint="Ginhawa hero button opens this link. Prefills to this event's public invite page. Leave blank to hide the button."
+        >
+          <Input
+            id="bookUrl"
+            type="text"
+            inputMode="url"
+            placeholder="https://gema-ivory.vercel.app/invite/…"
+            {...register("bookUrl")}
+          />
+        </Field>
+
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="E-Points" htmlFor="giftPoints" error={errors.giftPoints?.message} required>
             <Input id="giftPoints" inputMode="numeric" {...register("giftPoints")} />

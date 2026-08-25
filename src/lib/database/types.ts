@@ -312,6 +312,7 @@ export interface GinhawaLanding {
   venueName: string | null;
   venueAddress: string | null;
   mapUrl: string | null;
+  bookUrl: string | null;
   published: boolean;
   publishedAt: string | null;
 }

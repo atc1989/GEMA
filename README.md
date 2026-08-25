@@ -8,6 +8,10 @@ Create a `.env.local` in the project root:
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
 
+# Optional. Public site origin used to prefill the Ginhawa "Book my seat" URL
+# (defaults to this request's host, then https://gema-ivory.vercel.app).
+# GEMA_PUBLIC_ORIGIN=https://gema-ivory.vercel.app
+
 # Secret used to sign/verify registration QR tokens (>=16 chars). Required in
 # production; a dev fallback is used when unset in development.
 QR_SIGNING_SECRET=<random-long-secret>
@@ -51,6 +55,10 @@ Apply these SQL files once (after `schema.sql`), in the Supabase SQL editor:
 - `supabase/drop_gutguard_daily.sql` — removes GutGuard Daily tables, types,
   functions, and leftover auth.users triggers from `public` and `gema`. Run on
   any project that previously applied the Daily module.
+- `supabase/ginhawa_landing.sql` — singleton `gema.ginhawa_landing` snapshot plus
+  `get_ginhawa_landing()` for the public Ginhawa site.
+- `supabase/ginhawa_landing_book_url.sql` — adds `book_url` for the hero Book CTA
+  and updates `get_ginhawa_landing()`.
 
 Auth uses cookie-based sessions via `@supabase/ssr`; `src/middleware.ts` refreshes
 the session and gates `/admin/*` (unauthenticated users are redirected to `/login`).
