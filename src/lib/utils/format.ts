@@ -108,3 +108,32 @@ export function toDateTimeLocalValue(
     d.getHours(),
   )}:${pad(d.getMinutes())}`;
 }
+
+/** Display date for Ginhawa, e.g. "Saturday, 23 August". */
+export function formatLandingDate(iso: string, timezone?: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      timeZone: timezone || APP_TIMEZONE,
+    }).formatToParts(new Date(iso));
+    const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+    return `${get("weekday")}, ${get("day")} ${get("month")}`;
+  } catch {
+    return iso;
+  }
+}
+
+/** Display time for Ginhawa, e.g. "9:00 AM". */
+export function formatLandingTime(iso: string, timezone?: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: timezone || APP_TIMEZONE,
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
