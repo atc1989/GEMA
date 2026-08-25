@@ -94,7 +94,6 @@ export async function registerProspectForEvent(
       p_full_name: values.fullName,
       p_phone: values.phone,
       p_email: values.email,
-      p_city: values.city,
       p_consent_privacy: values.consentPrivacy,
       p_consent_marketing: values.consentMarketing ?? false,
       p_prospect_id: prospectId,

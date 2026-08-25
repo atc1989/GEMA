@@ -18,7 +18,6 @@ export const prospectRegistrationSchema = z.object({
       return digits;
     }),
   email: z.string().trim().email("Enter a valid email address.").max(160),
-  city: z.string().trim().min(2, "Enter your city.").max(120),
   consentPrivacy: z
     .boolean()
     .refine((v) => v === true, "You must agree to the privacy terms to register."),

@@ -45,7 +45,6 @@ export function ProspectRegistrationForm({
       fullName: "",
       phone: "",
       email: "",
-      city: "",
       consentPrivacy: false,
       consentMarketing: false,
     },
@@ -118,9 +117,6 @@ export function ProspectRegistrationForm({
         </Field>
         <Field label="Email" htmlFor="email" required error={errors.email?.message}>
           <Input id="email" type="email" autoComplete="email" {...register("email")} />
-        </Field>
-        <Field label="City" htmlFor="city" required error={errors.city?.message}>
-          <Input id="city" autoComplete="address-level2" {...register("city")} />
         </Field>
       </Card>
 
