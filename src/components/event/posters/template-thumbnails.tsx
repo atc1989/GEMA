@@ -21,7 +21,7 @@ export function PosterTemplateThumbnails({
   onSelect: (id: PosterTemplateId) => void;
 }) {
   return (
-    <div className="flex gap-3 overflow-x-auto pb-1">
+    <div className="flex min-w-0 gap-3 overflow-x-auto pb-1">
       {POSTER_TEMPLATE_LIST.map((tpl) => {
         const isActive = tpl.id === selected;
         return (
@@ -30,7 +30,7 @@ export function PosterTemplateThumbnails({
             type="button"
             onClick={() => onSelect(tpl.id)}
             aria-pressed={isActive}
-            className="shrink-0 text-left"
+            className="w-24 shrink-0 overflow-hidden text-left"
           >
             <div
               className={cn(
