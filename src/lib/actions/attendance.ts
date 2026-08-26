@@ -248,6 +248,7 @@ function friendlyDbError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("not authorized")) return "You are not authorized to manage this event.";
   if (m.includes("cancelled")) return "This event or registration has been cancelled.";
+  // Hosts hitting the 6h post-event window. Admins bypass this in record_attendance.
   if (m.includes("ended")) return "This event has already ended.";
   if (m.includes("not found")) return "Registration or event not found.";
   return "Could not record attendance. Please try again.";

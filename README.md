@@ -45,6 +45,10 @@ Apply these SQL files once (after `schema.sql`), in the Supabase SQL editor:
   `prospects.stage` to `attended`, and lets that "lead" own a referral link
   (`referrals.referrer_prospect_id`) whose credit rolls up to their sponsor. Without
   it no prospect ever becomes a lead and no referral link can be issued.
+- `supabase/admin_finished_event_checkin.sql` — run after `lead_referrals.sql`.
+  Lets admins check in after an event has ended; hosts remain blocked 6 hours
+  after `ends_at`. Recreates `record_attendance` (including the prospect-stage
+  advance). Safe to re-run.
 - `supabase/lead_backfill_host_fallback.sql` — run after `lead_referrals.sql`.
   Advances anyone who checked in **since 1 Jan 2026** to stage `attended` (edit the
   cutoff in the file to reach further back), and
