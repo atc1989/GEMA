@@ -58,7 +58,9 @@ Apply these SQL files once (after `schema.sql`), in the Supabase SQL editor:
 - `supabase/ginhawa_landing.sql` — singleton `gema.ginhawa_landing` snapshot plus
   `get_ginhawa_landing()` for the public Ginhawa site.
 - `supabase/ginhawa_landing_book_url.sql` — adds `book_url` for the hero Book CTA
-  and updates `get_ginhawa_landing()`.
+  (defaults to `/register/{eventId}`) and updates `get_ginhawa_landing()`.
+- `supabase/ginhawa_landing_book_register_url.sql` — rewrites stored invite URLs
+  to the registration form.
 
 Auth uses cookie-based sessions via `@supabase/ssr`; `src/middleware.ts` refreshes
 the session and gates `/admin/*` (unauthenticated users are redirected to `/login`).

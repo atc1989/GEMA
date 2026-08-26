@@ -23,10 +23,10 @@ export function gemaPublicOrigin(override?: string | null): string {
   return (override || process.env.GEMA_PUBLIC_ORIGIN || DEFAULT_GEMA_PUBLIC_ORIGIN).replace(/\/$/, "");
 }
 
-/** Public invite page for an event — the default Book my seat target. */
-export function gemaInviteUrl(eventId: string, origin?: string | null): string {
+/** Public registration form for an event — the default Book my seat target. */
+export function gemaRegisterUrl(eventId: string, origin?: string | null): string {
   if (!eventId) return "";
-  return `${gemaPublicOrigin(origin)}/invite/${eventId}`;
+  return `${gemaPublicOrigin(origin)}/register/${eventId}`;
 }
 
 export type GinhawaLandingRow = {
@@ -225,7 +225,7 @@ export function landingToFormValues(
     venueName: landing.venueName ?? "",
     venueAddress: landing.venueAddress ?? "",
     mapUrl: landing.mapUrl ?? "",
-    bookUrl: landing.bookUrl || gemaInviteUrl(landing.sourceEventId, publicOrigin),
+    bookUrl: landing.bookUrl || gemaRegisterUrl(landing.sourceEventId, publicOrigin),
   };
 }
 
@@ -257,6 +257,6 @@ export function eventToFormValues(
     venueName: event.venue_name ?? "",
     venueAddress: event.venue_address ?? "",
     mapUrl: event.map_url ?? "",
-    bookUrl: gemaInviteUrl(event.id, publicOrigin),
+    bookUrl: gemaRegisterUrl(event.id, publicOrigin),
   };
 }
