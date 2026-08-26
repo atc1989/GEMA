@@ -42,7 +42,11 @@ begin
   if v_event.status = 'cancelled' then
     raise exception 'This event has been cancelled' using errcode = 'check_violation';
   end if;
-  if v_event.ends_at is not null and v_event.ends_at < (now() - interval '6 hours') then
+  -- Hosts cannot check in more than 6h after ends_at. Admins can,
+  -- so late corrections on finished events stay possible.
+  if not public.is_admin()
+     and v_event.ends_at is not null
+     and v_event.ends_at < (now() - interval '6 hours') then
     raise exception 'This event has already ended' using errcode = 'check_violation';
   end if;
 

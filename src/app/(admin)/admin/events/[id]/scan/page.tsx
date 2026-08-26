@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, BarChart3 } from "lucide-react";
 
 import { AttendanceScanner } from "@/components/attendance/attendance-scanner";
+import { CheckInWindowNotice } from "@/components/attendance/check-in-window-notice";
 import { buttonVariants } from "@/components/ui/button";
 import { requireEventManager } from "@/lib/auth/require-admin";
+import { eventCheckInClosedForHosts } from "@/lib/event-time-filter";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -15,12 +17,12 @@ export default async function AttendanceScannerPage({
 }) {
   const { id } = await params;
 
-  await requireEventManager(id);
+  const profile = await requireEventManager(id);
 
   const supabase = await createSupabaseServerClient();
   const { data: event } = await supabase
     .from("events")
-    .select("id, title, status")
+    .select("id, title, status, ends_at")
     .eq("id", id)
     .maybeSingle();
 
@@ -40,6 +42,11 @@ export default async function AttendanceScannerPage({
         <h2 className="text-lg font-black tracking-tight">Check-in scanner</h2>
         <p className="mt-1 text-sm font-semibold text-muted-foreground">{event.title}</p>
       </div>
+
+      <CheckInWindowNotice
+        isAdmin={profile.isAdmin || profile.role === "admin"}
+        closedForHosts={eventCheckInClosedForHosts(event)}
+      />
 
       <AttendanceScanner eventId={id} />
 

@@ -1,26 +1,17 @@
--- GEMA QR Attendance Check-In
--- Adds an atomic, permission-checked check-in routine on top of the existing
--- event_registrations / attendance_records tables and RLS from schema.sql.
+-- =============================================================
+-- Admins can check in after an event has ended.
+-- Run after lead_referrals.sql. Safe to re-run.
 --
--- Run this once against the GEMA Supabase project (after schema.sql / the
--- existing-project migration). Safe to re-run (create or replace + guards).
+-- Hosts (non-admin event managers) stay blocked 6 hours after
+-- ends_at — same window as before. Open-ended events (ends_at
+-- is null) never hit this gate. Cancelled events and cancelled
+-- registrations are still rejected for everyone.
+--
+-- Recreates record_attendance from lead_referrals.sql, including
+-- the prospect-stage advance to 'attended'. Do not apply an older
+-- copy of this function (qr_attendance.sql) afterwards.
+-- =============================================================
 
--- Speeds up "already checked in" lookups and the dashboard tables.
-create index if not exists attendance_registration_idx
-  on public.attendance_records(registration_id);
-
-/*
- * record_attendance: validates and records a single check-in in one
- * transaction. Runs as SECURITY DEFINER so it can write attendance + flip the
- * registration status together, but it re-checks authorization with
- * can_manage_event() against the *calling* user (auth.uid()), so it never
- * bypasses the event-manager rule.
- *
- * Returns jsonb:
- *   { status: 'checked_in' | 'already', attendance_id, checked_in_at }
- * Raises on: unauthorized, missing/closed event, expired event (hosts only;
- * admins may still check in), missing or cancelled registration.
- */
 create or replace function public.record_attendance(
   p_event_id uuid,
   p_registration_id uuid,
@@ -48,10 +39,8 @@ begin
   if v_event.status = 'cancelled' then
     raise exception 'This event has been cancelled' using errcode = 'check_violation';
   end if;
-  -- Hosts cannot check in more than 6h after ends_at. Admins can.
-  -- lead_referrals.sql / admin_finished_event_checkin.sql supersede this
-  -- function (they also advance prospects.stage); do not re-apply this file
-  -- after those or the prospect-stage update is dropped.
+  -- Hosts cannot check in more than 6h after ends_at. Admins can,
+  -- so late corrections on finished events stay possible.
   if not public.is_admin()
      and v_event.ends_at is not null
      and v_event.ends_at < (now() - interval '6 hours') then
@@ -68,7 +57,6 @@ begin
     raise exception 'This registration was cancelled' using errcode = 'check_violation';
   end if;
 
-  -- Fast path duplicate check.
   select * into v_att
   from public.attendance_records
   where registration_id = p_registration_id;
@@ -91,7 +79,6 @@ begin
     )
     returning * into v_att;
   exception when unique_violation then
-    -- Concurrent scan won the race; treat as already checked in.
     select * into v_att
     from public.attendance_records
     where registration_id = p_registration_id;
@@ -105,6 +92,14 @@ begin
   update public.event_registrations
   set status = 'attended', attended_at = now()
   where id = p_registration_id and status <> 'attended';
+
+  -- Advance the prospect to "lead" (attended) — forward-only, never
+  -- overwrites followup/converted/expired.
+  if v_reg.prospect_id is not null then
+    update public.prospects
+    set stage = 'attended'
+    where id = v_reg.prospect_id and stage in ('new', 'registered');
+  end if;
 
   return jsonb_build_object(
     'status', 'checked_in',
