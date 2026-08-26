@@ -1,4 +1,4 @@
--- Ginhawa landing: hero "Book my seat" URL (usually the GEMA invite page).
+-- Ginhawa landing: hero "Book my seat" URL (the GEMA registration form).
 --
 -- Apply to STAGING (fxdsnacuonfvutdquogb, schema gema) first.
 -- Re-runnable later on Lifestyle (rvwseybgimmewuoccecu).
@@ -6,10 +6,10 @@
 alter table gema.ginhawa_landing
   add column if not exists book_url text;
 
--- Existing published row: point the CTA at this event's public invite page.
+-- Existing published row: point the CTA at this event's public registration form.
 -- Admin can change or clear the URL on the next publish.
 update gema.ginhawa_landing
-set book_url = 'https://gema-ivory.vercel.app/invite/' || source_event_id::text
+set book_url = 'https://gema-ivory.vercel.app/register/' || source_event_id::text
 where book_url is null
   and source_event_id is not null;
 

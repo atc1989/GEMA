@@ -100,13 +100,13 @@ export function GinhawaLandingForm({
           label="Book my seat URL"
           htmlFor="bookUrl"
           error={errors.bookUrl?.message}
-          hint="Ginhawa hero button opens this link. Prefills to this event's public invite page. Leave blank to hide the button."
+          hint="Ginhawa hero button opens this link. Prefills to this event's public registration form. Leave blank to hide the button."
         >
           <Input
             id="bookUrl"
             type="text"
             inputMode="url"
-            placeholder="https://gema-ivory.vercel.app/invite/…"
+            placeholder="https://gema-ivory.vercel.app/register/…"
             {...register("bookUrl")}
           />
         </Field>
