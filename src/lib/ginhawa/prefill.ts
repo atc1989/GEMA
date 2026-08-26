@@ -16,6 +16,19 @@ export const DEFAULT_GUT = {
   gutClose: "That is a conversation to have with a doctor, not a leaflet.",
 };
 
+/** Public GEMA origin used to prefill the Ginhawa Book CTA. Override with GEMA_PUBLIC_ORIGIN. */
+export const DEFAULT_GEMA_PUBLIC_ORIGIN = "https://gema-ivory.vercel.app";
+
+export function gemaPublicOrigin(override?: string | null): string {
+  return (override || process.env.GEMA_PUBLIC_ORIGIN || DEFAULT_GEMA_PUBLIC_ORIGIN).replace(/\/$/, "");
+}
+
+/** Public invite page for an event — the default Book my seat target. */
+export function gemaInviteUrl(eventId: string, origin?: string | null): string {
+  if (!eventId) return "";
+  return `${gemaPublicOrigin(origin)}/invite/${eventId}`;
+}
+
 export type GinhawaLandingRow = {
   id: boolean;
   source_event_id: string;
@@ -39,6 +52,7 @@ export type GinhawaLandingRow = {
   venue_name: string | null;
   venue_address: string | null;
   map_url: string | null;
+  book_url: string | null;
   published: boolean;
   published_at: string | null;
   updated_by: string | null;
@@ -140,6 +154,7 @@ export function mapLandingRow(row: GinhawaLandingRow): GinhawaLanding {
     venueName: row.venue_name,
     venueAddress: row.venue_address,
     mapUrl: row.map_url,
+    bookUrl: row.book_url,
     published: row.published,
     publishedAt: row.published_at,
   };
@@ -184,7 +199,10 @@ function clinicianForm(c: GinhawaClinician) {
   };
 }
 
-export function landingToFormValues(landing: GinhawaLanding): GinhawaLandingFormInput {
+export function landingToFormValues(
+  landing: GinhawaLanding,
+  publicOrigin?: string | null,
+): GinhawaLandingFormInput {
   return {
     sourceEventId: landing.sourceEventId,
     title: landing.title,
@@ -207,6 +225,7 @@ export function landingToFormValues(landing: GinhawaLanding): GinhawaLandingForm
     venueName: landing.venueName ?? "",
     venueAddress: landing.venueAddress ?? "",
     mapUrl: landing.mapUrl ?? "",
+    bookUrl: landing.bookUrl || gemaInviteUrl(landing.sourceEventId, publicOrigin),
   };
 }
 
@@ -214,6 +233,7 @@ export function eventToFormValues(
   event: EventPrefill,
   speakers: SpeakerPrefill[],
   copy?: GinhawaLanding | null,
+  publicOrigin?: string | null,
 ): GinhawaLandingFormInput {
   return {
     sourceEventId: event.id,
@@ -237,5 +257,6 @@ export function eventToFormValues(
     venueName: event.venue_name ?? "",
     venueAddress: event.venue_address ?? "",
     mapUrl: event.map_url ?? "",
+    bookUrl: gemaInviteUrl(event.id, publicOrigin),
   };
 }

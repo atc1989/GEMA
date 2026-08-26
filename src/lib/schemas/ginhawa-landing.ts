@@ -74,6 +74,7 @@ export const ginhawaLandingFormSchema = z.object({
   venueName: optionalText,
   venueAddress: optionalText,
   mapUrl: optionalLenientUrl,
+  bookUrl: optionalLenientUrl,
 });
 
 export type GinhawaLandingFormInput = z.input<typeof ginhawaLandingFormSchema>;

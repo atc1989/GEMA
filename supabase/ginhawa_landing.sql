@@ -33,6 +33,7 @@ create table if not exists gema.ginhawa_landing (
   venue_name text,
   venue_address text,
   map_url text,
+  book_url text,
   published boolean not null default false,
   published_at timestamptz,
   updated_by uuid references gema.profiles(id) on delete set null,
@@ -117,6 +118,7 @@ begin
     'venue_name', v_row.venue_name,
     'venue_address', v_row.venue_address,
     'map_url', v_row.map_url,
+    'book_url', v_row.book_url,
     'published_at', v_row.published_at,
     'seats_taken', v_taken
   );

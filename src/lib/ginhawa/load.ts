@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+
 import {
   eventToFormValues,
   landingToFormValues,
@@ -8,6 +10,15 @@ import {
 } from "@/lib/ginhawa/prefill";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { GinhawaLandingFormInput } from "@/lib/schemas/ginhawa-landing";
+
+async function requestPublicOrigin(): Promise<string | undefined> {
+  if (process.env.GEMA_PUBLIC_ORIGIN) return process.env.GEMA_PUBLIC_ORIGIN;
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (!host) return undefined;
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  return `${proto}://${host}`;
+}
 
 export async function loadGinhawaLandingForm(
   eventId: string,
@@ -32,11 +43,12 @@ export async function loadGinhawaLandingForm(
 
   if (!event) return null;
 
+  const origin = await requestPublicOrigin();
   const landing = landingRow ? mapLandingRow(landingRow) : null;
   const values =
     landing?.sourceEventId === event.id
-      ? landingToFormValues(landing)
-      : eventToFormValues(event, speakers ?? [], landing);
+      ? landingToFormValues(landing, origin)
+      : eventToFormValues(event, speakers ?? [], landing, origin);
 
   return { values, eventTitle: event.title };
 }

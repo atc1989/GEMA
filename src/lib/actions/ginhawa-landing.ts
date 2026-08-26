@@ -83,6 +83,7 @@ export async function publishGinhawaLanding(
     venue_name: v.venueName ?? null,
     venue_address: v.venueAddress ?? null,
     map_url: v.mapUrl ?? null,
+    book_url: v.bookUrl ?? null,
     published: true,
     published_at: now,
     updated_by: admin.id,
