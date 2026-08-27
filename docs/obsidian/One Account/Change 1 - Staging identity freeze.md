@@ -43,6 +43,12 @@ GutGuard Staging: `fxdsnacuonfvutdquogb`.
 
 `gentrep-academy` (trigger) · `GutGuard-Life-Style` (env/mock) · `GEMA` (confirm Staging URL only)
 
+## Notes
+
+- Do **not** apply Academy’s schema or this trigger rewrite onto GutGuard Staging. Staging `public.profiles` is Lifestyle-shaped (`name`, `card_no`, points). Colliding it would break the freeze.
+- Staging Auth is already person-only: `on_auth_user_created` → `public.handle_new_user()` inserts `gema.profiles` and nothing else. Academy tables are absent there.
+- The Academy function rewrite ships in the Academy repo (local / CI, and later when trainee tables are installed without minting BASE).
+
 ## Owner steps in
 
 **Now:** copy this `One Account` folder to `C:\Users\najee\Documents\One Account\` so Obsidian is the copy you read.

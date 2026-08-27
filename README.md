@@ -10,6 +10,10 @@ Create a `.env.local` in the project root:
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
 
+# Change 1 — Staging (Preview / local): https://fxdsnacuonfvutdquogb.supabase.co
+# Production (real users, off limits until Change 1 is proven):
+# https://rvwseybgimmewuoccecu.supabase.co
+
 # Optional. Public site origin used to prefill the Ginhawa "Book my seat" URL
 # (defaults to this request's host, then https://gema-ivory.vercel.app).
 # GEMA_PUBLIC_ORIGIN=https://gema-ivory.vercel.app
