@@ -48,6 +48,7 @@ GutGuard Staging: `fxdsnacuonfvutdquogb`.
 - Do **not** apply Academy’s schema or this trigger rewrite onto GutGuard Staging. Staging `public.profiles` is Lifestyle-shaped (`name`, `card_no`, points). Colliding it would break the freeze.
 - Staging Auth is already person-only: `on_auth_user_created` → `public.handle_new_user()` inserts `gema.profiles` and nothing else. Academy tables are absent there.
 - The Academy function rewrite ships in the Academy repo (local / CI, and later when trainee tables are installed without minting BASE).
+- Staging **Confirm signup** currently emails GEMA’s partner **6-digit code**, not a confirmation link. Lifestyle and Academy accept that code on the register/sign-in screens. Do not type the code into the password field. Production Auth templates stay untouched.
 
 ## Owner steps in
 
