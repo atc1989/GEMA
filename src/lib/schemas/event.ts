@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { DEFAULT_ASK, DEFAULT_GUT } from "@/lib/ginhawa/prefill";
+
 export const eventTypeSchema = z.enum([
   "presentation",
   "business",
@@ -64,6 +66,75 @@ const dateTimeString = z
   .min(1, "Required")
   .refine((v) => !Number.isNaN(Date.parse(v)), { message: "Enter a valid date and time." });
 
+const nonNegInt = z
+  .union([z.string(), z.number()])
+  .transform((v) => {
+    if (v === undefined || v === "") return NaN;
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) ? n : NaN;
+  })
+  .refine((v) => Number.isInteger(v) && v >= 0, {
+    message: "Enter a whole number of 0 or more.",
+  });
+
+const draftClinicianSchema = z.object({
+  id: z.string().trim().min(1),
+  name: z.string().trim().max(120).default(""),
+  suffix: z.string().trim().max(40).default(""),
+  role: z.string().trim().max(80).default(""),
+  initials: z.string().trim().max(4).default(""),
+  photo: optionalText,
+  licence: z.string().trim().max(120).default(""),
+  credentialsMd: z.string().trim().max(4000).default(""),
+});
+
+/**
+ * Medical landing fields embedded in event create/edit.
+ * When enabled=false, the nested content is ignored on save.
+ */
+export const eventLandingFieldsSchema = z.object({
+  enabled: z.boolean().default(false),
+  heroWhat: z.string().trim().max(500).default(""),
+  giftPoints: nonNegInt.default(750),
+  giftPeso: nonNegInt.default(750),
+  // Allow blank name rows in the form; sync filters them out before upsert.
+  clinicians: z.array(draftClinicianSchema).max(4, "At most 4 clinicians.").default([]),
+  videoUrl: optionalLenientUrl,
+  videoLength: z.string().trim().max(20).default(""),
+  videoCaption: z.string().trim().max(240).default(""),
+  askTitle: z.string().trim().max(200).default(DEFAULT_ASK.askTitle),
+  askBody: z.string().trim().max(2000).default(DEFAULT_ASK.askBody),
+  askHit: z.string().trim().max(200).default(DEFAULT_ASK.askHit),
+  gutTitle: z.string().trim().max(200).default(DEFAULT_GUT.gutTitle),
+  gutBody: z.string().trim().max(2000).default(DEFAULT_GUT.gutBody),
+  gutClose: z.string().trim().max(400).default(DEFAULT_GUT.gutClose),
+});
+
+export type EventLandingFieldsInput = z.input<typeof eventLandingFieldsSchema>;
+export type EventLandingFieldsValues = z.output<typeof eventLandingFieldsSchema>;
+
+export function defaultEventLandingFields(
+  overrides?: Partial<EventLandingFieldsInput>,
+): EventLandingFieldsInput {
+  return {
+    enabled: false,
+    heroWhat: "",
+    giftPoints: 750,
+    giftPeso: 750,
+    clinicians: [],
+    videoUrl: "",
+    videoLength: "",
+    videoCaption: "",
+    askTitle: DEFAULT_ASK.askTitle,
+    askBody: DEFAULT_ASK.askBody,
+    askHit: DEFAULT_ASK.askHit,
+    gutTitle: DEFAULT_GUT.gutTitle,
+    gutBody: DEFAULT_GUT.gutBody,
+    gutClose: DEFAULT_GUT.gutClose,
+    ...overrides,
+  };
+}
+
 /**
  * Shared create/edit form schema. camelCase to match the app's TS types; the
  * action maps these to snake_case DB columns.
@@ -110,6 +181,7 @@ export const eventFormSchema = z
     photoFocus: z
       .object({ x: z.number(), y: z.number(), zoom: z.number() })
       .optional(),
+    landing: eventLandingFieldsSchema.optional(),
   })
   .refine(
     (data) => data.endsAt === undefined || Date.parse(data.endsAt) > Date.parse(data.startsAt),

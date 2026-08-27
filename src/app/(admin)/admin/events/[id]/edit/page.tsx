@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { EventForm } from "@/components/event/event-form";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
+import { loadEventLandingDefaults } from "@/lib/ginhawa/load-event-landing";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toDateTimeLocalValue } from "@/lib/utils/format";
 import type { EventFormInput } from "@/lib/schemas/event";
@@ -25,13 +26,16 @@ export default async function EditEventPage({
   if (error || !data) notFound();
   const event = mapEventRow(data);
 
-  const { data: speaker } = await supabase
-    .from("event_speakers")
-    .select("name, photo_url")
-    .eq("event_id", event.id)
-    .order("sort_order", { ascending: true })
-    .limit(1)
-    .maybeSingle<{ name: string; photo_url: string | null }>();
+  const [{ data: speaker }, landing] = await Promise.all([
+    supabase
+      .from("event_speakers")
+      .select("name, photo_url")
+      .eq("event_id", event.id)
+      .order("sort_order", { ascending: true })
+      .limit(1)
+      .maybeSingle<{ name: string; photo_url: string | null }>(),
+    loadEventLandingDefaults(event.id),
+  ]);
 
   const defaultValues: Partial<EventFormInput> = {
     title: event.title,
@@ -55,6 +59,7 @@ export default async function EditEventPage({
     photoFocus: event.metadata?.photo_focus as
       | { x: number; y: number; zoom: number }
       | undefined,
+    landing,
   };
 
   return (

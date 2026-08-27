@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { MemberEventForm } from "@/components/event/member-event-form";
 import { requireMember } from "@/lib/auth/require-member";
+import { loadEventLandingDefaults } from "@/lib/ginhawa/load-event-landing";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toDateTimeLocalValue } from "@/lib/utils/format";
 
@@ -44,13 +45,16 @@ export default async function MemberEditEventPage({
 
   if (!event || event.host_member_id !== ctx.member.id) notFound();
 
-  const { data: speaker } = await supabase
-    .from("event_speakers")
-    .select("name, photo_url")
-    .eq("event_id", eventId)
-    .order("sort_order", { ascending: true })
-    .limit(1)
-    .maybeSingle<{ name: string; photo_url: string | null }>();
+  const [{ data: speaker }, landing] = await Promise.all([
+    supabase
+      .from("event_speakers")
+      .select("name, photo_url")
+      .eq("event_id", eventId)
+      .order("sort_order", { ascending: true })
+      .limit(1)
+      .maybeSingle<{ name: string; photo_url: string | null }>(),
+    loadEventLandingDefaults(eventId),
+  ]);
 
   const selfName = ctx.profile.fullName ?? ctx.profile.email ?? undefined;
 
@@ -96,6 +100,7 @@ export default async function MemberEditEventPage({
           photoFocus: event.metadata?.photo_focus as
             | { x: number; y: number; zoom: number }
             | undefined,
+          landing,
         }}
       />
     </div>

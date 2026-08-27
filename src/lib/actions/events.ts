@@ -11,6 +11,11 @@ import {
   publishReadinessSchema,
   type EventFormInput,
 } from "@/lib/schemas/event";
+import {
+  publishEventLanding,
+  syncEventLandingFromForm,
+  unpublishEventLanding,
+} from "@/lib/ginhawa/sync-landing";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureUniqueEventSlug } from "@/lib/utils/slug";
 import type { Event } from "@/lib/database/types";
@@ -119,6 +124,31 @@ export async function createEvent(
     photoUrl: parsed.data.speakerPhotoUrl,
   });
 
+  const eventRow = toEventRow(parsed.data);
+  const landingSync = await syncEventLandingFromForm(
+    supabase,
+    data.id,
+    {
+      title: eventRow.title,
+      startsAt: eventRow.starts_at,
+      timezone: eventRow.timezone,
+      description: eventRow.description,
+      capacity: eventRow.capacity,
+      venueName: eventRow.venue_name,
+      venueAddress: eventRow.venue_address,
+      mapUrl: eventRow.map_url,
+      publish: false,
+    },
+    parsed.data.landing,
+    admin.id,
+  );
+  if (!landingSync.ok) {
+    return {
+      ok: false,
+      error: "Event saved, but the landing page could not be saved. Edit the event to retry.",
+    };
+  }
+
   revalidatePath(EVENTS_PATH);
   return { ok: true, data: { id: data.id } };
 }
@@ -128,7 +158,7 @@ export async function updateEvent(
   eventId: string,
   input: EventFormInput,
 ): Promise<ActionResult<{ id: string }>> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const parsed = eventFormSchema.safeParse(input);
   if (!parsed.success) {
@@ -184,14 +214,40 @@ export async function updateEvent(
     photoUrl: parsed.data.speakerPhotoUrl,
   });
 
+  const eventRow = toEventRow(parsed.data);
+  const landingSync = await syncEventLandingFromForm(
+    supabase,
+    eventId,
+    {
+      title: eventRow.title,
+      startsAt: eventRow.starts_at,
+      timezone: eventRow.timezone,
+      description: eventRow.description,
+      capacity: eventRow.capacity,
+      venueName: eventRow.venue_name,
+      venueAddress: eventRow.venue_address,
+      mapUrl: eventRow.map_url,
+      publish: existing.status === "published",
+    },
+    parsed.data.landing,
+    admin.id,
+  );
+  if (!landingSync.ok) {
+    return {
+      ok: false,
+      error: "Event saved, but the landing page could not be saved. Try again.",
+    };
+  }
+
   revalidatePath(EVENTS_PATH);
   revalidatePath(`${EVENTS_PATH}/${eventId}`);
+  if (existing.slug) revalidatePath(`/e/${existing.slug}`);
   return { ok: true, data: { id: eventId } };
 }
 
 /** Publishes a draft event after a stricter readiness check. */
 export async function publishEvent(eventId: string): Promise<ActionResult<Event>> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const supabase = await createSupabaseServerClient();
 
@@ -242,8 +298,18 @@ export async function publishEvent(eventId: string): Promise<ActionResult<Event>
     };
   }
 
+  const landingPub = await publishEventLanding(supabase, eventId, admin.id);
+  if (!landingPub.ok) {
+    return {
+      ok: false,
+      error: "Event published, but the landing page could not be published. Open Landings to retry.",
+    };
+  }
+
   revalidatePath(EVENTS_PATH);
   revalidatePath(`${EVENTS_PATH}/${eventId}`);
+  revalidatePath("/admin/ginhawa");
+  if (data.slug) revalidatePath(`/e/${data.slug}`);
   return { ok: true, data: mapEventRow(data) };
 }
 
@@ -334,7 +400,7 @@ export async function cancelEvent(
   eventId: string,
   input: { reason: string },
 ): Promise<ActionResult<Event>> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const parsed = cancelEventSchema.safeParse(input);
   if (!parsed.success) {
@@ -348,9 +414,14 @@ export async function cancelEvent(
 
   const { data: row, error: loadError } = await supabase
     .from("events")
-    .select("id, status, metadata")
+    .select("id, status, slug, metadata")
     .eq("id", eventId)
-    .maybeSingle<{ id: string; status: Event["status"]; metadata: Record<string, unknown> }>();
+    .maybeSingle<{
+      id: string;
+      status: Event["status"];
+      slug: string;
+      metadata: Record<string, unknown>;
+    }>();
 
   if (loadError) return { ok: false, error: friendlyDbError(loadError.message) };
   if (!row) return { ok: false, error: "Event not found." };
@@ -379,7 +450,11 @@ export async function cancelEvent(
     };
   }
 
+  await unpublishEventLanding(supabase, eventId, admin.id);
+
   revalidatePath(EVENTS_PATH);
   revalidatePath(`${EVENTS_PATH}/${eventId}`);
+  revalidatePath("/admin/ginhawa");
+  if (row.slug) revalidatePath(`/e/${row.slug}`);
   return { ok: true, data: mapEventRow(data) };
 }

@@ -70,6 +70,8 @@ Apply these SQL files once (after `schema.sql`), in the Supabase SQL editor:
   for now), and adds `get_event_landing_by_slug` / `get_event_landing_by_event_id`
   for GEMA `/e/[slug]` pages. Keeps `get_ginhawa_landing()` for the legacy
   standalone Ginhawa app (latest published medical landing).
+- `supabase/ginhawa_landing_host_write.sql` — lets event hosts (and admins)
+  read/write their event's landing draft; public still only reads published.
 
 Auth uses cookie-based sessions via `@supabase/ssr`; `src/middleware.ts` refreshes
 the session and gates `/admin/*` (unauthenticated users are redirected to `/login`).
