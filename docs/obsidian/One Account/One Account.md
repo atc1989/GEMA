@@ -19,9 +19,9 @@ Canonical folder on Najee’s machine:
 
 Copy this whole folder there (not inside Tech Stack, not inside Design System). Cloud agents read the product-repo copy at `docs/obsidian/One Account/`.
 
-**Current change:** [[Change 1 - Staging identity freeze]]
+**Current change:** [[Change 2 - Shared login engine]]
 
-Do not start Change 2 until Change 1 is checked done on Staging.
+[[Change 1 - Staging identity freeze]] is done on Staging. Do not start Change 2 code until the owner says go.
 
 ```mermaid
 flowchart TB
@@ -39,8 +39,8 @@ flowchart TB
 
 ## Changes (do in order)
 
-1. [[Change 1 - Staging identity freeze]] — **current**
-2. [[Change 2 - Shared login engine]]
+1. [[Change 1 - Staging identity freeze]] — **done on Staging**
+2. [[Change 2 - Shared login engine]] — **current** (wait for owner)
 3. [[Change 3 - Public profiles]]
 4. [[Change 4 - Lazy product rows]]
 5. [[Change 5 - Hub chrome]]
