@@ -24,12 +24,10 @@ const anton = Anton({
   display: "swap",
 });
 
-/** Full-bleed medical landing — no AppShell. */
+/** Public landings — no AppShell. Fonts shared; each template scopes its own surface. */
 export default function LandingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className={`gg-surface ${fraunces.variable} ${interTight.variable} ${anton.variable}`}
-    >
+    <div className={`${fraunces.variable} ${interTight.variable} ${anton.variable}`}>
       {children}
     </div>
   );

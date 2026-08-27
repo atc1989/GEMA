@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { DEFAULT_ASK, DEFAULT_GUT } from "@/lib/ginhawa/prefill";
+import { LANDING_TEMPLATES } from "@/lib/ginhawa/templates";
 
 export const eventTypeSchema = z.enum([
   "presentation",
@@ -94,6 +95,7 @@ const draftClinicianSchema = z.object({
  */
 export const eventLandingFieldsSchema = z.object({
   enabled: z.boolean().default(false),
+  template: z.enum(LANDING_TEMPLATES).default("session"),
   heroWhat: z.string().trim().max(500).default(""),
   giftPoints: nonNegInt.default(750),
   giftPeso: nonNegInt.default(750),
@@ -118,6 +120,7 @@ export function defaultEventLandingFields(
 ): EventLandingFieldsInput {
   return {
     enabled: false,
+    template: "session",
     heroWhat: "",
     giftPoints: 750,
     giftPeso: 750,

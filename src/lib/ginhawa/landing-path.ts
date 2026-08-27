@@ -1,6 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-/** Returns the public /e/[slug] path when a medical landing is published for the event. */
+/** Returns the public /e/[slug] path when any landing is published for the event. */
 export async function getPublishedLandingPath(
   eventId: string,
 ): Promise<string | null> {
@@ -11,7 +11,6 @@ export async function getPublishedLandingPath(
       .select("source_event_id")
       .eq("source_event_id", eventId)
       .eq("published", true)
-      .eq("template", "medical")
       .maybeSingle<{ source_event_id: string }>(),
     supabase
       .from("events")

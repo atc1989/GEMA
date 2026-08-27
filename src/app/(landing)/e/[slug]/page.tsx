@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { GinhawaEmpty, GinhawaLanding } from "@/components/landing/ginhawa-landing";
+import { SessionLanding } from "@/components/landing/session-landing";
+import { SizzleLanding } from "@/components/landing/sizzle-landing";
 import { getPublishedLandingBySlug } from "@/lib/ginhawa/load-public";
+import { asLandingTemplate } from "@/lib/ginhawa/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -20,11 +23,13 @@ export async function generateMetadata({
     };
   }
   const title = landing.title.replace(/\s+/g, " ").trim();
+  const description =
+    landing.heroWhat ||
+    `${landing.dateLabel} ${landing.timeLabel}`.trim() ||
+    "Event landing on GutGuard.";
   return {
     title: `${title} · GutGuard`,
-    description:
-      landing.heroWhat ||
-      `Free medical check-up at Gutguard. ${landing.dateLabel} ${landing.timeLabel}`.trim(),
+    description,
   };
 }
 
@@ -44,9 +49,16 @@ export default async function EventLandingPage({
     notFound();
   }
 
-  if (landing.template !== "medical") {
-    return <GinhawaEmpty />;
-  }
+  const template = asLandingTemplate(landing.template);
 
-  return <GinhawaLanding landing={landing} />;
+  switch (template) {
+    case "sizzle":
+      return <SizzleLanding landing={landing} />;
+    case "session":
+      return <SessionLanding landing={landing} />;
+    case "medical":
+      return <GinhawaLanding landing={landing} />;
+    default:
+      return <GinhawaEmpty />;
+  }
 }

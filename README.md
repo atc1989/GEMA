@@ -72,6 +72,9 @@ Apply these SQL files once (after `schema.sql`), in the Supabase SQL editor:
   standalone Ginhawa app (latest published medical landing).
 - `supabase/ginhawa_landing_host_write.sql` — lets event hosts (and admins)
   read/write their event's landing draft; public still only reads published.
+- `supabase/ginhawa_landing_templates.sql` — allows `template` values
+  `medical`, `sizzle`, and `session` for GEMA `/e/[slug]` layouts. Updates
+  legacy `get_ginhawa_landing()` to prefer medical, then latest published.
 
 Auth uses cookie-based sessions via `@supabase/ssr`; `src/middleware.ts` refreshes
 the session and gates `/admin/*` (unauthenticated users are redirected to `/login`).

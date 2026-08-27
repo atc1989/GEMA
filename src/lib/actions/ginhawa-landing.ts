@@ -39,10 +39,11 @@ function landingRowFromForm(
   adminId: string,
   published: boolean,
   publishedAt: string | null,
+  template: string,
 ) {
   return {
     source_event_id: v.sourceEventId,
-    template: "medical" as const,
+    template,
     title: v.title,
     date_label: v.dateLabel,
     time_label: v.timeLabel,
@@ -99,15 +100,24 @@ export async function publishGinhawaLanding(
   const supabase = await createSupabaseServerClient();
   const now = new Date().toISOString();
 
-  // Look up slug for revalidation of the public route.
-  const { data: event } = await supabase
-    .from("events")
-    .select("slug")
-    .eq("id", v.sourceEventId)
-    .maybeSingle<{ slug: string }>();
+  // Look up slug for revalidation; preserve template if the row already exists.
+  const [{ data: event }, { data: existing }] = await Promise.all([
+    supabase
+      .from("events")
+      .select("slug")
+      .eq("id", v.sourceEventId)
+      .maybeSingle<{ slug: string }>(),
+    supabase
+      .from("ginhawa_landing")
+      .select("template")
+      .eq("source_event_id", v.sourceEventId)
+      .maybeSingle<{ template: string | null }>(),
+  ]);
+
+  const template = existing?.template || "medical";
 
   const { error } = await supabase.from("ginhawa_landing").upsert(
-    landingRowFromForm(v, admin.id, true, now),
+    landingRowFromForm(v, admin.id, true, now, template),
     { onConflict: "source_event_id" },
   );
 

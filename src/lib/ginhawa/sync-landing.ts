@@ -61,7 +61,7 @@ export async function syncEventLandingFromForm(
 
   const row = {
     source_event_id: eventId,
-    template: "medical" as const,
+    template: landing.template || "session",
     title: event.title,
     date_label: formatLandingDate(event.startsAt, event.timezone),
     time_label: formatLandingTime(event.startsAt, event.timezone),

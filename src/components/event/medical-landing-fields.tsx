@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
+import { useEffect, useRef } from "react";
 import {
   type Control,
   type FieldErrors,
@@ -12,11 +13,18 @@ import {
 } from "react-hook-form";
 
 import { emptyClinician, initialsFromName } from "@/lib/ginhawa/prefill";
+import {
+  defaultLandingTemplateForEventType,
+  LANDING_TEMPLATE_META,
+  LANDING_TEMPLATES,
+  type LandingTemplate,
+} from "@/lib/ginhawa/templates";
 import type { EventFormInput } from "@/lib/schemas/event";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 type Props = {
@@ -28,7 +36,7 @@ type Props = {
 };
 
 /**
- * Medical landing section for event create/edit.
+ * Landing section for event create/edit.
  * Title/date/venue come from the event fields when the landing is saved.
  */
 export function MedicalLandingFields({
@@ -39,19 +47,35 @@ export function MedicalLandingFields({
   getValues,
 }: Props) {
   const enabled = useWatch({ control, name: "landing.enabled" }) ?? false;
+  const template = (useWatch({ control, name: "landing.template" }) ??
+    "session") as LandingTemplate;
+  const eventType = useWatch({ control, name: "eventType" });
+  const wasEnabled = useRef(enabled);
   const { fields, append, remove } = useFieldArray({
     control,
     name: "landing.clinicians",
   });
 
+  // Suggest a template the first time the host turns landing on for this visit.
+  useEffect(() => {
+    if (enabled && !wasEnabled.current) {
+      setValue("landing.template", defaultLandingTemplateForEventType(eventType), {
+        shouldDirty: true,
+      });
+    }
+    wasEnabled.current = enabled;
+  }, [enabled, eventType, setValue]);
+
   const landingErrors = errors.landing;
+  const isMedical = template === "medical";
+  const peopleLabel = isMedical ? "Clinicians" : "Speakers / hosts";
 
   return (
     <Card className="grid gap-4 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            Medical landing page
+            Event landing page
           </p>
           <p className="mt-1 text-xs font-semibold text-muted-foreground">
             Optional public page at <span className="font-mono">/e/[slug]</span>. Goes live when
@@ -71,6 +95,21 @@ export function MedicalLandingFields({
       {enabled ? (
         <div className="grid gap-4">
           <Field
+            label="Template"
+            htmlFor="landing-template"
+            error={landingErrors?.template?.message}
+            hint={LANDING_TEMPLATE_META[template]?.hint}
+          >
+            <Select id="landing-template" {...register("landing.template")}>
+              {LANDING_TEMPLATES.map((id) => (
+                <option key={id} value={id}>
+                  {LANDING_TEMPLATE_META[id].label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field
             label="Hero details"
             htmlFor="landing-heroWhat"
             error={landingErrors?.heroWhat?.message}
@@ -84,7 +123,7 @@ export function MedicalLandingFields({
               label="E-Points gift"
               htmlFor="landing-giftPoints"
               error={landingErrors?.giftPoints?.message}
-              required
+              hint={isMedical ? undefined : "Set to 0 to hide the gift block."}
             >
               <Input
                 id="landing-giftPoints"
@@ -96,7 +135,6 @@ export function MedicalLandingFields({
               label="Worth (₱)"
               htmlFor="landing-giftPeso"
               error={landingErrors?.giftPeso?.message}
-              required
             >
               <Input id="landing-giftPeso" inputMode="numeric" {...register("landing.giftPeso")} />
             </Field>
@@ -105,7 +143,7 @@ export function MedicalLandingFields({
           <div className="grid gap-3 rounded-xl border border-border/70 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-black tracking-tight">Clinicians</p>
+                <p className="text-sm font-black tracking-tight">{peopleLabel}</p>
                 <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
                   Up to 4. Credentials support **bold** and lists.
                 </p>
@@ -135,7 +173,7 @@ export function MedicalLandingFields({
             </div>
 
             {fields.length === 0 ? (
-              <p className="text-sm font-medium text-muted-foreground">No clinicians yet.</p>
+              <p className="text-sm font-medium text-muted-foreground">None added yet.</p>
             ) : null}
 
             {fields.map((field, i) => (
@@ -144,7 +182,7 @@ export function MedicalLandingFields({
                 <input type="hidden" {...register(`landing.clinicians.${i}.photo`)} />
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
-                    Clinician {i + 1}
+                    {isMedical ? "Clinician" : "Speaker"} {i + 1}
                   </p>
                   <Button type="button" variant="ghost" size="sm" onClick={() => remove(i)}>
                     <Trash2 aria-hidden="true" />
@@ -234,7 +272,9 @@ export function MedicalLandingFields({
           </div>
 
           <div className="grid gap-3 rounded-xl border border-border/70 p-4">
-            <p className="text-sm font-black tracking-tight">Ask</p>
+            <p className="text-sm font-black tracking-tight">
+              {isMedical ? "Ask" : "Why attend"}
+            </p>
             <Field label="Heading" htmlFor="landing-askTitle">
               <Input id="landing-askTitle" {...register("landing.askTitle")} />
             </Field>
@@ -246,18 +286,33 @@ export function MedicalLandingFields({
             </Field>
           </div>
 
-          <div className="grid gap-3 rounded-xl border border-border/70 p-4">
-            <p className="text-sm font-black tracking-tight">Why the gut</p>
-            <Field label="Heading" htmlFor="landing-gutTitle">
-              <Input id="landing-gutTitle" {...register("landing.gutTitle")} />
-            </Field>
-            <Field label="Body" htmlFor="landing-gutBody">
-              <Textarea id="landing-gutBody" rows={3} {...register("landing.gutBody")} />
-            </Field>
-            <Field label="Close" htmlFor="landing-gutClose">
-              <Input id="landing-gutClose" {...register("landing.gutClose")} />
-            </Field>
-          </div>
+          {isMedical ? (
+            <div className="grid gap-3 rounded-xl border border-border/70 p-4">
+              <p className="text-sm font-black tracking-tight">Why the gut</p>
+              <Field label="Heading" htmlFor="landing-gutTitle">
+                <Input id="landing-gutTitle" {...register("landing.gutTitle")} />
+              </Field>
+              <Field label="Body" htmlFor="landing-gutBody">
+                <Textarea id="landing-gutBody" rows={3} {...register("landing.gutBody")} />
+              </Field>
+              <Field label="Close" htmlFor="landing-gutClose">
+                <Input id="landing-gutClose" {...register("landing.gutClose")} />
+              </Field>
+            </div>
+          ) : (
+            <div className="grid gap-3 rounded-xl border border-border/70 p-4">
+              <p className="text-sm font-black tracking-tight">What you leave with</p>
+              <Field label="Heading" htmlFor="landing-gutTitle">
+                <Input id="landing-gutTitle" {...register("landing.gutTitle")} />
+              </Field>
+              <Field label="Body" htmlFor="landing-gutBody">
+                <Textarea id="landing-gutBody" rows={3} {...register("landing.gutBody")} />
+              </Field>
+              <Field label="Close" htmlFor="landing-gutClose">
+                <Input id="landing-gutClose" {...register("landing.gutClose")} />
+              </Field>
+            </div>
+          )}
         </div>
       ) : null}
     </Card>

@@ -22,6 +22,7 @@ export async function loadEventLandingDefaults(
   const landing = mapLandingRow(data);
   return defaultEventLandingFields({
     enabled: true,
+    template: (landing.template as "medical" | "sizzle" | "session") || "session",
     heroWhat: landing.heroWhat,
     giftPoints: landing.giftPoints,
     giftPeso: landing.giftPeso,

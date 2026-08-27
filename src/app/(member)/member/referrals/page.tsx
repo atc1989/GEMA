@@ -54,7 +54,6 @@ export default async function MemberReferralsPage() {
       .from("ginhawa_landing")
       .select("source_event_id, published, template")
       .eq("published", true)
-      .eq("template", "medical")
       .returns<LandingRow[]>(),
   ]);
 
@@ -94,7 +93,7 @@ export default async function MemberReferralsPage() {
       <div>
         <h2 className="text-lg font-black tracking-tight">Share &amp; referrals</h2>
         <p className="mt-1 text-sm font-semibold text-muted-foreground">
-          Create a personal link for any published event. Events with a live medical landing share
+          Create a personal link for any published event. Events with a live landing share
           that page first; others still use the invite page. Prospects who register through the
           link are attributed to you.
         </p>
