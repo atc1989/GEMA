@@ -4,6 +4,7 @@ import { ArrowLeft, CalendarX } from "lucide-react";
 import { ProspectRegistrationForm } from "@/components/prospect/prospect-registration-form";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { getPublishedLandingPath } from "@/lib/ginhawa/landing-path";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatEventDateTime } from "@/lib/utils/format";
 
@@ -36,10 +37,19 @@ export default async function RegisterPage({
     );
   }
 
+  const landingPath = await getPublishedLandingPath(eventId);
+  const backHref = landingPath
+    ? ref
+      ? `${landingPath}?ref=${encodeURIComponent(ref)}`
+      : landingPath
+    : ref
+      ? `/invite/${eventId}?ref=${encodeURIComponent(ref)}`
+      : `/invite/${eventId}`;
+
   return (
     <div className="mx-auto grid max-w-2xl gap-4">
       <Link
-        href={ref ? `/invite/${eventId}?ref=${encodeURIComponent(ref)}` : `/invite/${eventId}`}
+        href={backHref}
         className="inline-flex items-center gap-1.5 text-sm font-bold text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />

@@ -21,7 +21,12 @@ import {
 
 import { createMemberEvent, updateMemberEvent } from "@/lib/actions/member-events";
 import { VISIBILITY_META } from "@/components/event/event-meta";
-import { memberEventFormSchema, type EventFormInput } from "@/lib/schemas/event";
+import { MedicalLandingFields } from "@/components/event/medical-landing-fields";
+import {
+  defaultEventLandingFields,
+  memberEventFormSchema,
+  type EventFormInput,
+} from "@/lib/schemas/event";
 import { BannerStudio } from "@/components/event/banner-studio";
 import { livePosterData, MEMBER_POSTER_FALLBACKS } from "@/components/event/live-poster-data";
 import { asPosterTemplateId, type PosterTemplateId } from "@/components/event/posters/types";
@@ -56,12 +61,19 @@ const NAME_SUGGESTIONS: { label: string; type: EventFormInput["eventType"] }[] =
 
 type MemberEventFormProps = {
   selfName?: string;
+  landingPreviewHref?: string | null;
 } & (
   | { mode: "create"; eventId?: undefined; defaultValues?: Partial<EventFormInput> }
   | { mode: "edit"; eventId: string; defaultValues: Partial<EventFormInput> }
 );
 
-export function MemberEventForm({ mode, eventId, defaultValues, selfName }: MemberEventFormProps) {
+export function MemberEventForm({
+  mode,
+  eventId,
+  defaultValues,
+  selfName,
+  landingPreviewHref,
+}: MemberEventFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -85,6 +97,7 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
     control,
     setValue,
     setError,
+    getValues,
     formState: { errors },
   } = useForm<EventFormInput>({
     resolver: zodResolver(memberEventFormSchema),
@@ -95,6 +108,7 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
       mode: "in_person",
       timezone: "Asia/Manila",
       ...defaultValues,
+      landing: defaultEventLandingFields(defaultValues?.landing),
     },
   });
 
@@ -378,6 +392,15 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
             ) : null}
           </div>
         </Card>
+
+        <MedicalLandingFields
+          register={register}
+          control={control}
+          errors={errors}
+          setValue={setValue}
+          getValues={getValues}
+          previewHref={landingPreviewHref}
+        />
 
         {errors.root?.message ? (
           <p className="text-sm font-semibold text-destructive">{errors.root.message}</p>

@@ -22,7 +22,7 @@ async function requestPublicOrigin(): Promise<string | undefined> {
 
 export async function loadGinhawaLandingForm(
   eventId: string,
-): Promise<{ values: GinhawaLandingFormInput; eventTitle: string } | null> {
+): Promise<{ values: GinhawaLandingFormInput; eventTitle: string; published: boolean } | null> {
   const supabase = await createSupabaseServerClient();
   const [{ data: event }, { data: speakers }, { data: landingRow }] = await Promise.all([
     supabase
@@ -38,17 +38,25 @@ export async function loadGinhawaLandingForm(
       .eq("event_id", eventId)
       .order("sort_order", { ascending: true })
       .returns<SpeakerPrefill[]>(),
-    supabase.from("ginhawa_landing").select("*").eq("id", true).maybeSingle<GinhawaLandingRow>(),
+    // Per-event landing (may be unpublished draft snapshot).
+    supabase
+      .from("ginhawa_landing")
+      .select("*")
+      .eq("source_event_id", eventId)
+      .maybeSingle<GinhawaLandingRow>(),
   ]);
 
   if (!event) return null;
 
   const origin = await requestPublicOrigin();
   const landing = landingRow ? mapLandingRow(landingRow) : null;
-  const values =
-    landing?.sourceEventId === event.id
-      ? landingToFormValues(landing, origin)
-      : eventToFormValues(event, speakers ?? [], landing, origin);
+  const values = landing
+    ? landingToFormValues(landing, origin)
+    : eventToFormValues(event, speakers ?? [], null, origin);
 
-  return { values, eventTitle: event.title };
+  return {
+    values,
+    eventTitle: event.title,
+    published: Boolean(landing?.published),
+  };
 }

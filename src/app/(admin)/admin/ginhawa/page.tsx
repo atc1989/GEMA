@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, ExternalLink } from "lucide-react";
 
 import { GinhawaPublishedBanner } from "@/components/ginhawa/ginhawa-published-banner";
 import { EventStatusBadge } from "@/components/event/event-status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LinkSpinner } from "@/components/ui/link-pending";
 import { mapLandingRow, type GinhawaLandingRow } from "@/lib/ginhawa/prefill";
+import { LANDING_TEMPLATE_META, asLandingTemplate } from "@/lib/ginhawa/templates";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatEventDateTime } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,7 @@ import type { EventStatus } from "@/lib/database/types";
 type EventPickRow = {
   id: string;
   title: string;
+  slug: string;
   starts_at: string;
   timezone: string;
   status: EventStatus;
@@ -23,36 +25,54 @@ type EventPickRow = {
 export default async function AdminGinhawaPage() {
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: landingRow }, { data: eventRows }] = await Promise.all([
-    supabase.from("ginhawa_landing").select("*").eq("id", true).maybeSingle<GinhawaLandingRow>(),
+  const [{ data: landingRows }, { data: eventRows }] = await Promise.all([
+    supabase
+      .from("ginhawa_landing")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .returns<GinhawaLandingRow[]>(),
     supabase
       .from("events")
-      .select("id, title, starts_at, timezone, status, venue_name")
+      .select("id, title, slug, starts_at, timezone, status, venue_name")
       .neq("status", "archived")
       .order("starts_at", { ascending: false })
       .limit(50)
       .returns<EventPickRow[]>(),
   ]);
 
-  const landing = landingRow ? mapLandingRow(landingRow) : null;
+  const landings = (landingRows ?? []).map(mapLandingRow);
+  const landingByEvent = new Map(landings.map((l) => [l.sourceEventId, l]));
+  const published = landings.filter((l) => l.published);
   const events = eventRows ?? [];
+  const slugByEvent = new Map(events.map((e) => [e.id, e.slug]));
 
   return (
     <div className="grid gap-4">
       <div>
-        <h2 className="text-lg font-black tracking-tight">Ginhawa landing</h2>
+        <h2 className="text-lg font-black tracking-tight">Event landings</h2>
         <p className="mt-1 text-sm font-semibold text-muted-foreground">
-          Pick an event, edit the public copy, then publish. Ginhawa stays a separate site and reads
-          this snapshot.
+          Medical, Sizzle, or Session templates. Each event can have its own public page at{" "}
+          <span className="font-mono text-xs">/e/[slug]</span>. Publish here to make it live;
+          referral links will point to that page.
         </p>
       </div>
 
-      {landing?.published ? (
-        <GinhawaPublishedBanner
-          eventTitle={landing.title}
-          publishedAt={landing.publishedAt}
-          editHref={`/admin/ginhawa/${landing.sourceEventId}`}
-        />
+      {published.length > 0 ? (
+        <div className="grid gap-2">
+          {published.map((landing) => {
+            const slug = slugByEvent.get(landing.sourceEventId);
+            return (
+              <GinhawaPublishedBanner
+                key={landing.sourceEventId}
+                eventTitle={landing.title}
+                publishedAt={landing.publishedAt}
+                editHref={`/admin/ginhawa/${landing.sourceEventId}`}
+                sourceEventId={landing.sourceEventId}
+                publicHref={slug ? `/e/${slug}` : undefined}
+              />
+            );
+          })}
+        </div>
       ) : null}
 
       <div>
@@ -61,12 +81,16 @@ export default async function AdminGinhawaPage() {
           <EmptyState
             icon={CalendarDays}
             title="No events to pick"
-            description="Create and publish an event first, then come back to post it on Ginhawa."
+            description="Create an event first, then come back to add its landing page."
           />
         ) : (
           <div className="grid gap-2">
             {events.map((event) => {
-              const live = landing?.published && landing.sourceEventId === event.id;
+              const landing = landingByEvent.get(event.id);
+              const live = Boolean(landing?.published);
+              const template = landing
+                ? asLandingTemplate(landing.template)
+                : null;
               return (
                 <Link
                   key={event.id}
@@ -82,8 +106,17 @@ export default async function AdminGinhawaPage() {
                       <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
                         {formatEventDateTime(event.starts_at, event.timezone)}
                         {event.venue_name ? ` · ${event.venue_name}` : ""}
-                        {live ? " · live on Ginhawa" : ""}
+                        {template
+                          ? ` · ${LANDING_TEMPLATE_META[template].label}`
+                          : ""}
+                        {live ? " · live" : landing ? " · draft" : ""}
                       </p>
+                      {landing ? (
+                        <p className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-brand">
+                          <ExternalLink className="size-3" aria-hidden="true" />
+                          {live ? `/e/${event.slug}` : `/e/${event.slug}/preview`}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <LinkSpinner className="size-4 text-brand" />

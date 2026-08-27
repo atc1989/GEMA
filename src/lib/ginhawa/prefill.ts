@@ -30,8 +30,9 @@ export function gemaRegisterUrl(eventId: string, origin?: string | null): string
 }
 
 export type GinhawaLandingRow = {
-  id: boolean;
+  id: string;
   source_event_id: string;
+  template: string;
   title: string;
   date_label: string;
   time_label: string;
@@ -133,7 +134,9 @@ export function cliniciansToRow(clinicians: GinhawaClinician[]) {
 
 export function mapLandingRow(row: GinhawaLandingRow): GinhawaLanding {
   return {
+    id: row.id,
     sourceEventId: row.source_event_id,
+    template: row.template || "medical",
     title: row.title,
     dateLabel: row.date_label,
     timeLabel: row.time_label,
@@ -205,6 +208,7 @@ export function landingToFormValues(
 ): GinhawaLandingFormInput {
   return {
     sourceEventId: landing.sourceEventId,
+    template: (landing.template as "medical" | "sizzle" | "session") || "medical",
     title: landing.title,
     dateLabel: landing.dateLabel,
     timeLabel: landing.timeLabel,
@@ -237,6 +241,7 @@ export function eventToFormValues(
 ): GinhawaLandingFormInput {
   return {
     sourceEventId: event.id,
+    template: (copy?.template as "medical" | "sizzle" | "session") || "medical",
     title: event.title,
     dateLabel: formatLandingDate(event.starts_at, event.timezone),
     timeLabel: formatLandingTime(event.starts_at, event.timezone),

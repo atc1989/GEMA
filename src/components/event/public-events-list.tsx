@@ -17,6 +17,7 @@ import { formatEventDateTime } from "@/lib/utils/format";
 export type PublicEventRow = {
   id: string;
   title: string;
+  slug: string;
   event_type: EventType;
   starts_at: string;
   timezone: string;
@@ -24,6 +25,8 @@ export type PublicEventRow = {
   mode: string;
   description: string | null;
   pinned_at?: string | null;
+  /** When set, View & register goes to the published /e/[slug] landing. */
+  landing_slug?: string | null;
 };
 
 /** Prospect-facing event list with the same instant search + category filter. */
@@ -68,6 +71,12 @@ export function PublicEventsList({
             const LocationIcon = ev.mode === "online" ? Monitor : MapPin;
             const location =
               ev.mode === "online" ? "Online event" : ev.venue_name ?? "Venue TBA";
+            const landingPath = ev.landing_slug
+              ? `/e/${ev.landing_slug}`
+              : `/invite/${ev.id}`;
+            const href = refCode
+              ? `${landingPath}?ref=${encodeURIComponent(refCode)}`
+              : landingPath;
 
             return (
               <Card key={ev.id} className="p-4">
@@ -102,11 +111,7 @@ export function PublicEventsList({
                     ) : null}
                     <div className="mt-3">
                       <Link
-                        href={
-                          refCode
-                            ? `/invite/${ev.id}?ref=${encodeURIComponent(refCode)}`
-                            : `/invite/${ev.id}`
-                        }
+                        href={href}
                         className={cn(
                           buttonVariants({ variant: "brand", size: "sm" }),
                           "h-7 text-xs",

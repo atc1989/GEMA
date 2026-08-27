@@ -23,6 +23,7 @@ import { asPosterTemplateId } from "@/components/event/posters/types";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
+import { getPublishedLandingPath } from "@/lib/ginhawa/landing-path";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatEventDateTime } from "@/lib/utils/format";
 import { slugify } from "@/lib/utils/slug";
@@ -44,6 +45,8 @@ export default async function EventDetailPage({
 
   if (error || !data) notFound();
   const event = mapEventRow(data);
+  const landingPath = await getPublishedLandingPath(event.id);
+  const sharePath = landingPath ?? `/invite/${event.id}`;
   const { data: speaker } = await supabase
     .from("event_speakers")
     .select("name, photo_url")
@@ -247,11 +250,13 @@ export default async function EventDetailPage({
               Event QR code
             </p>
             <p className="mt-1 text-sm font-semibold text-muted-foreground">
-              Scans to the public invite page. Download for flyers and posters.
+              {landingPath
+                ? "Scans to the public event landing page. Download for flyers and posters."
+                : "Scans to the public invite page. Download for flyers and posters."}
             </p>
             <div className="flex flex-1 items-center pt-4">
               <QrDownload
-                path={`/invite/${event.id}`}
+                path={sharePath}
                 fileName={`${slugify(event.title)}-qr`}
                 className="w-full"
               />

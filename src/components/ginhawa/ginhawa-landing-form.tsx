@@ -4,10 +4,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import { publishGinhawaLanding, type FieldErrors } from "@/lib/actions/ginhawa-landing";
 import { emptyClinician, initialsFromName } from "@/lib/ginhawa/prefill";
+import {
+  LANDING_TEMPLATE_META,
+  LANDING_TEMPLATES,
+  type LandingTemplate,
+} from "@/lib/ginhawa/templates";
 import {
   ginhawaLandingFormSchema,
   type GinhawaLandingFormInput,
@@ -16,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 export function GinhawaLandingForm({
@@ -41,6 +47,10 @@ export function GinhawaLandingForm({
     resolver: zodResolver(ginhawaLandingFormSchema),
     defaultValues,
   });
+
+  const template = (useWatch({ control, name: "template" }) ?? "medical") as LandingTemplate;
+  const isMedical = template === "medical";
+  const peopleLabel = isMedical ? "Clinicians" : "Speakers / hosts";
 
   const { fields, append, remove } = useFieldArray({ control, name: "clinicians" });
 
@@ -75,9 +85,24 @@ export function GinhawaLandingForm({
         <div>
           <h2 className="text-sm font-black tracking-tight">Landing copy</h2>
           <p className="mt-1 text-xs font-semibold text-muted-foreground">
-            Prefill from {eventTitle}. Edits stay on Ginhawa and do not change the event.
+            Prefill from {eventTitle}. Edits do not change the event record.
           </p>
         </div>
+
+        <Field
+          label="Template"
+          htmlFor="template"
+          error={errors.template?.message}
+          hint={LANDING_TEMPLATE_META[template]?.hint}
+        >
+          <Select id="template" {...register("template")}>
+            {LANDING_TEMPLATES.map((id) => (
+              <option key={id} value={id}>
+                {LANDING_TEMPLATE_META[id].label}
+              </option>
+            ))}
+          </Select>
+        </Field>
 
         <Field label="Title" htmlFor="title" error={errors.title?.message} required hint="A newline becomes a line break on the landing h1.">
           <Textarea id="title" rows={2} {...register("title")} />
@@ -97,22 +122,28 @@ export function GinhawaLandingForm({
         </Field>
 
         <Field
-          label="Book my seat URL"
+          label="Book my seat URL (legacy)"
           htmlFor="bookUrl"
           error={errors.bookUrl?.message}
-          hint="Ginhawa hero button opens this link. Prefills to this event's public registration form. Leave blank to hide the button."
+          hint="GEMA /e/[slug] always sends Book my seat to /register for this event (with ?ref=). This field is kept for the standalone Ginhawa site during migration."
         >
           <Input
             id="bookUrl"
             type="text"
             inputMode="url"
-            placeholder="https://gema-ivory.vercel.app/register/…"
+            placeholder="/register/… or https://…"
             {...register("bookUrl")}
           />
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="E-Points" htmlFor="giftPoints" error={errors.giftPoints?.message} required>
+          <Field
+            label="E-Points"
+            htmlFor="giftPoints"
+            error={errors.giftPoints?.message}
+            required
+            hint={isMedical ? undefined : "Set to 0 to hide the gift block."}
+          >
             <Input id="giftPoints" inputMode="numeric" {...register("giftPoints")} />
           </Field>
           <Field label="Worth (₱)" htmlFor="giftPeso" error={errors.giftPeso?.message} required>
@@ -132,7 +163,7 @@ export function GinhawaLandingForm({
       <Card className="grid gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-sm font-black tracking-tight">Clinicians</h2>
+            <h2 className="text-sm font-black tracking-tight">{peopleLabel}</h2>
             <p className="mt-1 text-xs font-semibold text-muted-foreground">
               Up to 4. Credentials markdown supports paragraphs, **bold**, and lists.
             </p>
@@ -167,7 +198,7 @@ export function GinhawaLandingForm({
         ) : null}
 
         {fields.length === 0 ? (
-          <p className="text-sm font-medium text-muted-foreground">No clinicians yet.</p>
+          <p className="text-sm font-medium text-muted-foreground">No {peopleLabel.toLowerCase()} yet.</p>
         ) : null}
 
         {fields.map((field, i) => (
@@ -176,7 +207,7 @@ export function GinhawaLandingForm({
             <input type="hidden" {...register(`clinicians.${i}.photo`)} />
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
-                Clinician {i + 1}
+                {isMedical ? "Clinician" : "Speaker"} {i + 1}
               </p>
               <Button type="button" variant="ghost" size="sm" onClick={() => remove(i)}>
                 <Trash2 aria-hidden="true" />
@@ -247,7 +278,7 @@ export function GinhawaLandingForm({
       </Card>
 
       <Card className="grid gap-4 p-5">
-        <h2 className="text-sm font-black tracking-tight">Ask</h2>
+        <h2 className="text-sm font-black tracking-tight">{isMedical ? "Ask" : "Why attend"}</h2>
         <Field label="Heading" htmlFor="askTitle" error={errors.askTitle?.message}>
           <Input id="askTitle" {...register("askTitle")} />
         </Field>
@@ -260,7 +291,9 @@ export function GinhawaLandingForm({
       </Card>
 
       <Card className="grid gap-4 p-5">
-        <h2 className="text-sm font-black tracking-tight">Why the gut</h2>
+        <h2 className="text-sm font-black tracking-tight">
+          {isMedical ? "Why the gut" : "What you leave with"}
+        </h2>
         <Field label="Heading" htmlFor="gutTitle" error={errors.gutTitle?.message}>
           <Input id="gutTitle" {...register("gutTitle")} />
         </Field>
@@ -280,7 +313,7 @@ export function GinhawaLandingForm({
         <Field label="Address" htmlFor="venueAddress" error={errors.venueAddress?.message}>
           <Input id="venueAddress" {...register("venueAddress")} />
         </Field>
-        <Field label="Map URL (optional)" htmlFor="mapUrl" error={errors.mapUrl?.message} hint="Hidden on Ginhawa if blank.">
+        <Field label="Map URL (optional)" htmlFor="mapUrl" error={errors.mapUrl?.message} hint="Hidden on the landing if blank.">
           <Input id="mapUrl" type="text" inputMode="url" {...register("mapUrl")} />
         </Field>
       </Card>
@@ -290,7 +323,7 @@ export function GinhawaLandingForm({
       <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" variant="brand" disabled={pending}>
           {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
-          Publish to Ginhawa
+          Publish landing
         </Button>
       </div>
     </form>

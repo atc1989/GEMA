@@ -4,12 +4,14 @@ import { ArrowLeft } from "lucide-react";
 
 import { MemberEventForm } from "@/components/event/member-event-form";
 import { requireMember } from "@/lib/auth/require-member";
+import { loadEventLandingDefaults } from "@/lib/ginhawa/load-event-landing";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toDateTimeLocalValue } from "@/lib/utils/format";
 
 type EventEditRow = {
   id: string;
   title: string;
+  slug: string;
   event_type: string;
   visibility: string;
   mode: string;
@@ -38,19 +40,22 @@ export default async function MemberEditEventPage({
   const supabase = await createSupabaseServerClient();
   const { data: event } = await supabase
     .from("events")
-    .select("id, title, event_type, visibility, mode, starts_at, ends_at, timezone, venue_name, venue_address, map_url, online_url, capacity, description, host_member_id, banner_url, metadata")
+    .select("id, title, slug, event_type, visibility, mode, starts_at, ends_at, timezone, venue_name, venue_address, map_url, online_url, capacity, description, host_member_id, banner_url, metadata")
     .eq("id", eventId)
     .maybeSingle<EventEditRow>();
 
   if (!event || event.host_member_id !== ctx.member.id) notFound();
 
-  const { data: speaker } = await supabase
-    .from("event_speakers")
-    .select("name, photo_url")
-    .eq("event_id", eventId)
-    .order("sort_order", { ascending: true })
-    .limit(1)
-    .maybeSingle<{ name: string; photo_url: string | null }>();
+  const [{ data: speaker }, landing] = await Promise.all([
+    supabase
+      .from("event_speakers")
+      .select("name, photo_url")
+      .eq("event_id", eventId)
+      .order("sort_order", { ascending: true })
+      .limit(1)
+      .maybeSingle<{ name: string; photo_url: string | null }>(),
+    loadEventLandingDefaults(eventId),
+  ]);
 
   const selfName = ctx.profile.fullName ?? ctx.profile.email ?? undefined;
 
@@ -74,6 +79,9 @@ export default async function MemberEditEventPage({
         mode="edit"
         eventId={eventId}
         selfName={selfName}
+        landingPreviewHref={
+          landing?.enabled && event.slug ? `/e/${event.slug}/preview` : null
+        }
         defaultValues={{
           title: event.title,
           eventType: event.event_type as never,
@@ -96,6 +104,7 @@ export default async function MemberEditEventPage({
           photoFocus: event.metadata?.photo_focus as
             | { x: number; y: number; zoom: number }
             | undefined,
+          landing,
         }}
       />
     </div>

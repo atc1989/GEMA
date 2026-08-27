@@ -65,6 +65,19 @@ Apply these SQL files once (after `schema.sql`), in the Supabase SQL editor:
   (defaults to `/register/{eventId}`) and updates `get_ginhawa_landing()`.
 - `supabase/ginhawa_landing_book_register_url.sql` — rewrites stored invite URLs
   to the registration form.
+- `supabase/ginhawa_landing_per_event.sql` — **run after the Ginhawa landing files**.
+  Converts the singleton into one landing row per event (`template = medical`
+  for now), and adds `get_event_landing_by_slug` / `get_event_landing_by_event_id`
+  for GEMA `/e/[slug]` pages. Keeps `get_ginhawa_landing()` for the legacy
+  standalone Ginhawa app (latest published medical landing).
+- `supabase/ginhawa_landing_host_write.sql` — lets event hosts (and admins)
+  read/write their event's landing draft; public still only reads published.
+- `supabase/ginhawa_landing_templates.sql` — allows `template` values
+  `medical`, `sizzle`, and `session` for GEMA `/e/[slug]` layouts. Updates
+  legacy `get_ginhawa_landing()` to prefer medical, then latest published.
+
+Hosts/admins can preview drafts at `/e/[slug]/preview` (noindex). The public
+events list and invite/referral paths prefer `/e/[slug]` when a landing is live.
 
 Auth uses cookie-based sessions via `@supabase/ssr`; `src/middleware.ts` refreshes
 the session and gates `/admin/*` (unauthenticated users are redirected to `/login`).

@@ -291,7 +291,9 @@ export interface GinhawaClinician {
 }
 
 export interface GinhawaLanding {
+  id?: string;
   sourceEventId: string;
+  template?: string;
   title: string;
   dateLabel: string;
   timeLabel: string;

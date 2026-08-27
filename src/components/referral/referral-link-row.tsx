@@ -9,16 +9,29 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
 
+/** Prefer published medical landing URL; fall back to classic invite page. */
+export function referralSharePath(
+  eventId: string,
+  refCode: string,
+  landingSlug?: string | null,
+): string {
+  if (landingSlug) return `/e/${landingSlug}?ref=${encodeURIComponent(refCode)}`;
+  return `/invite/${eventId}?ref=${encodeURIComponent(refCode)}`;
+}
+
 export function ReferralLinkRow({
   eventId,
   eventTitle,
   eventMeta,
   initialRefCode,
+  landingSlug = null,
 }: {
   eventId: string;
   eventTitle: string;
   eventMeta: string;
   initialRefCode: string | null;
+  /** When set, share links go to /e/[slug] instead of /invite. */
+  landingSlug?: string | null;
 }) {
   const [refCode, setRefCode] = useState<string | null>(initialRefCode);
   const [origin, setOrigin] = useState("");
@@ -30,7 +43,8 @@ export function ReferralLinkRow({
     setOrigin(window.location.origin);
   }, []);
 
-  const shareUrl = refCode ? `${origin}/invite/${eventId}?ref=${refCode}` : "";
+  const path = refCode ? referralSharePath(eventId, refCode, landingSlug) : "";
+  const shareUrl = path && origin ? `${origin}${path}` : path;
 
   const onCreate = () => {
     setError(null);
@@ -49,29 +63,30 @@ export function ReferralLinkRow({
       <div className="min-w-0">
         <p className="truncate text-sm font-bold">{eventTitle}</p>
         <p className="truncate text-xs font-semibold text-muted-foreground">{eventMeta}</p>
+        {landingSlug ? (
+          <p className="mt-0.5 text-[11px] font-semibold text-brand">Shares landing page</p>
+        ) : null}
       </div>
 
       {refCode ? (
         <div className="grid min-w-0 gap-2 sm:flex sm:items-center">
           <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2">
             <Link2 className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            <span className="truncate font-mono text-xs">
-              {shareUrl || `/invite/${eventId}?ref=${refCode}`}
-            </span>
+            <span className="truncate font-mono text-xs">{shareUrl || path}</span>
           </div>
           <div className="flex gap-2 sm:contents">
-          <CopyButton value={shareUrl || `/invite/${eventId}?ref=${refCode}`} />
-          <Button
-            type="button"
-            variant="soft"
-            size="sm"
-            onClick={() => setShowQr((v) => !v)}
-            aria-expanded={showQr}
-            className="flex-1 sm:flex-none"
-          >
-            <QrCode aria-hidden="true" />
-            QR
-          </Button>
+            <CopyButton value={shareUrl || path} />
+            <Button
+              type="button"
+              variant="soft"
+              size="sm"
+              onClick={() => setShowQr((v) => !v)}
+              aria-expanded={showQr}
+              className="flex-1 sm:flex-none"
+            >
+              <QrCode aria-hidden="true" />
+              QR
+            </Button>
           </div>
         </div>
       ) : (
@@ -79,7 +94,14 @@ export function ReferralLinkRow({
           <span className="text-xs font-semibold text-muted-foreground">
             No referral link yet.
           </span>
-          <Button type="button" variant="brand" size="sm" onClick={onCreate} disabled={pending} className="w-full min-[420px]:w-auto">
+          <Button
+            type="button"
+            variant="brand"
+            size="sm"
+            onClick={onCreate}
+            disabled={pending}
+            className="w-full min-[420px]:w-auto"
+          >
             <Sparkles aria-hidden="true" />
             {pending ? "Creating…" : "Create link"}
           </Button>
@@ -87,10 +109,7 @@ export function ReferralLinkRow({
       )}
 
       {refCode && showQr ? (
-        <QrDownload
-          path={`/invite/${eventId}?ref=${refCode}`}
-          fileName={`referral-${refCode}-qr`}
-        />
+        <QrDownload path={path} fileName={`referral-${refCode}-qr`} />
       ) : null}
 
       {error ? <p className="text-xs font-semibold text-destructive">{error}</p> : null}

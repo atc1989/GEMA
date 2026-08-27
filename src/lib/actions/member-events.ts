@@ -6,6 +6,7 @@ import { z } from "zod";
 import { type ActionResult } from "@/lib/actions/types";
 import { requireMember } from "@/lib/auth/require-member";
 import { toEventRow } from "@/lib/database/mappers";
+import { syncEventLandingFromForm } from "@/lib/ginhawa/sync-landing";
 import { memberEventFormSchema, type EventFormInput } from "@/lib/schemas/event";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureUniqueEventSlug } from "@/lib/utils/slug";
@@ -66,7 +67,7 @@ async function syncPrimarySpeaker(
 export async function createMemberEvent(
   input: EventFormInput,
 ): Promise<ActionResult<{ id: string }>> {
-  await requireMember();
+  const ctx = await requireMember();
 
   const parsed = memberEventFormSchema.safeParse(input);
   if (!parsed.success) {
@@ -116,8 +117,40 @@ export async function createMemberEvent(
     };
   }
 
+  const eventId = data as string;
+  const { data: created } = await supabase
+    .from("events")
+    .select("status, slug")
+    .eq("id", eventId)
+    .maybeSingle<{ status: string; slug: string }>();
+
+  const landingSync = await syncEventLandingFromForm(
+    supabase,
+    eventId,
+    {
+      title: row.title,
+      startsAt: row.starts_at,
+      timezone: row.timezone,
+      description: row.description,
+      capacity: row.capacity,
+      venueName: row.venue_name,
+      venueAddress: row.venue_address,
+      mapUrl: row.map_url,
+      publish: created?.status === "published",
+    },
+    parsed.data.landing,
+    ctx.profile.id,
+  );
+  if (!landingSync.ok) {
+    return {
+      ok: false,
+      error: "Event saved, but the landing page could not be saved. Edit the event to retry.",
+    };
+  }
+
   revalidatePath(PATH);
-  return { ok: true, data: { id: data } };
+  if (created?.slug) revalidatePath(`/e/${created.slug}`);
+  return { ok: true, data: { id: eventId } };
 }
 
 export async function updateMemberEvent(
@@ -182,7 +215,33 @@ export async function updateMemberEvent(
     photoUrl: parsed.data.speakerPhotoUrl,
   });
 
+  const eventRow = toEventRow(parsed.data);
+  const landingSync = await syncEventLandingFromForm(
+    supabase,
+    eventId,
+    {
+      title: eventRow.title,
+      startsAt: eventRow.starts_at,
+      timezone: eventRow.timezone,
+      description: eventRow.description,
+      capacity: eventRow.capacity,
+      venueName: eventRow.venue_name,
+      venueAddress: eventRow.venue_address,
+      mapUrl: eventRow.map_url,
+      publish: existing.status === "published",
+    },
+    parsed.data.landing,
+    ctx.profile.id,
+  );
+  if (!landingSync.ok) {
+    return {
+      ok: false,
+      error: "Event saved, but the landing page could not be saved. Try again.",
+    };
+  }
+
   revalidatePath(PATH);
   revalidatePath(`${PATH}/${eventId}`);
+  if (slug) revalidatePath(`/e/${slug}`);
   return { ok: true, data: { id: eventId } };
 }

@@ -8,11 +8,16 @@ import { useForm, useWatch } from "react-hook-form";
 
 import { createEvent, updateEvent, type FieldErrors } from "@/lib/actions/events";
 import { BannerStudio } from "@/components/event/banner-studio";
+import { MedicalLandingFields } from "@/components/event/medical-landing-fields";
 import { ADMIN_POSTER_FALLBACKS, livePosterData } from "@/components/event/live-poster-data";
 import { PhotoAdjuster } from "@/components/event/posters/photo-adjuster";
 import { asPhotoFocus, type PhotoFocus } from "@/components/event/posters/shared";
 import { asPosterTemplateId, type PosterTemplateId } from "@/components/event/posters/types";
-import { eventFormSchema, type EventFormInput } from "@/lib/schemas/event";
+import {
+  defaultEventLandingFields,
+  eventFormSchema,
+  type EventFormInput,
+} from "@/lib/schemas/event";
 import { uploadEventPhoto } from "@/lib/storage/event-photos";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -33,10 +38,20 @@ const EVENT_TYPES: EventFormInput["eventType"][] = [
 ];
 
 type EventFormProps =
-  | { mode: "create"; eventId?: undefined; defaultValues?: Partial<EventFormInput> }
-  | { mode: "edit"; eventId: string; defaultValues: Partial<EventFormInput> };
+  | {
+      mode: "create";
+      eventId?: undefined;
+      defaultValues?: Partial<EventFormInput>;
+      landingPreviewHref?: never;
+    }
+  | {
+      mode: "edit";
+      eventId: string;
+      defaultValues: Partial<EventFormInput>;
+      landingPreviewHref?: string | null;
+    };
 
-export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
+export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: EventFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [template, setTemplate] = useState<PosterTemplateId>(
@@ -58,6 +73,8 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
     watch,
     control,
     setError,
+    setValue,
+    getValues,
     formState: { errors },
   } = useForm<EventFormInput>({
     resolver: zodResolver(eventFormSchema),
@@ -68,6 +85,7 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
       mode: "in_person",
       timezone: "Asia/Manila",
       ...defaultValues,
+      landing: defaultEventLandingFields(defaultValues?.landing),
     },
   });
 
@@ -309,6 +327,15 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
             <Textarea id="description" rows={5} {...register("description")} />
           </Field>
         </Card>
+
+        <MedicalLandingFields
+          register={register}
+          control={control}
+          errors={errors}
+          setValue={setValue}
+          getValues={getValues}
+          previewHref={landingPreviewHref}
+        />
 
         {errors.root?.message ? (
           <p className="text-sm font-semibold text-destructive">{errors.root.message}</p>
