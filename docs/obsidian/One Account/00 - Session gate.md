@@ -15,7 +15,7 @@ tags:
 
 Drop path on Najee’s machine:
 
-`C:\Users\najee\Documents\One Account\`
+`C:\Users\najee\OneDrive\Documents\GutGuard\One Account\`
 
 Product-repo copies live at `docs/obsidian/One Account/` in GEMA, Gentrep Academy, and GutGuard Lifestyle.
 

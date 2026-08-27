@@ -9,16 +9,25 @@ import { z } from "zod";
 import { getCurrentProfile } from "@/lib/auth/require-admin";
 import { getCurrentMember } from "@/lib/auth/require-member";
 import {
-  ExternalLoginError,
   isSyntheticExternalEmail,
   provisionOneGrindersLogin,
   syncExternalLoginInBackground,
 } from "@/lib/integrations/onegrinders-login";
+import {
+  normalizeIdentifier,
+  passwordSignInError,
+  resolveSharedLogin,
+  THROTTLE_MAX_FAILURES,
+  THROTTLE_WINDOW_MINUTES,
+} from "@/lib/one-account/login-engine";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-const THROTTLE_MAX_FAILURES = 5;
-const THROTTLE_WINDOW_MINUTES = 15;
+const loginSchema = z.object({
+  identifier: z.string().min(1, "Username or email is required."),
+  password: z.string().min(1, "Password is required."),
+  redirectTo: z.string().optional(),
+});
 
 async function clientIp() {
   const requestHeaders = await headers();
@@ -70,19 +79,6 @@ async function fallbackEmailForUsername(username: string) {
   return data.user?.email ?? null;
 }
 
-const BACKUP_WRONG_PASSWORD =
-  "Our main login service is temporarily offline. Please try the password you originally " +
-  "registered with the guild. If that doesn't work, use “Forgot password?” or contact your admin.";
-const BACKUP_NO_ACCOUNT =
-  "Login is temporarily offline for new members. Please try again in a while, " +
-  "or contact your admin to get access now.";
-
-const loginSchema = z.object({
-  identifier: z.string().min(1, "Username or email is required."),
-  password: z.string().min(1, "Password is required."),
-  redirectTo: z.string().optional(),
-});
-
 export type LoginResult = { ok: false; error: string } | undefined;
 
 /**
@@ -104,76 +100,47 @@ export async function loginAction(
   }
 
   const supabase = await createSupabaseServerClient();
-  let email = parsed.data.identifier.trim();
-  let password = parsed.data.password;
-  const identifier = email.toLowerCase();
+  const identifier = normalizeIdentifier(parsed.data.identifier);
+  const resolved = await resolveSharedLogin(
+    parsed.data.identifier,
+    parsed.data.password,
+    {
+      isThrottled,
+      recordFailedLogin,
+      lookupEmailByUsername: fallbackEmailForUsername,
+      signInWithPassword: async (email, password) => {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        return !error;
+      },
+      provisionOneGrinders: provisionOneGrindersLogin,
+    },
+  );
 
-  if (await isThrottled(identifier)) {
-    return {
-      ok: false,
-      error: `Too many failed attempts. Please wait ${THROTTLE_WINDOW_MINUTES} minutes and try again.`,
-    };
+  if (!resolved.ok) {
+    return { ok: false, error: resolved.error };
   }
 
-  let backupLogin = false;
+  if (resolved.backgroundSync) {
+    after(() =>
+      syncExternalLoginInBackground(
+        resolved.backgroundSync!.username,
+        resolved.backgroundSync!.password,
+      ),
+    );
+  }
 
-  if (!email.includes("@")) {
-    // Local-first: returning members sign in against the mirrored password in a
-    // few round trips instead of waiting on the external API. The external
-    // account is still re-verified — just off the critical path (see below).
-    const localEmail = await fallbackEmailForUsername(identifier);
-    if (localEmail) {
-      const { error: localError } = await supabase.auth.signInWithPassword({
-        email: localEmail,
-        password,
-      });
-      if (!localError) {
-        // Re-verify credentials/status with the external system and refresh the
-        // mirrored profile after the response is sent; a stale or deactivated
-        // mirror gets revoked there so it stops working on the next attempt.
-        after(() => syncExternalLoginInBackground(identifier, password));
-        await redirectAfterLogin(parsed.data.redirectTo, false);
-      }
-      // Local attempt failed (first login, changed external password, imported
-      // account) — fall through to the full external verification below.
-    }
-
-    try {
-      const provisioned = await provisionOneGrindersLogin(email, password);
-      email = provisioned.email;
-      password = provisioned.password;
-    } catch (error) {
-      if (error instanceof ExternalLoginError && error.kind === "remote") {
-        // External API unreachable — try the locally mirrored password instead.
-        const fallbackEmail = await fallbackEmailForUsername(identifier);
-        if (!fallbackEmail) {
-          return { ok: false, error: BACKUP_NO_ACCOUNT };
-        }
-        email = fallbackEmail;
-        backupLogin = true;
-      } else if (error instanceof ExternalLoginError) {
-        if (error.kind === "credentials") await recordFailedLogin(identifier);
-        return { ok: false, error: error.message };
-      } else {
-        return { ok: false, error: "Unable to verify this login right now." };
-      }
+  if (resolved.phase === "password") {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: resolved.email,
+      password: resolved.password,
+    });
+    if (error) {
+      await recordFailedLogin(identifier);
+      return { ok: false, error: passwordSignInError(resolved.backupLogin) };
     }
   }
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    await recordFailedLogin(identifier);
-    return {
-      ok: false,
-      error: backupLogin ? BACKUP_WRONG_PASSWORD : "Invalid email or password.",
-    };
-  }
-
-  await redirectAfterLogin(parsed.data.redirectTo, backupLogin);
+  await redirectAfterLogin(parsed.data.redirectTo, resolved.backupLogin);
 }
 
 /** Post-sign-in landing: honours an explicit redirect, then routes by role. */

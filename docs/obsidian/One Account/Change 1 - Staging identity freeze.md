@@ -53,7 +53,7 @@ GutGuard Staging: `fxdsnacuonfvutdquogb`.
 
 ## Owner steps in
 
-Copy this `One Account` folder to `C:\Users\najee\Documents\One Account\` so Obsidian is the copy you read.
+Copy this `One Account` folder to `C:\Users\najee\OneDrive\Documents\GutGuard\One Account\` so Obsidian is the copy you read.
 
 ## Done when
 

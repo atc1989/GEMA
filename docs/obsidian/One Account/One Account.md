@@ -15,13 +15,13 @@ GutGuard identity board. **Lifestyle is the hub. GEMA and Academy are spokes. On
 
 Canonical folder on Najee’s machine:
 
-`C:\Users\najee\Documents\One Account\`
+`C:\Users\najee\OneDrive\Documents\GutGuard\One Account\`
 
 Copy this whole folder there (not inside Tech Stack, not inside Design System). Cloud agents read the product-repo copy at `docs/obsidian/One Account/`.
 
 **Current change:** [[Change 2 - Shared login engine]]
 
-[[Change 1 - Staging identity freeze]] is done on Staging. Do not start Change 2 code until the owner says go.
+[[Change 1 - Staging identity freeze]] is done on Staging. Change 2 is in progress — username or email on all three apps. Do not start Change 3 until Change 2 is proven.
 
 ```mermaid
 flowchart TB
@@ -40,7 +40,7 @@ flowchart TB
 ## Changes (do in order)
 
 1. [[Change 1 - Staging identity freeze]] — **done on Staging**
-2. [[Change 2 - Shared login engine]] — **current** (wait for owner)
+2. [[Change 2 - Shared login engine]] — **current**
 3. [[Change 3 - Public profiles]]
 4. [[Change 4 - Lazy product rows]]
 5. [[Change 5 - Hub chrome]]
@@ -48,7 +48,7 @@ flowchart TB
 
 ## Owner steps in only when
 
-Listed on each Change. Typical: copy this folder to `C:\Users\najee\Documents\One Account\`, Vercel env for Preview, custom domains, production cutover. Agents must not invent extra owner work.
+Listed on each Change. Typical: copy this folder to `C:\Users\najee\OneDrive\Documents\GutGuard\One Account\`, Vercel env for Preview, custom domains, production cutover. Agents must not invent extra owner work.
 
 ## Repos
 

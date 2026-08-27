@@ -33,7 +33,7 @@ export default async function LoginPage({
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Sign in with your GEMA email or One Grinders Guild username."
+      subtitle="Sign in with your Gutguard username or email."
     >
       <LoginForm redirectTo={redirectTo} passwordReset={reset === "1"} />
     </AuthLayout>

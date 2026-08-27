@@ -10,7 +10,7 @@ tags:
 
 # Change 2 — Shared login engine
 
-**Status:** open · **Current change** on [[One Account]] · wait for owner before writing code
+**Status:** open · **Current change** on [[One Account]]
 
 Read [[00 - Session gate]] before this Change.
 
@@ -26,14 +26,18 @@ Username or email + password behaves the same on Lifestyle, GEMA, and Academy. O
 
 ## Work
 
-- [ ] Extract GEMA login behavior (OneGrinders local-first, API, backup, email password, `redirectTo`, throttle) into a portable module. Do not copy Tailwind.
-- [ ] Lifestyle and Academy call that behavior. Identifier field: “Username or email”.
-- [ ] OneGrinders provisioner still writes GEMA profile/member as today. It must **not** write Academy BASE or Lifestyle cards (Change 4).
-- [ ] `ONEGRINDERS_API_KEY` server-only on any app that hosts login.
+- [x] Extract GEMA login behavior (OneGrinders local-first, API, backup, email password, `redirectTo`, throttle) into a portable module. Do not copy Tailwind.
+- [x] Lifestyle and Academy call that behavior. Identifier field: “Username or email”.
+- [x] OneGrinders provisioner still writes GEMA profile/member as today. It must **not** write Academy BASE or Lifestyle cards (Change 4).
+- [x] `ONEGRINDERS_API_KEY` server-only on any app that hosts login.
+
+## Shipped this pass
+
+Portable engine (GEMA is source of truth): `src/lib/one-account/login-engine.ts`, copied to Lifestyle `lib/one-account/` and Academy `src/lib/one-account/`. Provisioner writes `gema.profiles` + `gema.members` only. Academy Demo Desks removed from Staging login. Ginhawa register stays name / mobile / email / password.
 
 ## Owner steps in
 
-Add `ONEGRINDERS_API_KEY` (and optional `ONEGRINDERS_LOGIN_URL`) to Lifestyle and Academy **Preview** Vercel env, server-only. Not needed until this Change starts.
+Add `ONEGRINDERS_API_KEY` (and optional `ONEGRINDERS_LOGIN_URL`) to Lifestyle and Academy **Preview** Vercel env, server-only. Email + password still works without that key. Username login needs it.
 
 ## Done when
 

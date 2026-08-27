@@ -2,6 +2,7 @@ import "server-only";
 
 import type { User } from "@supabase/supabase-js";
 
+import { SharedLoginError, type ProvisionKind } from "@/lib/one-account/login-engine";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const LOGIN_ENDPOINT =
@@ -50,12 +51,10 @@ export type ExternalLoginProvisionResult = {
   password: string;
 };
 
-export class ExternalLoginError extends Error {
-  constructor(
-    message: string,
-    public readonly kind: "configuration" | "credentials" | "remote" | "provisioning",
-  ) {
-    super(message);
+export class ExternalLoginError extends SharedLoginError {
+  constructor(message: string, kind: ProvisionKind) {
+    super(message, kind);
+    this.name = "ExternalLoginError";
   }
 }
 

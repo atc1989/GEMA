@@ -1,6 +1,6 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-One Account (shared GutGuard login, Lifestyle hub): `docs/obsidian/One Account/`. Drop the same folder at `C:\Users\najee\Documents\One Account\`. Read `AGENTS.md` before identity work.
+One Account (shared GutGuard login, Lifestyle hub): `docs/obsidian/One Account/`. Drop the same folder at `C:\Users\najee\OneDrive\Documents\GutGuard\One Account\`. Read `AGENTS.md` before identity work.
 
 ## Environment
 
