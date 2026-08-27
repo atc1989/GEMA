@@ -12,7 +12,7 @@ Event / business spoke. **Identity spine** for GutGuard (Supabase Auth + OneGrin
 4. Then Tech Stack / Design System if the Change needs them (paths on Najee’s machine under `C:\Users\najee\OneDrive\Documents\GutGuard\`)
 5. Do not skip Changes. Do not touch production Auth (~431 users) until Change 1 is proven on Staging.
 
-Canonical Obsidian drop: `C:\Users\najee\OneDrive\Documents\GutGuard\One Account\`  
+Canonical Obsidian drop: `C:\Users\najee\Documents\One Account\`  
 Do **not** edit `GutGuard Tech Stack/` or `GutGuard Design System/`.
 
 This app’s existing Tailwind/shadcn stays **here only**. Do not copy it into Lifestyle or Academy.

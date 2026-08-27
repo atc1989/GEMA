@@ -15,7 +15,7 @@ GutGuard identity board. **Lifestyle is the hub. GEMA and Academy are spokes. On
 
 Canonical folder on Najee’s machine:
 
-`C:\Users\najee\OneDrive\Documents\GutGuard\One Account\`
+`C:\Users\najee\Documents\One Account\`
 
 Copy this whole folder there (not inside Tech Stack, not inside Design System). Cloud agents read the product-repo copy at `docs/obsidian/One Account/`.
 
