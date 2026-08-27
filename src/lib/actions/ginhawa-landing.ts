@@ -28,30 +28,21 @@ function friendlyDbError(message: string, fallback = "Something went wrong. Plea
   if (m.includes("foreign key") || m.includes("source_event_id")) {
     return "That event is no longer available. Pick another event.";
   }
+  if (m.includes("ginhawa_landing_source_event") || m.includes("unique")) {
+    return "A landing for this event already exists. Refresh and try again.";
+  }
   return fallback;
 }
 
-/** Upserts the singleton landing row and marks it published. */
-export async function publishGinhawaLanding(
-  input: GinhawaLandingFormInput,
-): Promise<ActionResult> {
-  const admin = await requireAdmin();
-  const parsed = ginhawaLandingFormSchema.safeParse(input);
-  if (!parsed.success) {
-    return {
-      ok: false,
-      error: "Please fix the highlighted fields.",
-      fieldErrors: z.flattenError(parsed.error).fieldErrors,
-    };
-  }
-
-  const v = parsed.data;
-  const supabase = await createSupabaseServerClient();
-  const now = new Date().toISOString();
-
-  const { error } = await supabase.from("ginhawa_landing").upsert({
-    id: true,
+function landingRowFromForm(
+  v: z.output<typeof ginhawaLandingFormSchema>,
+  adminId: string,
+  published: boolean,
+  publishedAt: string | null,
+) {
+  return {
     source_event_id: v.sourceEventId,
+    template: "medical" as const,
     title: v.title,
     date_label: v.dateLabel,
     time_label: v.timeLabel,
@@ -84,10 +75,41 @@ export async function publishGinhawaLanding(
     venue_address: v.venueAddress ?? null,
     map_url: v.mapUrl ?? null,
     book_url: v.bookUrl ?? null,
-    published: true,
-    published_at: now,
-    updated_by: admin.id,
-  });
+    published,
+    published_at: publishedAt,
+    updated_by: adminId,
+  };
+}
+
+/** Upserts the per-event landing row and marks it published. */
+export async function publishGinhawaLanding(
+  input: GinhawaLandingFormInput,
+): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const parsed = ginhawaLandingFormSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please fix the highlighted fields.",
+      fieldErrors: z.flattenError(parsed.error).fieldErrors,
+    };
+  }
+
+  const v = parsed.data;
+  const supabase = await createSupabaseServerClient();
+  const now = new Date().toISOString();
+
+  // Look up slug for revalidation of the public route.
+  const { data: event } = await supabase
+    .from("events")
+    .select("slug")
+    .eq("id", v.sourceEventId)
+    .maybeSingle<{ slug: string }>();
+
+  const { error } = await supabase.from("ginhawa_landing").upsert(
+    landingRowFromForm(v, admin.id, true, now),
+    { onConflict: "source_event_id" },
+  );
 
   if (error) {
     return { ok: false, error: friendlyDbError(error.message, "Failed to publish the landing page.") };
@@ -95,19 +117,33 @@ export async function publishGinhawaLanding(
 
   revalidatePath(GINHAWA_PATH);
   revalidatePath(`${GINHAWA_PATH}/${v.sourceEventId}`);
+  if (event?.slug) revalidatePath(`/e/${event.slug}`);
   return { ok: true, data: undefined };
 }
 
-/** Hides the landing from Ginhawa without deleting the snapshot. */
-export async function unpublishGinhawaLanding(): Promise<ActionResult> {
+/** Hides one event's landing without deleting the snapshot. */
+export async function unpublishGinhawaLanding(
+  sourceEventId: string,
+): Promise<ActionResult> {
   await requireAdmin();
+  if (!z.string().uuid().safeParse(sourceEventId).success) {
+    return { ok: false, error: "Invalid event." };
+  }
+
   const supabase = await createSupabaseServerClient();
 
-  const { data: existing, error: loadError } = await supabase
-    .from("ginhawa_landing")
-    .select("id")
-    .eq("id", true)
-    .maybeSingle<Pick<GinhawaLandingRow, "id">>();
+  const [{ data: existing, error: loadError }, { data: event }] = await Promise.all([
+    supabase
+      .from("ginhawa_landing")
+      .select("id, source_event_id")
+      .eq("source_event_id", sourceEventId)
+      .maybeSingle<Pick<GinhawaLandingRow, "id" | "source_event_id">>(),
+    supabase
+      .from("events")
+      .select("slug")
+      .eq("id", sourceEventId)
+      .maybeSingle<{ slug: string }>(),
+  ]);
 
   if (loadError) return { ok: false, error: friendlyDbError(loadError.message) };
   if (!existing) return { ok: true, data: undefined };
@@ -115,12 +151,14 @@ export async function unpublishGinhawaLanding(): Promise<ActionResult> {
   const { error } = await supabase
     .from("ginhawa_landing")
     .update({ published: false })
-    .eq("id", true);
+    .eq("source_event_id", sourceEventId);
 
   if (error) {
     return { ok: false, error: friendlyDbError(error.message, "Failed to unpublish the landing page.") };
   }
 
   revalidatePath(GINHAWA_PATH);
+  revalidatePath(`${GINHAWA_PATH}/${sourceEventId}`);
+  if (event?.slug) revalidatePath(`/e/${event.slug}`);
   return { ok: true, data: undefined };
 }

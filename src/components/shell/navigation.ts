@@ -48,7 +48,7 @@ export const memberNavigation: NavigationItem[] = [
 export const adminNavigation: NavigationItem[] = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true, mobilePrimary: true },
   { href: "/admin/events", label: "Events", icon: CalendarDays, mobilePrimary: true },
-  { href: "/admin/ginhawa", label: "Ginhawa", icon: Stethoscope },
+  { href: "/admin/ginhawa", label: "Landings", icon: Stethoscope },
   { href: "/admin/calendar", label: "Calendar", icon: CalendarRange },
   { href: "/admin/prospects", label: "Prospects", icon: Users, mobilePrimary: true },
   { href: "/admin/commissions", label: "Commissions", icon: Coins },

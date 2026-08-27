@@ -16,6 +16,8 @@ export type ReferralEventItem = {
   meta: string;
   eventType: EventType;
   refCode: string | null;
+  /** Published medical landing slug — share URL becomes /e/[slug]?ref=. */
+  landingSlug: string | null;
 };
 
 /** A referral link that has no published-event row of its own (general or old-event links). */
@@ -105,6 +107,7 @@ export function ReferralLinksView({
                 eventTitle={row.event.title}
                 eventMeta={row.event.meta}
                 initialRefCode={row.event.refCode}
+                landingSlug={row.event.landingSlug}
               />
             ) : (
               <Card key={row.key} className="grid gap-3 p-4 min-[420px]:flex min-[420px]:items-center min-[420px]:justify-between">

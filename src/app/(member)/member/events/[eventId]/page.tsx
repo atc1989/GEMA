@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/card";
 import { getCurrentMember } from "@/lib/auth/require-member";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
 import { eventHasEnded } from "@/lib/event-time-filter";
+import { getPublishedLandingPath } from "@/lib/ginhawa/landing-path";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { slugify } from "@/lib/utils/slug";
@@ -81,6 +82,8 @@ export default async function MemberEventPage({
 
   if (!row) notFound();
   const event = mapEventRow(row);
+  const landingPath = await getPublishedLandingPath(event.id);
+  const sharePath = landingPath ?? `/invite/${event.id}`;
 
   const speakers: InviteSpeaker[] = (speakerRows ?? []).map((s) => ({
     id: s.id,
@@ -171,11 +174,13 @@ export default async function MemberEventPage({
             Share this event
           </p>
           <p className="mt-1 text-sm font-semibold text-muted-foreground">
-            Anyone who scans this lands on the public invite page.
+            {landingPath
+              ? "Anyone who scans this lands on the public event landing page."
+              : "Anyone who scans this lands on the public invite page."}
           </p>
         </div>
         <QrDownload
-          path={`/invite/${event.id}`}
+          path={sharePath}
           fileName={`${slugify(event.title)}-qr`}
         />
       </Card>

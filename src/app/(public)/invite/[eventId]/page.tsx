@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { CalendarX, Gift, Ticket } from "lucide-react";
+import { redirect } from "next/navigation";
 
 import { EventInviteDetails, type InviteSpeaker } from "@/components/event/event-invite-details";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
+import { getPublishedLandingPath } from "@/lib/ginhawa/landing-path";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +27,13 @@ export default async function InviteLandingPage({
 }) {
   const { eventId } = await params;
   const { ref } = await searchParams;
+
+  // Medical events with a published landing use /e/[slug] as the public front door.
+  const landingPath = await getPublishedLandingPath(eventId);
+  if (landingPath) {
+    const qs = ref ? `?ref=${encodeURIComponent(ref)}` : "";
+    redirect(`${landingPath}${qs}`);
+  }
 
   const supabase = await createSupabaseServerClient();
 

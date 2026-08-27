@@ -75,7 +75,7 @@ export function GinhawaLandingForm({
         <div>
           <h2 className="text-sm font-black tracking-tight">Landing copy</h2>
           <p className="mt-1 text-xs font-semibold text-muted-foreground">
-            Prefill from {eventTitle}. Edits stay on Ginhawa and do not change the event.
+            Prefill from {eventTitle}. Medical template. Edits do not change the event record.
           </p>
         </div>
 
@@ -97,16 +97,16 @@ export function GinhawaLandingForm({
         </Field>
 
         <Field
-          label="Book my seat URL"
+          label="Book my seat URL (legacy)"
           htmlFor="bookUrl"
           error={errors.bookUrl?.message}
-          hint="Ginhawa hero button opens this link. Prefills to this event's public registration form. Leave blank to hide the button."
+          hint="GEMA /e/[slug] always sends Book my seat to /register for this event (with ?ref=). This field is kept for the standalone Ginhawa site during migration."
         >
           <Input
             id="bookUrl"
             type="text"
             inputMode="url"
-            placeholder="https://gema-ivory.vercel.app/register/…"
+            placeholder="/register/… or https://…"
             {...register("bookUrl")}
           />
         </Field>
@@ -290,7 +290,7 @@ export function GinhawaLandingForm({
       <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" variant="brand" disabled={pending}>
           {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
-          Publish to Ginhawa
+          Publish landing
         </Button>
       </div>
     </form>
