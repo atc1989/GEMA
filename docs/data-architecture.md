@@ -5,6 +5,11 @@ Supabase-backed model for public registration, authenticated member activity,
 admin event management, MLM genealogy, referral attribution, QR check-ins,
 commission calculation, and notifications.
 
+**Shared identity (GEMA + Academy + Lifestyle):** see
+[`docs/unified-profile.md`](./unified-profile.md). `gema.profiles` stays the
+GEMA-shaped compatibility row until that cutover. Do not add more
+cross-product columns here.
+
 ## Existing Supabase Project
 
 The current Supabase project already has `profiles`, `products`, `orders`,

@@ -83,6 +83,10 @@ on conflict (id) do update set role = 'admin', is_admin = true;
 
 Then sign in at `/login` and manage events at `/admin/events`.
 
+Shared identity with Academy and Lifestyle is specified in
+[`docs/unified-profile.md`](./docs/unified-profile.md). Do not add a second
+Auth project or a second `profiles` table for those apps.
+
 ## Getting Started
 
 First, run the development server:
