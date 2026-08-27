@@ -76,6 +76,9 @@ Apply these SQL files once (after `schema.sql`), in the Supabase SQL editor:
   `medical`, `sizzle`, and `session` for GEMA `/e/[slug]` layouts. Updates
   legacy `get_ginhawa_landing()` to prefer medical, then latest published.
 
+Hosts/admins can preview drafts at `/e/[slug]/preview` (noindex). The public
+events list and invite/referral paths prefer `/e/[slug]` when a landing is live.
+
 Auth uses cookie-based sessions via `@supabase/ssr`; `src/middleware.ts` refreshes
 the session and gates `/admin/*` (unauthenticated users are redirected to `/login`).
 

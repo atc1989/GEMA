@@ -28,7 +28,7 @@ export default async function InviteLandingPage({
   const { eventId } = await params;
   const { ref } = await searchParams;
 
-  // Medical events with a published landing use /e/[slug] as the public front door.
+  // Events with a published landing use /e/[slug] as the public front door.
   const landingPath = await getPublishedLandingPath(eventId);
   if (landingPath) {
     const qs = ref ? `?ref=${encodeURIComponent(ref)}` : "";

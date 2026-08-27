@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { GinhawaLandingForm } from "@/components/ginhawa/ginhawa-landing-form";
 import { loadGinhawaLandingForm } from "@/lib/ginhawa/load";
+import { LANDING_TEMPLATE_META, asLandingTemplate } from "@/lib/ginhawa/templates";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function AdminGinhawaEventPage({
@@ -22,6 +23,10 @@ export default async function AdminGinhawaEventPage({
     .eq("id", eventId)
     .maybeSingle<{ slug: string }>();
 
+  const template = asLandingTemplate(loaded.values.template);
+  const previewHref = event?.slug ? `/e/${event.slug}/preview` : null;
+  const liveHref = loaded.published && event?.slug ? `/e/${event.slug}` : null;
+
   return (
     <div className="grid gap-4">
       <Link
@@ -34,13 +39,27 @@ export default async function AdminGinhawaEventPage({
       <div>
         <h2 className="text-lg font-black tracking-tight">Edit landing copy</h2>
         <p className="mt-1 text-sm font-semibold text-muted-foreground">
-          Prefill from {loaded.eventTitle}. Medical template. Edits do not change the event record
-          itself.
-          {loaded.published && event?.slug ? (
+          Prefill from {loaded.eventTitle}. Template: {LANDING_TEMPLATE_META[template].label}.
+          Edits do not change the event record itself.
+          {previewHref ? (
             <>
               {" "}
               <Link
-                href={`/e/${event.slug}`}
+                href={previewHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-bold text-brand"
+              >
+                Preview draft
+                <ExternalLink className="size-3.5" aria-hidden="true" />
+              </Link>
+            </>
+          ) : null}
+          {liveHref ? (
+            <>
+              {" · "}
+              <Link
+                href={liveHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 font-bold text-brand"

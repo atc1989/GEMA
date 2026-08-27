@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { GinhawaEmpty, GinhawaLanding } from "@/components/landing/ginhawa-landing";
-import { SessionLanding } from "@/components/landing/session-landing";
-import { SizzleLanding } from "@/components/landing/sizzle-landing";
+import { EventLandingView } from "@/components/landing/event-landing-view";
 import { getPublishedLandingBySlug } from "@/lib/ginhawa/load-public";
-import { asLandingTemplate } from "@/lib/ginhawa/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -49,16 +46,5 @@ export default async function EventLandingPage({
     notFound();
   }
 
-  const template = asLandingTemplate(landing.template);
-
-  switch (template) {
-    case "sizzle":
-      return <SizzleLanding landing={landing} />;
-    case "session":
-      return <SessionLanding landing={landing} />;
-    case "medical":
-      return <GinhawaLanding landing={landing} />;
-    default:
-      return <GinhawaEmpty />;
-  }
+  return <EventLandingView landing={landing} />;
 }

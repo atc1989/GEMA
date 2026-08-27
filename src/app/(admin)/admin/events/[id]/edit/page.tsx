@@ -77,7 +77,14 @@ export default async function EditEventPage({
           Update the details below and save your changes.
         </p>
       </div>
-      <EventForm mode="edit" eventId={event.id} defaultValues={defaultValues} />
+      <EventForm
+        mode="edit"
+        eventId={event.id}
+        defaultValues={defaultValues}
+        landingPreviewHref={
+          landing?.enabled && event.slug ? `/e/${event.slug}/preview` : null
+        }
+      />
     </div>
   );
 }

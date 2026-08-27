@@ -114,7 +114,7 @@ export async function publishGinhawaLanding(
       .maybeSingle<{ template: string | null }>(),
   ]);
 
-  const template = existing?.template || "medical";
+  const template = v.template || existing?.template || "medical";
 
   const { error } = await supabase.from("ginhawa_landing").upsert(
     landingRowFromForm(v, admin.id, true, now, template),

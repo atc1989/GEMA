@@ -38,10 +38,20 @@ const EVENT_TYPES: EventFormInput["eventType"][] = [
 ];
 
 type EventFormProps =
-  | { mode: "create"; eventId?: undefined; defaultValues?: Partial<EventFormInput> }
-  | { mode: "edit"; eventId: string; defaultValues: Partial<EventFormInput> };
+  | {
+      mode: "create";
+      eventId?: undefined;
+      defaultValues?: Partial<EventFormInput>;
+      landingPreviewHref?: never;
+    }
+  | {
+      mode: "edit";
+      eventId: string;
+      defaultValues: Partial<EventFormInput>;
+      landingPreviewHref?: string | null;
+    };
 
-export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
+export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: EventFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [template, setTemplate] = useState<PosterTemplateId>(
@@ -324,6 +334,7 @@ export function EventForm({ mode, eventId, defaultValues }: EventFormProps) {
           errors={errors}
           setValue={setValue}
           getValues={getValues}
+          previewHref={landingPreviewHref}
         />
 
         {errors.root?.message ? (

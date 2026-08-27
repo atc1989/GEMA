@@ -33,6 +33,8 @@ type Props = {
   errors: FieldErrors<EventFormInput>;
   setValue: UseFormSetValue<EventFormInput>;
   getValues: UseFormGetValues<EventFormInput>;
+  /** Host/admin draft preview path, e.g. /e/[slug]/preview */
+  previewHref?: string | null;
 };
 
 /**
@@ -45,6 +47,7 @@ export function MedicalLandingFields({
   errors,
   setValue,
   getValues,
+  previewHref,
 }: Props) {
   const enabled = useWatch({ control, name: "landing.enabled" }) ?? false;
   const template = (useWatch({ control, name: "landing.template" }) ??
@@ -80,6 +83,19 @@ export function MedicalLandingFields({
           <p className="mt-1 text-xs font-semibold text-muted-foreground">
             Optional public page at <span className="font-mono">/e/[slug]</span>. Goes live when
             this event is published.
+            {previewHref ? (
+              <>
+                {" "}
+                <a
+                  href={previewHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-brand"
+                >
+                  Preview draft
+                </a>
+              </>
+            ) : null}
           </p>
         </div>
         <label className="flex cursor-pointer items-center gap-2 text-sm font-bold">

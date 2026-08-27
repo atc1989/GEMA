@@ -61,12 +61,19 @@ const NAME_SUGGESTIONS: { label: string; type: EventFormInput["eventType"] }[] =
 
 type MemberEventFormProps = {
   selfName?: string;
+  landingPreviewHref?: string | null;
 } & (
   | { mode: "create"; eventId?: undefined; defaultValues?: Partial<EventFormInput> }
   | { mode: "edit"; eventId: string; defaultValues: Partial<EventFormInput> }
 );
 
-export function MemberEventForm({ mode, eventId, defaultValues, selfName }: MemberEventFormProps) {
+export function MemberEventForm({
+  mode,
+  eventId,
+  defaultValues,
+  selfName,
+  landingPreviewHref,
+}: MemberEventFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -392,6 +399,7 @@ export function MemberEventForm({ mode, eventId, defaultValues, selfName }: Memb
           errors={errors}
           setValue={setValue}
           getValues={getValues}
+          previewHref={landingPreviewHref}
         />
 
         {errors.root?.message ? (

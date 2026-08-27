@@ -6,6 +6,7 @@ import { EventStatusBadge } from "@/components/event/event-status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LinkSpinner } from "@/components/ui/link-pending";
 import { mapLandingRow, type GinhawaLandingRow } from "@/lib/ginhawa/prefill";
+import { LANDING_TEMPLATE_META, asLandingTemplate } from "@/lib/ginhawa/templates";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatEventDateTime } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
@@ -50,7 +51,7 @@ export default async function AdminGinhawaPage() {
       <div>
         <h2 className="text-lg font-black tracking-tight">Event landings</h2>
         <p className="mt-1 text-sm font-semibold text-muted-foreground">
-          Medical template for now. Each event can have its own public page at{" "}
+          Medical, Sizzle, or Session templates. Each event can have its own public page at{" "}
           <span className="font-mono text-xs">/e/[slug]</span>. Publish here to make it live;
           referral links will point to that page.
         </p>
@@ -87,6 +88,9 @@ export default async function AdminGinhawaPage() {
             {events.map((event) => {
               const landing = landingByEvent.get(event.id);
               const live = Boolean(landing?.published);
+              const template = landing
+                ? asLandingTemplate(landing.template)
+                : null;
               return (
                 <Link
                   key={event.id}
@@ -102,12 +106,15 @@ export default async function AdminGinhawaPage() {
                       <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
                         {formatEventDateTime(event.starts_at, event.timezone)}
                         {event.venue_name ? ` · ${event.venue_name}` : ""}
-                        {live ? " · live landing" : landing ? " · draft landing" : ""}
+                        {template
+                          ? ` · ${LANDING_TEMPLATE_META[template].label}`
+                          : ""}
+                        {live ? " · live" : landing ? " · draft" : ""}
                       </p>
-                      {live ? (
+                      {landing ? (
                         <p className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-brand">
                           <ExternalLink className="size-3" aria-hidden="true" />
-                          /e/{event.slug}
+                          {live ? `/e/${event.slug}` : `/e/${event.slug}/preview`}
                         </p>
                       ) : null}
                     </div>

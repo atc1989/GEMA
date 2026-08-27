@@ -17,7 +17,7 @@ export default async function PublicEventsPage({
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("events")
-    .select("id, title, event_type, starts_at, ends_at, timezone, venue_name, mode, description, pinned_at")
+    .select("id, title, slug, event_type, starts_at, ends_at, timezone, venue_name, mode, description, pinned_at")
     .eq("status", "published")
     .in("visibility", ["public", "company_support"])
     .or(eventTimeOrFilter())
@@ -28,7 +28,28 @@ export default async function PublicEventsPage({
     .limit(100)
     .returns<PublicEventRow[]>();
 
-  const events = data ?? [];
+  const rows = data ?? [];
+  const ids = rows.map((e) => e.id);
+  const landingSlugByEvent = new Map<string, string>();
+
+  if (ids.length > 0) {
+    const { data: landings } = await supabase
+      .from("ginhawa_landing")
+      .select("source_event_id")
+      .eq("published", true)
+      .in("source_event_id", ids)
+      .returns<{ source_event_id: string }[]>();
+
+    for (const landing of landings ?? []) {
+      const match = rows.find((e) => e.id === landing.source_event_id);
+      if (match?.slug) landingSlugByEvent.set(match.id, match.slug);
+    }
+  }
+
+  const events = rows.map((e) => ({
+    ...e,
+    landing_slug: landingSlugByEvent.get(e.id) ?? null,
+  }));
 
   return (
     <div className="grid gap-4">
