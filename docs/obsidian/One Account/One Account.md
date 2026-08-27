@@ -34,7 +34,7 @@ flowchart TB
 
 ## Always
 
-[[00 - Session gate]] — read first, every session, every next Change.  
+[[00 - Session gate]] — read first, before every task, and again after every task.  
 [[00 - Locks]] · [[01 - Decisions]] · [[02 - Architecture]] · [[03 - Identity model]] · [[04 - UX]]
 
 ## Changes (do in order)
@@ -48,7 +48,7 @@ flowchart TB
 
 ## Owner steps in only when
 
-Listed on each Change. Typical: drop this folder into OneDrive, Vercel env for Preview, custom domains, production cutover. Agents must not invent extra owner work.
+Listed on each Change. Typical: copy this folder to `C:\Users\najee\Documents\One Account\`, Vercel env for Preview, custom domains, production cutover. Agents must not invent extra owner work.
 
 ## Repos
 

@@ -11,7 +11,7 @@ tags:
 
 # Session gate
 
-**Read this file at the start of every session, and again every time you move to the next Change.** Do not implement from memory.
+**Read this file at the start of every session, before every task, and again after every task.** Do not implement from memory. Do not invent the next step.
 
 Drop path on Najee’s machine:
 
@@ -47,6 +47,16 @@ Implement only in product repos. This `One Account/` folder is the changes board
    - `GutGuard Design System/03 - Portable CSS Starter`
    - component notes for anything you render
 7. Then implement **in the product repo named by the Change**. Check the Change box only after the vault reads for that kind of work are done.
+
+## After every task
+
+Re-read [[One Account]] and the current Change note. Confirm:
+
+- what actually shipped vs what the Change still requires
+- **Current change** has not been skipped
+- the next move is the next unchecked item on this board — not a new idea
+
+If a task finishes a Change, mark it done here, then stop and re-read before starting the next Change.
 
 If the Tech Stack or Design System note and this board disagree, **stop** and ask the owner. Do not improvise a third rule.
 
