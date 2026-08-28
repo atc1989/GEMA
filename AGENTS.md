@@ -14,7 +14,7 @@ This repo is a **spoke**, and it is the identity spine. Shared login lives on GE
 4. Then the Tech Stack gate below
 5. After the task: re-read the board. Do not invent the next step. Do not skip Changes.
 
-Canonical Obsidian drop: `C:\Users\najee\Documents\One Account\`
+Canonical Obsidian drop: `C:\Users\najee\OneDrive\Documents\GutGuard\One Account\`
 Do **not** edit `GutGuard Tech Stack/` or `GutGuard Design System/`.
 
 # Stack gate
