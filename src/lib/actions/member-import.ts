@@ -3,7 +3,7 @@
 import { z } from "zod";
 
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { externalEmailForUsername } from "@/lib/integrations/onegrinders-login";
+import { externalEmailForUsername } from "@/lib/one-account";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const importRowSchema = z.object({
