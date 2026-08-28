@@ -44,7 +44,18 @@ export async function loginAction(
     password: String(formData.get("password") ?? ""),
   });
 
-  if (!outcome.ok) return outcome;
+  if (!outcome.ok) {
+    // The 6-digit code step is a Staging template quirk the spokes handle.
+    // Production Auth still emails a confirmation link, so pointing a GEMA
+    // member at a code box would be a dead end.
+    if (outcome.needsEmailConfirm) {
+      return {
+        ok: false,
+        error: "Confirm your email from the message we sent, then sign in.",
+      };
+    }
+    return { ok: false, error: outcome.error };
+  }
 
   const redirectTo = formData.get("redirectTo");
   await redirectAfterLogin(

@@ -32,6 +32,28 @@ Username or email + password behaves the same on Lifestyle, GEMA, and Academy. O
 - [x] `ONEGRINDERS_API_KEY` server-only on any app that hosts login. *(read server-side only and named in each `.env.example`; the Vercel Preview values are still owner)*
 - [ ] Prove on Staging: one OneGrinders username signs into Lifestyle, GEMA, and Academy with the same password, and an email admin login still works. *(waits on the owner env step below)*
 
+## Shipped this pass
+
+Two Change 2 branches existed — this one and `cursor/shared-login-engine-6a0d`
+(Lifestyle #17, GEMA #24, Academy #8). Lifestyle #19 merged first, so the
+mirrored module is the engine on `main` and the other three were reconciled
+into it rather than merged alongside:
+
+- The decision tree moved into `one-account/resolve.ts`, a pure function over
+  ports. Cursor's orchestration tests came with it and now cover throttle
+  order, the local-mirror fast path, the guild-outage backup, and the
+  configuration and unexpected-throw cases.
+- `one-account/client.ts` is the browser-safe half of the module; `index.ts`
+  stays server-only.
+- Staging's **Confirm signup** emails a 6-digit code, not a link. Lifestyle and
+  Academy now offer that code step after register and after an unconfirmed
+  sign-in. An unconfirmed address does not count against the throttle. GEMA
+  keeps link wording — the code is a Staging template, and GEMA is on
+  production Auth.
+- Academy: Demo Desks gone from the Staging login; a Lifestyle-shaped
+  `public.profiles` on Staging now reads as **not enrolled** rather than
+  "Academy unavailable".
+
 ## Owner steps in
 
 Add to Lifestyle and Academy **Preview** Vercel env, server-only — never `NEXT_PUBLIC_`:

@@ -2,8 +2,8 @@ import "server-only";
 
 import type { User } from "@supabase/supabase-js";
 
-import { createIdentityAdminClient, type IdentityAdminClient } from "./identity-client";
-import { isMissingTable } from "./support";
+import { createIdentityAdminClient, type IdentityAdminClient } from "./identity-client.ts";
+import { isMissingTable } from "./support.ts";
 import {
   ExternalLoginError,
   externalEmailForUsername,
@@ -16,7 +16,7 @@ import {
   verifyExternalCredentials,
   type ExternalLoginAccount,
   type ExternalLoginProvisionResult,
-} from "./onegrinders";
+} from "./onegrinders.ts";
 
 /**
  * The identity spine: one `auth.users.id` is one person, and the GEMA

@@ -2,7 +2,7 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { identitySchema } from "./support";
+import { identitySchema } from "./support.ts";
 
 /**
  * Service-role client for the shared identity spine — BYPASSES RLS. Server

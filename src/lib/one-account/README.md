@@ -28,6 +28,12 @@ Only behaviour that must be identical on every origin:
 - `login-engine.ts` — the sign-in orchestration: throttle, local-first mirror,
   external verification, backup path, session sign-in.
 
+## Two entry points
+
+- `index.ts` — the engine and the provisioner. **Server only**; importing it
+  from a client component fails the build.
+- `client.ts` — shared copy and pure helpers a login form needs in the browser.
+
 ## What is **not** in here
 
 - **UI.** No Tailwind, no shadcn, no components. Each app renders its own
