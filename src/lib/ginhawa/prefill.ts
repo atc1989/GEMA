@@ -1,5 +1,6 @@
 import type { GinhawaClinician, GinhawaLanding } from "@/lib/database/types";
 import type { GinhawaLandingFormInput } from "@/lib/schemas/ginhawa-landing";
+import type { LandingTemplate } from "@/lib/ginhawa/templates";
 import { formatLandingDate, formatLandingTime } from "@/lib/utils/format";
 
 export const DEFAULT_ASK = {
@@ -15,6 +16,56 @@ export const DEFAULT_GUT = {
     "Much of what the body does begins there — digestion, and more besides. Which is why your lifestyle shows up in how you feel.",
   gutClose: "That is a conversation to have with a doctor, not a leaflet.",
 };
+
+export type LandingCopy = typeof DEFAULT_ASK & typeof DEFAULT_GUT;
+
+/**
+ * Starting copy for the Ask / Why-attend and gut / takeaway blocks, per
+ * template. Hosts edit these per event; the point is that a Sizzle night
+ * does not open by asking when you last saw a doctor.
+ */
+export const LANDING_COPY: Record<LandingTemplate, LandingCopy> = {
+  medical: { ...DEFAULT_ASK, ...DEFAULT_GUT },
+  sizzle: {
+    askTitle: "What happens on a Sizzle night?",
+    askBody:
+      "A room, a mic, and people who have been where you are. The story of how this works, told straight, by the ones doing it.",
+    askHit: "Come and see for yourself.",
+    gutTitle: "What you leave with",
+    gutBody:
+      "A clear picture of the business, the people behind it, and whether it fits the life you already have.",
+    gutClose: "Bring someone. It is a better night with company.",
+  },
+  session: {
+    askTitle: "Who this session is for",
+    askBody:
+      "Anyone weighing up the business, and anyone already in it who wants the fundamentals done properly. We cover the model, the numbers, and the questions people actually ask.",
+    askHit: "Seats are limited, so book ahead.",
+    gutTitle: "What you leave with",
+    gutBody:
+      "The material covered on the day, and straight answers to whatever you walked in unsure about.",
+    gutClose: "Questions are welcome throughout, not saved for the end.",
+  },
+};
+
+/** Default Ask/gut copy for a template. */
+export function landingCopyFor(template: LandingTemplate): LandingCopy {
+  return LANDING_COPY[template] ?? LANDING_COPY.medical;
+}
+
+/**
+ * True when `copy` still matches the untouched defaults of some template —
+ * i.e. the host has not written their own words yet, so swapping templates
+ * may safely replace it. Blank counts as untouched.
+ */
+export function isDefaultLandingCopy(
+  field: keyof LandingCopy,
+  value: string | null | undefined,
+): boolean {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) return true;
+  return Object.values(LANDING_COPY).some((copy) => copy[field] === trimmed);
+}
 
 /** Public GEMA origin used to prefill the Ginhawa Book CTA. Override with GEMA_PUBLIC_ORIGIN. */
 export const DEFAULT_GEMA_PUBLIC_ORIGIN = "https://gema-ivory.vercel.app";
