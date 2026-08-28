@@ -7,7 +7,7 @@ import { getCurrentMember } from "@/lib/auth/require-member";
 import { LoginForm } from "./login-form";
 
 // External login verification can wait up to 35s on the slow OneGrinders API
-// (see onegrinders-login.ts); server actions posted from this page inherit
+// (see lib/one-account/onegrinders.ts); server actions posted from this page inherit
 // this limit, so it must exceed that timeout.
 export const maxDuration = 60;
 
