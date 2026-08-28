@@ -1,5 +1,7 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+One Account (shared GutGuard login, Lifestyle hub): `docs/obsidian/One Account/`. Drop the same folder at `C:\Users\najee\Documents\One Account\`. Read `AGENTS.md` before identity work.
+
 ## Environment
 
 Create a `.env.local` in the project root:
@@ -7,6 +9,10 @@ Create a `.env.local` in the project root:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+
+# Change 1 — Staging (Preview / local): https://fxdsnacuonfvutdquogb.supabase.co
+# Production (real users, off limits until Change 1 is proven):
+# https://rvwseybgimmewuoccecu.supabase.co
 
 # Optional. Public site origin used to prefill the Ginhawa "Book my seat" URL
 # (defaults to this request's host, then https://gema-ivory.vercel.app).

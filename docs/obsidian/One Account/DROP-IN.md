@@ -1,0 +1,20 @@
+# Drop this folder on the vault
+
+This folder is the GutGuard **One Account** changes board.
+
+Put the **entire folder** here:
+
+```text
+C:\Users\najee\Documents\One Account\
+```
+
+Do **not** put it inside:
+
+- `GutGuard Tech Stack\`
+- `GutGuard Design System\`
+
+Those two vaults stay owner-only. This board lives at `C:\Users\najee\Documents\One Account\`, not inside them.
+
+After copy, open `One Account.md` in Obsidian. Current change is Change 1.
+
+Cloud agents also have this folder at `docs/obsidian/One Account/` in the three product repos so they can read it when OneDrive is not mounted.
