@@ -27,6 +27,9 @@ export type LandingCopy = typeof DEFAULT_ASK & typeof DEFAULT_GUT;
  */
 export const LANDING_COPY: Record<LandingTemplate, LandingCopy> = {
   medical: { ...DEFAULT_ASK, ...DEFAULT_GUT },
+  // Same check-up content as medical — checkup differs only in layout, so
+  // switching between the two must not rewrite the host's opening question.
+  checkup: { ...DEFAULT_ASK, ...DEFAULT_GUT },
   sizzle: {
     askTitle: "What happens on a Sizzle night?",
     askBody:
