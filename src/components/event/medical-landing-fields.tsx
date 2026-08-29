@@ -90,8 +90,8 @@ export function MedicalLandingFields({
   }, [template, getValues, setValue]);
 
   const landingErrors = errors.landing;
-  const isMedical = template === "medical";
-  const peopleLabel = isMedical ? "Clinicians" : "Speakers / hosts";
+  const isClinical = template === "medical" || template === "checkup";
+  const peopleLabel = isClinical ? "Clinicians" : "Speakers / hosts";
 
   return (
     <Card className="grid gap-4 p-5">
@@ -159,7 +159,7 @@ export function MedicalLandingFields({
               label="E-Points gift"
               htmlFor="landing-giftPoints"
               error={landingErrors?.giftPoints?.message}
-              hint={isMedical ? undefined : "Set to 0 to hide the gift block."}
+              hint={isClinical ? undefined : "Set to 0 to hide the gift block."}
             >
               <Input
                 id="landing-giftPoints"
@@ -218,7 +218,7 @@ export function MedicalLandingFields({
                 <input type="hidden" {...register(`landing.clinicians.${i}.photo`)} />
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
-                    {isMedical ? "Clinician" : "Speaker"} {i + 1}
+                    {isClinical ? "Clinician" : "Speaker"} {i + 1}
                   </p>
                   <Button type="button" variant="ghost" size="sm" onClick={() => remove(i)}>
                     <Trash2 aria-hidden="true" />
@@ -309,7 +309,7 @@ export function MedicalLandingFields({
 
           <div className="grid gap-3 rounded-xl border border-border/70 p-4">
             <p className="text-sm font-black tracking-tight">
-              {isMedical ? "Ask" : "Why attend"}
+              {isClinical ? "Ask" : "Why attend"}
             </p>
             <Field label="Heading" htmlFor="landing-askTitle">
               <Input id="landing-askTitle" {...register("landing.askTitle")} />
@@ -322,7 +322,7 @@ export function MedicalLandingFields({
             </Field>
           </div>
 
-          {isMedical ? (
+          {isClinical ? (
             <div className="grid gap-3 rounded-xl border border-border/70 p-4">
               <p className="text-sm font-black tracking-tight">Why the gut</p>
               <Field label="Heading" htmlFor="landing-gutTitle">

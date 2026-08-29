@@ -4,6 +4,7 @@ import {
   mapLandingRow,
   type GinhawaLandingRow,
 } from "@/lib/ginhawa/prefill";
+import { asLandingTemplate } from "@/lib/ginhawa/templates";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 /** Loads medical landing form defaults for an event edit page (draft or published). */
@@ -22,7 +23,7 @@ export async function loadEventLandingDefaults(
   const landing = mapLandingRow(data);
   return defaultEventLandingFields({
     enabled: true,
-    template: (landing.template as "medical" | "sizzle" | "session") || "session",
+    template: landing.template ? asLandingTemplate(landing.template) : "session",
     heroWhat: landing.heroWhat,
     giftPoints: landing.giftPoints,
     giftPeso: landing.giftPeso,

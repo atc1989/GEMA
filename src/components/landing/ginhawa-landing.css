@@ -71,16 +71,18 @@
   text-decoration: none;
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
 }
-.gg-button--primary { background: var(--gg-blue); color: var(--gg-bone); }
-.gg-button--primary:hover:not(:disabled) { background: var(--gg-blue-press); }
-.gg-button--bone { background: var(--gg-bone); color: var(--gg-ink); }
-.gg-button--bone:hover:not(:disabled) { background: var(--gg-blue); color: var(--gg-bone); }
-.gg-button--ghost {
+/* Scoped to the surface (0,2,0) so these outrank `.gg-surface a` (0,1,1).
+   Unscoped, the reset won: --primary rendered blue-on-blue and was invisible. */
+.gg-surface .gg-button--primary { background: var(--gg-blue); color: var(--gg-bone); }
+.gg-surface .gg-button--primary:hover:not(:disabled) { background: var(--gg-blue-press); }
+.gg-surface .gg-button--bone { background: var(--gg-bone); color: var(--gg-ink); }
+.gg-surface .gg-button--bone:hover:not(:disabled) { background: var(--gg-blue); color: var(--gg-bone); }
+.gg-surface .gg-button--ghost {
   background: transparent;
   border: 1px solid var(--gg-rule);
   color: var(--gg-ink);
 }
-.gg-button--secondary {
+.gg-surface .gg-button--secondary {
   border: 1px solid var(--gg-rule);
   background: rgba(252, 250, 245, 0.72);
   color: var(--gg-ink);
@@ -89,8 +91,8 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.gg-button--secondary:hover:not(:disabled) { border-color: var(--gg-blue); color: var(--gg-blue); }
-.gg-button--text {
+.gg-surface .gg-button--secondary:hover:not(:disabled) { border-color: var(--gg-blue); color: var(--gg-blue); }
+.gg-surface .gg-button--text {
   min-height: 44px;
   padding: 10px 4px;
   border-radius: 0;
@@ -102,7 +104,7 @@
   text-underline-offset: 3px;
 }
 .gg-button--wide { width: 100%; }
-.gg-button:disabled { background: var(--gg-bone-soft); color: var(--gg-ink-4); cursor: not-allowed; border-color: transparent; }
+.gg-surface .gg-button:disabled { background: var(--gg-bone-soft); color: var(--gg-ink-4); cursor: not-allowed; border-color: transparent; }
 .gg-button:active:not(:disabled) { transform: scale(0.99); }
 
 .gg-icon-btn {

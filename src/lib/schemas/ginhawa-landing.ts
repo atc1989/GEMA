@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { LANDING_TEMPLATES } from "@/lib/ginhawa/templates";
+
 const optionalText = z
   .string()
   .trim()
@@ -54,7 +56,7 @@ export const ginhawaClinicianSchema = z.object({
 
 export const ginhawaLandingFormSchema = z.object({
   sourceEventId: z.string().uuid("Pick an event to publish."),
-  template: z.enum(["medical", "sizzle", "session"]).default("medical"),
+  template: z.enum(LANDING_TEMPLATES).default("medical"),
   title: z.string().trim().min(3, "Title must be at least 3 characters.").max(200),
   dateLabel: z.string().trim().min(1, "Date is required.").max(80),
   timeLabel: z.string().trim().min(1, "Time is required.").max(40),
