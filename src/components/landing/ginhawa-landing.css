@@ -680,7 +680,10 @@
    card at every width. --lc-w is the design width: every size inside the card is
    in cqw, so the whole face scales as one piece and is pixel-exact at --lc-w.
    Retune --lc-w to resize the card; nothing inside needs touching. */
-.lc {
+/* (0,2,0) — the unclaimed card is a <button>, and `.gg-surface button` at
+   (0,1,1) was winning `background` and `border`, rendering the face
+   transparent against the bone stage. */
+.gg-surface .lc {
   --lc-w: 440px;
   position: relative;
   z-index: 1;
@@ -691,7 +694,9 @@
   container-type: inline-size;
   background: var(--lc-bg);
   border: 1px solid rgba(176, 141, 91, 0.35);
-  border-radius: 3cqw;
+  /* Flat px, not cqw: `.lc` declares the container, and an element cannot query
+     itself — the old `3cqw` here resolved to 0. 14px is the agreed ceiling. */
+  border-radius: 14px;
   overflow: hidden;
   isolation: isolate;
   box-shadow:
@@ -700,7 +705,7 @@
     0 44px 70px -34px rgba(0, 27, 117, 0.55),
     inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
-button.lc { display: block; text-align: inherit; padding: 0; }
+.gg-surface button.lc { display: block; text-align: inherit; padding: 0; }
 .lc-mark {
   position: absolute; top: 50%; left: 63%;
   transform: translateY(-50%);

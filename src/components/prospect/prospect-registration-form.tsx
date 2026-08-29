@@ -90,7 +90,9 @@ export function ProspectRegistrationForm({
           value={success.qrToken}
           code={success.passCode}
           title="Your event pass"
-          description="Show this QR at the door for check-in. Keep your confirmation code handy as a backup."
+          fileName={`GEMA-pass-${success.passCode}`}
+          autoSave
+          description="We saved this QR to your downloads. Show it at the door for check-in — if it did not save, tap Save QR below."
         />
       </div>
     );
@@ -148,7 +150,7 @@ export function ProspectRegistrationForm({
 
       <Button type="submit" variant="brand" size="lg" disabled={pending}>
         <CheckCircle2 aria-hidden="true" />
-        {pending ? "Reserving your seat…" : "Reserve my seat"}
+        {pending ? "Reserving your seatâ¦" : "Reserve my seat"}
       </Button>
     </form>
   );

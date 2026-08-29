@@ -35,7 +35,7 @@ export function MemberRsvpButton({
               setError(result.error);
               return;
             }
-            router.push(`/member/events/${eventId}`);
+            router.push(`/member/events/${eventId}?pass=new`);
             router.refresh();
           });
         }}

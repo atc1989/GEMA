@@ -49,10 +49,14 @@ const REG_STATUS: Record<string, { label: string; className: string }> = {
  */
 export default async function MemberEventPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ eventId: string }>;
+  searchParams: Promise<{ pass?: string }>;
 }) {
   const { eventId } = await params;
+  // Set only by the RSVP redirect, so revisiting the pass does not re-download.
+  const justRegistered = (await searchParams).pass === "new";
   const ctx = await getCurrentMember();
   const member = ctx!.member;
 
@@ -119,7 +123,13 @@ export default async function MemberEventPage({
             value={registration.qr_payload}
             code={registration.pass_code}
             title="Your event pass"
-            description="Show this QR code at the check-in desk."
+            fileName={`GEMA-pass-${registration.pass_code}`}
+            autoSave={justRegistered}
+            description={
+              justRegistered
+                ? "We saved this QR to your downloads. Show it at the check-in desk — if it did not save, tap Save QR below."
+                : "Show this QR code at the check-in desk."
+            }
           />
 
           <Card className="grid gap-3 p-4 text-sm">

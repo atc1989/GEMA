@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { ShieldCheck } from "lucide-react";
+import { Download, ShieldCheck } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,10 @@ type QRCodeCardProps = {
   code: string;
   title?: string;
   description?: string;
+  /** Base filename for the saved PNG, without extension. */
+  fileName?: string;
+  /** Save the PNG once, unprompted, as soon as the card mounts. */
+  autoSave?: boolean;
   className?: string;
 };
 
@@ -26,9 +31,12 @@ export function QRCodeCard({
   code,
   title = "Your event pass",
   description,
+  fileName,
+  autoSave = false,
   className,
 }: QRCodeCardProps) {
   const [src, setSrc] = useState<string | null>(null);
+  const saved = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -43,6 +51,28 @@ export function QRCodeCard({
       active = false;
     };
   }, [value]);
+
+  const save = async () => {
+    // Blob, not the data: URL — iOS Safari won't honour `download` on data:.
+    const png = await QRCode.toDataURL(value, { width: 1024, margin: 2 });
+    const href = URL.createObjectURL(await (await fetch(png)).blob());
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = `${fileName ?? `GEMA-pass-${code}`}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(href), 1000);
+  };
+
+  useEffect(() => {
+    // ponytail: ref guard, not state — Strict Mode re-runs effects in dev and
+    // would otherwise download twice.
+    if (!autoSave || saved.current) return;
+    saved.current = true;
+    // Best-effort: in-app browsers (Messenger) can swallow this silently, which
+    // is why the Save button below is always rendered.
+    void save().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSave, value]);
 
   return (
     <Card className={cn("p-5 text-center", className)}>
@@ -67,6 +97,16 @@ export function QRCodeCard({
         <ShieldCheck className="size-4" aria-hidden="true" />
         Ready for QR check-in
       </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="lg"
+        className="mt-4 w-full"
+        onClick={() => void save().catch(() => {})}
+      >
+        <Download aria-hidden="true" />
+        Save QR
+      </Button>
     </Card>
   );
 }
