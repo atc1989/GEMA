@@ -1,3 +1,4 @@
+import { cleanMedia, type LandingMedia } from "@/lib/ginhawa/media";
 import { cliniciansToRow, gemaRegisterUrl } from "@/lib/ginhawa/prefill";
 import type { EventLandingFieldsValues } from "@/lib/schemas/event";
 import { formatLandingDate, formatLandingTime } from "@/lib/utils/format";
@@ -81,9 +82,12 @@ export async function syncEventLandingFromForm(
         credentialsMd: c.credentialsMd ?? "",
       })),
     ),
-    video_url: landing.videoUrl ?? null,
-    video_length: landing.videoLength || null,
-    video_caption: landing.videoCaption || null,
+    media: cleanMedia(landing.media as LandingMedia[] | undefined),
+    // The form edits `media` only. Clearing the legacy columns on every save
+    // stops a removed slide from reappearing through the read-path fallback.
+    video_url: null,
+    video_length: null,
+    video_caption: null,
     ask_title: landing.askTitle ?? "",
     ask_body: landing.askBody ?? "",
     ask_hit: landing.askHit ?? "",

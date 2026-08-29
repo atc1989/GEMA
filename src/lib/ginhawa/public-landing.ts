@@ -1,5 +1,7 @@
 /** Public medical landing payload shape (GEMA /e/[slug] + legacy Ginhawa). */
 
+import { cleanMedia, type LandingMedia } from "@/lib/ginhawa/media";
+
 export type Clinician = {
   id: string;
   name: string;
@@ -25,6 +27,8 @@ export type PublicLanding = {
   capacity: number | null;
   seatsTaken: number;
   clinicians: Clinician[];
+  /** Carousel slides. Empty on rows saved before the carousel existed. */
+  media: LandingMedia[];
   videoUrl: string | null;
   videoLength: string | null;
   videoCaption: string | null;
@@ -90,6 +94,7 @@ export function parseLandingPayload(raw: unknown): PublicLanding | null {
     capacity: num(row.capacity),
     seatsTaken: num(row.seats_taken) ?? 0,
     clinicians: parseClinicians(row.clinicians),
+    media: cleanMedia(row.media as LandingMedia[] | null),
     videoUrl: str(row.video_url) || null,
     videoLength: str(row.video_length) || null,
     videoCaption: str(row.video_caption) || null,

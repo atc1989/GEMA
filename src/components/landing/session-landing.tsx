@@ -2,9 +2,10 @@
 
 import { Fragment } from "react";
 
+import { MediaCarousel } from "@/components/landing/media-carousel";
 import type { Clinician, PublicLanding } from "@/lib/ginhawa/public-landing";
 import { MarkdownBody } from "@/lib/ginhawa/markdown";
-import { resolveVideo } from "@/lib/ginhawa/video";
+import { landingSlides } from "@/lib/ginhawa/media";
 import { shopEntryUrl } from "@/lib/ginhawa/ecosystem";
 
 import "./session-landing.css";
@@ -29,7 +30,7 @@ function speakerLabel(p: Clinician) {
 
 /** Clean public landing for presentations, training, and business sessions. */
 export function SessionLanding({ landing }: { landing: PublicLanding }) {
-  const video = resolveVideo(landing.videoUrl);
+  const slides = landingSlides(landing);
   const shop = shopEntryUrl();
   const seats =
     landing.capacity != null ? Math.max(0, landing.capacity - landing.seatsTaken) : null;
@@ -167,29 +168,13 @@ export function SessionLanding({ landing }: { landing: PublicLanding }) {
           </section>
         )}
 
-        {video ? (
+        {slides.length ? (
           <section className="session-section">
             <div className="session-shell">
               <div className="session-section-head">
                 <h2 className="session-section-title">Watch</h2>
               </div>
-              <div className="session-map-frame">
-                {video.kind === "drive" ? (
-                  <iframe
-                    src={video.src}
-                    title={landing.videoCaption || "Event video"}
-                    allowFullScreen
-                    style={{ height: 360 }}
-                  />
-                ) : (
-                  <video controls playsInline preload="metadata" src={video.src} style={{ width: "100%", display: "block" }} />
-                )}
-              </div>
-              {landing.videoCaption ? (
-                <p className="session-section-sub" style={{ marginTop: "0.75rem" }}>
-                  {landing.videoCaption}
-                </p>
-              ) : null}
+              <MediaCarousel items={slides} label="Event media" className="session-media" />
             </div>
           </section>
         ) : null}

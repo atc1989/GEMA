@@ -1,0 +1,13 @@
+.cf-wrap { position: fixed; inset: 0; z-index: 90; pointer-events: none; overflow: hidden; }
+.cf {
+  position: absolute;
+  top: 30%;
+  border-radius: 2px;
+  animation-name: cf-fall;
+  animation-timing-function: cubic-bezier(0.15, 0.6, 0.4, 1);
+  animation-fill-mode: forwards;
+}
+@keyframes cf-fall {
+  0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+  100% { transform: translate(var(--cf-tx), var(--cf-ty)) rotate(var(--cf-rot)); opacity: 0; }
+}

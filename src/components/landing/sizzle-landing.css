@@ -150,15 +150,8 @@
   color: var(--sz-gold-soft);
   font-weight: 800;
 }
-.sz-video iframe,
-.sz-video video {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border: 0;
-  border-radius: 16px;
-  background: #000;
-}
-.sz-vcap { margin: 10px 0 0; color: var(--sz-muted); font-size: 0.9rem; }
+.sz-media { --lm-bg: #000; --lm-accent: var(--sz-gold-soft); --lm-cap: var(--sz-muted); }
+.sz-media .lm-cap { font-size: 0.9rem; }
 .sz-badge {
   display: inline-flex;
   padding: 6px 12px;

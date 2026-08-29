@@ -12,6 +12,7 @@ import {
   useWatch,
 } from "react-hook-form";
 
+import { MAX_LANDING_MEDIA } from "@/lib/ginhawa/media";
 import {
   emptyClinician,
   initialsFromName,
@@ -65,6 +66,11 @@ export function MedicalLandingFields({
     control,
     name: "landing.clinicians",
   });
+  const {
+    fields: media,
+    append: appendMedia,
+    remove: removeMedia,
+  } = useFieldArray({ control, name: "landing.media" });
 
   // Suggest a template the first time the host turns landing on for this visit.
   useEffect(() => {
@@ -284,27 +290,60 @@ export function MedicalLandingFields({
           </div>
 
           <div className="grid gap-3 rounded-xl border border-border/70 p-4">
-            <p className="text-sm font-black tracking-tight">Video</p>
-            <Field
-              label="Google Drive or video URL"
-              htmlFor="landing-videoUrl"
-              error={landingErrors?.videoUrl?.message}
-            >
-              <Input
-                id="landing-videoUrl"
-                type="text"
-                inputMode="url"
-                {...register("landing.videoUrl")}
-              />
-            </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Length label" htmlFor="landing-videoLength">
-                <Input id="landing-videoLength" {...register("landing.videoLength")} />
-              </Field>
-              <Field label="Caption" htmlFor="landing-videoCaption">
-                <Input id="landing-videoCaption" {...register("landing.videoCaption")} />
-              </Field>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-black tracking-tight">Media carousel</p>
+                <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+                  Up to {MAX_LANDING_MEDIA}. Drive links embed; image URLs show as pictures.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={media.length >= MAX_LANDING_MEDIA}
+                onClick={() => appendMedia({ url: "", caption: "" })}
+              >
+                <Plus aria-hidden="true" />
+                Add
+              </Button>
             </div>
+
+            {media.length === 0 ? (
+              <p className="text-sm font-medium text-muted-foreground">None added yet.</p>
+            ) : null}
+
+            {media.map((slot, i) => (
+              <div key={slot.id} className="grid gap-3 rounded-xl border border-border/50 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+                    Slide {i + 1}
+                  </p>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => removeMedia(i)}>
+                    <Trash2 aria-hidden="true" />
+                    Remove
+                  </Button>
+                </div>
+                <Field
+                  label="Drive, video, or image URL"
+                  htmlFor={`landing-media-url-${i}`}
+                  error={landingErrors?.media?.[i]?.url?.message}
+                >
+                  <Input
+                    id={`landing-media-url-${i}`}
+                    type="text"
+                    inputMode="url"
+                    {...register(`landing.media.${i}.url`)}
+                  />
+                </Field>
+                <Field label="Caption" htmlFor={`landing-media-caption-${i}`}>
+                  <Input
+                    id={`landing-media-caption-${i}`}
+                    {...register(`landing.media.${i}.caption`)}
+                  />
+                </Field>
+              </div>
+            ))}
           </div>
 
           <div className="grid gap-3 rounded-xl border border-border/70 p-4">

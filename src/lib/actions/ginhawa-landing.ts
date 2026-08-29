@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireAdmin } from "@/lib/auth/require-admin";
+import { cleanMedia, type LandingMedia } from "@/lib/ginhawa/media";
 import {
   cliniciansToRow,
   type GinhawaLandingRow,
@@ -63,9 +64,12 @@ function landingRowFromForm(
         credentialsMd: c.credentialsMd ?? "",
       })),
     ),
-    video_url: v.videoUrl ?? null,
-    video_length: v.videoLength || null,
-    video_caption: v.videoCaption || null,
+    media: cleanMedia(v.media as LandingMedia[] | undefined),
+    // See sync-landing: `media` is the only source of truth once a landing is
+    // saved, so the legacy fallback columns must not survive the write.
+    video_url: null,
+    video_length: null,
+    video_caption: null,
     ask_title: v.askTitle ?? "",
     ask_body: v.askBody ?? "",
     ask_hit: v.askHit ?? "",

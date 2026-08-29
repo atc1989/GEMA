@@ -1,4 +1,5 @@
 import type { GinhawaClinician, GinhawaLanding } from "@/lib/database/types";
+import { cleanMedia, landingMedia, type LandingMedia } from "@/lib/ginhawa/media";
 import { asLandingTemplate } from "@/lib/ginhawa/templates";
 import type { GinhawaLandingFormInput } from "@/lib/schemas/ginhawa-landing";
 import type { LandingTemplate } from "@/lib/ginhawa/templates";
@@ -96,6 +97,7 @@ export type GinhawaLandingRow = {
   gift_peso: number;
   capacity: number | null;
   clinicians: unknown;
+  media: unknown;
   video_url: string | null;
   video_length: string | null;
   video_caption: string | null;
@@ -200,6 +202,7 @@ export function mapLandingRow(row: GinhawaLandingRow): GinhawaLanding {
     giftPeso: row.gift_peso,
     capacity: row.capacity,
     clinicians: parseClinicians(row.clinicians),
+    media: cleanMedia(row.media as LandingMedia[] | null),
     videoUrl: row.video_url,
     videoLength: row.video_length,
     videoCaption: row.video_caption,
@@ -272,9 +275,7 @@ export function landingToFormValues(
     giftPeso: landing.giftPeso,
     capacity: landing.capacity ?? "",
     clinicians: landing.clinicians.map(clinicianForm),
-    videoUrl: landing.videoUrl ?? "",
-    videoLength: landing.videoLength ?? "",
-    videoCaption: landing.videoCaption ?? "",
+    media: landingMedia(landing),
     askTitle: landing.askTitle,
     askBody: landing.askBody,
     askHit: landing.askHit,
@@ -305,9 +306,7 @@ export function eventToFormValues(
     giftPeso: copy?.giftPeso ?? 750,
     capacity: event.capacity ?? "",
     clinicians: speakersToClinicians(speakers).map(clinicianForm),
-    videoUrl: copy?.videoUrl ?? "",
-    videoLength: copy?.videoLength ?? "",
-    videoCaption: copy?.videoCaption ?? "",
+    media: copy ? landingMedia(copy) : [],
     askTitle: copy?.askTitle || DEFAULT_ASK.askTitle,
     askBody: copy?.askBody || DEFAULT_ASK.askBody,
     askHit: copy?.askHit || DEFAULT_ASK.askHit,

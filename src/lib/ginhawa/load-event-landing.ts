@@ -4,6 +4,7 @@ import {
   mapLandingRow,
   type GinhawaLandingRow,
 } from "@/lib/ginhawa/prefill";
+import { landingMedia } from "@/lib/ginhawa/media";
 import { asLandingTemplate } from "@/lib/ginhawa/templates";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -37,9 +38,7 @@ export async function loadEventLandingDefaults(
       licence: c.licence,
       credentialsMd: c.credentialsMd,
     })),
-    videoUrl: landing.videoUrl ?? "",
-    videoLength: landing.videoLength ?? "",
-    videoCaption: landing.videoCaption ?? "",
+    media: landingMedia(landing),
     askTitle: landing.askTitle,
     askBody: landing.askBody,
     askHit: landing.askHit,

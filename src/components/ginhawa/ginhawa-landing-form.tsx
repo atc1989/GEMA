@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import { publishGinhawaLanding, type FieldErrors } from "@/lib/actions/ginhawa-landing";
+import { MAX_LANDING_MEDIA } from "@/lib/ginhawa/media";
 import { emptyClinician, initialsFromName } from "@/lib/ginhawa/prefill";
 import {
   LANDING_TEMPLATE_META,
@@ -53,6 +54,11 @@ export function GinhawaLandingForm({
   const peopleLabel = isMedical ? "Clinicians" : "Speakers / hosts";
 
   const { fields, append, remove } = useFieldArray({ control, name: "clinicians" });
+  const {
+    fields: media,
+    append: appendMedia,
+    remove: removeMedia,
+  } = useFieldArray({ control, name: "media" });
 
   const applyFieldErrors = (fieldErrors?: FieldErrors) => {
     if (!fieldErrors) return;
@@ -258,23 +264,63 @@ export function GinhawaLandingForm({
       </Card>
 
       <Card className="grid gap-4 p-5">
-        <h2 className="text-sm font-black tracking-tight">Video</h2>
-        <Field
-          label="Google Drive or video URL"
-          htmlFor="videoUrl"
-          error={errors.videoUrl?.message}
-          hint="Drive share links become an embed. Direct video files play natively."
-        >
-          <Input id="videoUrl" type="text" inputMode="url" placeholder="https://drive.google.com/file/d/…" {...register("videoUrl")} />
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Length label" htmlFor="videoLength" error={errors.videoLength?.message} hint="Shown on the placeholder, e.g. 1:40">
-            <Input id="videoLength" {...register("videoLength")} />
-          </Field>
-          <Field label="Caption" htmlFor="videoCaption" error={errors.videoCaption?.message}>
-            <Input id="videoCaption" {...register("videoCaption")} />
-          </Field>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-black tracking-tight">Media carousel</h2>
+            <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+              Up to {MAX_LANDING_MEDIA}. Drive share links become an embed, direct video files
+              play natively, and image URLs show as pictures.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={media.length >= MAX_LANDING_MEDIA}
+            onClick={() => appendMedia({ url: "", caption: "" })}
+          >
+            <Plus aria-hidden="true" />
+            Add
+          </Button>
         </div>
+
+        {media.length === 0 ? (
+          <p className="text-sm font-medium text-muted-foreground">None added yet.</p>
+        ) : null}
+
+        {media.map((slot, i) => (
+          <div key={slot.id} className="grid gap-3 rounded-xl border border-border/60 p-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+                Slide {i + 1}
+              </p>
+              <Button type="button" variant="ghost" size="sm" onClick={() => removeMedia(i)}>
+                <Trash2 aria-hidden="true" />
+                Remove
+              </Button>
+            </div>
+            <Field
+              label="Drive, video, or image URL"
+              htmlFor={`media-url-${i}`}
+              error={errors.media?.[i]?.url?.message}
+            >
+              <Input
+                id={`media-url-${i}`}
+                type="text"
+                inputMode="url"
+                placeholder="https://drive.google.com/file/d/…"
+                {...register(`media.${i}.url`)}
+              />
+            </Field>
+            <Field
+              label="Caption"
+              htmlFor={`media-caption-${i}`}
+              error={errors.media?.[i]?.caption?.message}
+            >
+              <Input id={`media-caption-${i}`} {...register(`media.${i}.caption`)} />
+            </Field>
+          </div>
+        ))}
       </Card>
 
       <Card className="grid gap-4 p-5">

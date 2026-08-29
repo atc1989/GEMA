@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { MAX_LANDING_MEDIA } from "@/lib/ginhawa/media";
 import { LANDING_TEMPLATES } from "@/lib/ginhawa/templates";
 
 const optionalText = z
@@ -43,6 +44,17 @@ const nonNegInt = z
     message: "Enter a whole number of 0 or more.",
   });
 
+/** One carousel slide. Blank rows are allowed in the form and dropped on save. */
+export const landingMediaSchema = z.object({
+  url: optionalLenientUrl,
+  caption: z.string().trim().max(240).default(""),
+});
+
+export const landingMediaListSchema = z
+  .array(landingMediaSchema)
+  .max(MAX_LANDING_MEDIA, `At most ${MAX_LANDING_MEDIA} items.`)
+  .default([]);
+
 export const ginhawaClinicianSchema = z.object({
   id: z.string().trim().min(1),
   name: z.string().trim().min(1, "Name is required.").max(120),
@@ -65,9 +77,7 @@ export const ginhawaLandingFormSchema = z.object({
   giftPeso: nonNegInt,
   capacity: optionalCapacity,
   clinicians: z.array(ginhawaClinicianSchema).max(4, "At most 4 clinicians."),
-  videoUrl: optionalLenientUrl,
-  videoLength: z.string().trim().max(20).default(""),
-  videoCaption: z.string().trim().max(240).default(""),
+  media: landingMediaListSchema,
   askTitle: z.string().trim().max(200).default(""),
   askBody: z.string().trim().max(2000).default(""),
   askHit: z.string().trim().max(200).default(""),

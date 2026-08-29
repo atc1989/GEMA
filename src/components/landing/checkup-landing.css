@@ -195,43 +195,10 @@
   margin-bottom: 14px;
 }
 
-/* ---- video ---- */
+/* ---- media carousel ---- */
 .ck-meet { padding-top: 26px; }
-.ck-video { border-radius: 16px; overflow: hidden; background: var(--ck-navy); aspect-ratio: 16 / 9; }
-.ck-video video,
-.ck-video iframe { width: 100%; height: 100%; display: block; border: 0; object-fit: cover; }
-.ck-video-ph {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  place-items: center;
-  position: relative;
-  background: linear-gradient(158deg, var(--ck-brand), var(--ck-navy-d));
-}
-.ck-play {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.94);
-  color: var(--ck-navy);
-  font-size: 22px;
-  display: grid;
-  place-items: center;
-  padding-left: 4px;
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
-}
-.ck-vlen {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  padding: 4px 9px;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  font-size: 12.5px;
-  font-weight: 600;
-}
-.ck-vcap { font-size: 15px; color: var(--ck-mute); margin-top: 12px; text-align: center; }
+.ck-media { --lm-bg: var(--ck-navy); --lm-accent: var(--ck-gold); --lm-cap: var(--ck-mute); }
+.ck-media .lm-cap { text-align: center; }
 
 /* ---- ask ---- */
 .ck-ask h2 {
@@ -256,17 +223,53 @@
 
 /* ---- gut ---- */
 .ck-gut {
+  position: relative;
+  overflow: hidden;
   background: var(--ck-cream);
   border: 1px solid #e8e2d4;
-  border-radius: 18px;
-  padding: 24px 20px;
+  border-radius: 20px;
+  padding: 32px 26px 30px;
   margin: 6px 0;
+  text-align: center;
+  box-shadow: 0 18px 40px -32px rgba(14, 34, 73, 0.55);
 }
-.ck-gut-mark { width: 40px; height: 40px; margin-bottom: 12px; color: var(--ck-brand); opacity: 0.9; }
-.ck-gut-mark svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; }
-.ck-gut h3 { font-family: var(--ck-display); font-size: 21px; font-weight: 700; color: var(--ck-navy); }
-.ck-gut p { margin-top: 11px; font-size: 16px; }
-.ck-gut-close { color: var(--ck-mute); font-style: italic; }
+/* The brand mark, not a stock pulse icon — the same "g" the hero and the card
+   use. watermark.png is solid white, so it needs a brand disc under it. */
+.ck-gut-mark {
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  background: linear-gradient(150deg, var(--ck-brand), var(--ck-navy));
+  display: grid;
+  place-items: center;
+  box-shadow: 0 10px 22px -10px rgba(14, 34, 73, 0.6);
+}
+.ck-gut-mark img { display: block; height: 34px; width: auto; }
+.ck-gut h3 {
+  font-family: var(--ck-display);
+  font-size: clamp(22px, 6vw, 26px);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--ck-navy);
+}
+.ck-gut h3::after {
+  content: "";
+  display: block;
+  width: 42px;
+  height: 3px;
+  border-radius: 99px;
+  background: var(--ck-gold);
+  margin: 14px auto 0;
+}
+.ck-gut p { margin-top: 14px; font-size: 16.5px; max-width: 42ch; margin-inline: auto; }
+.ck-gut-close {
+  color: var(--ck-mute);
+  font-style: italic;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #ece5d6;
+}
 
 /* ---- steps ---- */
 .ck-step { display: flex; gap: 15px; align-items: flex-start; padding-bottom: 20px; position: relative; }
@@ -319,7 +322,7 @@
   background: var(--ck-good);
 }
 
-/* ---- the gift: an unclaimed Lifestyle Card, shown as a still ---- */
+/* ---- the gift: the Lifestyle Card, claimable on the page ---- */
 .ck-gift { border-bottom: none; }
 .ck-gift-lead { text-align: center; margin-bottom: 18px; }
 .ck-gift-eyebrow {
@@ -408,6 +411,33 @@
   text-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
 }
 .ck-lc-lbl { font-size: 10.5px; font-weight: 700; letter-spacing: 0.3em; color: rgba(223, 215, 213, 0.85); margin-top: 4px; }
+
+/* the card is a button until it is claimed */
+.ck-surface .ck-lc--tap {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  text-align: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.ck-surface .ck-lc--tap:active { transform: scale(0.99); }
+.ck-lc-claim { display: block; }
+.ck-lc-tapme {
+  display: block;
+  font-family: var(--ck-sans);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ck-gold);
+  margin-top: 4px;
+}
+.ck-lc-state--on { color: var(--ck-gold); }
+/* claimed: the name is real, so drop the dashed placeholder box */
+.ck-lc > .ck-lc-body .ck-lc-name:not(.ck-lc-claim) { border-style: solid; border-color: rgba(223, 215, 213, 0.28); }
 .ck-gift-notes { margin-top: 20px; display: grid; gap: 14px; }
 .ck-gn { display: flex; gap: 12px; align-items: flex-start; }
 .ck-gn .ck-dot { width: 9px; height: 9px; flex-shrink: 0; border-radius: 50%; background: var(--ck-gold); margin-top: 8px; }
@@ -430,21 +460,84 @@
 }
 
 /* ---- book ---- */
-.ck-book {
+/* Scoped at (0,2,1) so it outranks `.ck-wrap > section`, which was winning the
+   padding and squashing this card's contents flat against its own border. */
+.ck-wrap > section.ck-book {
   background: var(--ck-card);
   border: 1.5px solid var(--ck-line);
   border-top: 4px solid var(--ck-gold);
+  border-bottom: 1.5px solid var(--ck-line);
   border-radius: 20px;
-  padding: 26px 20px;
+  /* The gold rule reads as the card's edge, so the seat bar needs real air
+     above it — otherwise it sits right on the border. */
+  padding: 30px 22px 26px;
+  margin: 8px 0;
   box-shadow: 0 24px 50px -30px rgba(14, 34, 73, 0.45);
   scroll-margin-top: 20px;
 }
-.ck-book h3 { font-family: var(--ck-display); font-size: 23px; font-weight: 700; color: var(--ck-navy); }
-.ck-seatline { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.ck-book h3 {
+  font-family: var(--ck-display);
+  font-size: 23px;
+  font-weight: 700;
+  color: var(--ck-navy);
+  margin-bottom: 4px;
+}
+.ck-seatline { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
 .ck-seatbar { flex: 1; height: 8px; border-radius: 99px; background: #e8edf4; overflow: hidden; }
-.ck-seatbar i { display: block; height: 100%; background: var(--ck-gold); }
+.ck-seatbar i { display: block; height: 100%; background: var(--ck-gold); border-radius: 99px; }
 .ck-seatline b { font-family: var(--ck-display); font-size: 14px; color: var(--ck-gold-d); white-space: nowrap; }
 .ck-fine { font-size: 13.5px; color: var(--ck-mute); margin-top: 10px; text-align: center; line-height: 1.55; }
+/* the two fine-print lines are one paragraph to the eye — close the gap */
+.ck-fine + .ck-fine { margin-top: 2px; }
+.ck-fine--left { text-align: left; }
+
+/* ---- claim sheet ---- */
+.ck-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(14, 34, 73, 0.6);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.ck-sheet {
+  width: 100%;
+  max-width: 520px;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--ck-card);
+  border-radius: 20px 20px 0 0;
+  padding: 14px 20px calc(26px + env(safe-area-inset-bottom));
+}
+.ck-grab { width: 40px; height: 4px; border-radius: 2px; background: var(--ck-line); margin: 0 auto 16px; }
+.ck-claim-head { margin-bottom: 18px; }
+.ck-claim-head h3 {
+  font-family: var(--ck-display);
+  font-size: 23px;
+  font-weight: 700;
+  color: var(--ck-navy);
+  margin-top: 8px;
+}
+.ck-label { display: block; margin-bottom: 14px; }
+.ck-label span { display: block; font-size: 14px; font-weight: 600; color: var(--ck-mute); margin-bottom: 6px; }
+.ck-label input {
+  width: 100%;
+  font-size: 16px;
+  padding: 15px;
+  min-height: 54px;
+  border: 2px solid var(--ck-line);
+  border-radius: 13px;
+  color: var(--ck-navy);
+  background: #fff;
+}
+.ck-label input::placeholder { color: #aab6c6; }
+.ck-surface .ck-cta:disabled {
+  background: #dfe5ec;
+  color: #9aa7b8;
+  box-shadow: none;
+  cursor: not-allowed;
+}
 
 /* ---- where ---- */
 .ck-venue { background: var(--ck-card); border: 1px solid var(--ck-line); border-radius: 16px; padding: 18px; }

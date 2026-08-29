@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { LANDING_COPY, landingCopyFor } from "@/lib/ginhawa/prefill";
 import { LANDING_TEMPLATES, asLandingTemplate } from "@/lib/ginhawa/templates";
+import { landingMediaListSchema } from "@/lib/schemas/ginhawa-landing";
 
 export const eventTypeSchema = z.enum([
   "presentation",
@@ -101,9 +102,7 @@ export const eventLandingFieldsSchema = z.object({
   giftPeso: nonNegInt.default(750),
   // Allow blank name rows in the form; sync filters them out before upsert.
   clinicians: z.array(draftClinicianSchema).max(4, "At most 4 clinicians.").default([]),
-  videoUrl: optionalLenientUrl,
-  videoLength: z.string().trim().max(20).default(""),
-  videoCaption: z.string().trim().max(240).default(""),
+  media: landingMediaListSchema,
   // Fallbacks for a payload missing these keys; they track the schema's own
   // default template (session), not the medical copy.
   askTitle: z.string().trim().max(200).default(LANDING_COPY.session.askTitle),
@@ -131,9 +130,7 @@ export function defaultEventLandingFields(
     giftPoints: 750,
     giftPeso: 750,
     clinicians: [],
-    videoUrl: "",
-    videoLength: "",
-    videoCaption: "",
+    media: [],
     askTitle: copy.askTitle,
     askBody: copy.askBody,
     askHit: copy.askHit,

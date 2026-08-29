@@ -404,3 +404,9 @@
     width: 100%;
   }
 }
+
+.session-media {
+  --lm-bg: #0f172a;
+  --lm-accent: var(--session-accent);
+  --lm-cap: var(--session-muted);
+}

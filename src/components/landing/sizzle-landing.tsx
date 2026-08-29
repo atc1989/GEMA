@@ -2,9 +2,10 @@
 
 import { Fragment } from "react";
 
+import { MediaCarousel } from "@/components/landing/media-carousel";
 import type { Clinician, PublicLanding } from "@/lib/ginhawa/public-landing";
 import { MarkdownBody } from "@/lib/ginhawa/markdown";
-import { resolveVideo } from "@/lib/ginhawa/video";
+import { landingSlides } from "@/lib/ginhawa/media";
 import { shopEntryUrl } from "@/lib/ginhawa/ecosystem";
 
 import "./sizzle-landing.css";
@@ -29,7 +30,7 @@ function speakerLabel(p: Clinician) {
 
 /** High-energy public landing for Sizzle-style events. */
 export function SizzleLanding({ landing }: { landing: PublicLanding }) {
-  const video = resolveVideo(landing.videoUrl);
+  const slides = landingSlides(landing);
   const shop = shopEntryUrl();
   const seats =
     landing.capacity != null ? Math.max(0, landing.capacity - landing.seatsTaken) : null;
@@ -104,14 +105,9 @@ export function SizzleLanding({ landing }: { landing: PublicLanding }) {
           </section>
         )}
 
-        {video ? (
-          <section className="sz-video" aria-label="Event video">
-            {video.kind === "drive" ? (
-              <iframe src={video.src} title={landing.videoCaption || "Event video"} allowFullScreen />
-            ) : (
-              <video controls playsInline preload="metadata" src={video.src} />
-            )}
-            {landing.videoCaption ? <p className="sz-vcap">{landing.videoCaption}</p> : null}
+        {slides.length ? (
+          <section className="sz-video">
+            <MediaCarousel items={slides} label="Event media" className="sz-media" />
           </section>
         ) : null}
 

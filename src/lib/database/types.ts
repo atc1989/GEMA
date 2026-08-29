@@ -1,3 +1,5 @@
+import type { LandingMedia } from "@/lib/ginhawa/media";
+
 export type AppRole = "prospect" | "member" | "host" | "admin";
 export type MemberStatus = "pending" | "active" | "suspended" | "inactive";
 export type ProspectStage =
@@ -302,6 +304,7 @@ export interface GinhawaLanding {
   giftPeso: number;
   capacity: number | null;
   clinicians: GinhawaClinician[];
+  media: LandingMedia[];
   videoUrl: string | null;
   videoLength: string | null;
   videoCaption: string | null;

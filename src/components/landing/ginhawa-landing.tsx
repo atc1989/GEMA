@@ -1,11 +1,12 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
+import { MediaCarousel } from "@/components/landing/media-carousel";
 import { TopBar } from "@/components/landing/top-bar";
 import { shopEntryUrl } from "@/lib/ginhawa/ecosystem";
 import type { Clinician, GinhawaLanding } from "@/lib/ginhawa/public-landing";
 import { MarkdownBody } from "@/lib/ginhawa/markdown";
-import { resolveVideo } from "@/lib/ginhawa/video";
+import { landingSlides } from "@/lib/ginhawa/media";
 
 function IconX() {
   return (
@@ -65,7 +66,7 @@ export function GinhawaLanding({ landing }: { landing: GinhawaLanding }) {
   const seats = landing.capacity;
   const taken = landing.seatsTaken;
   const left = seats == null ? null : Math.max(seats - taken, 0);
-  const video = resolveVideo(landing.videoUrl);
+  const slides = landingSlides(landing);
   const showVenue = Boolean(landing.venueName || landing.venueAddress || landing.mapUrl);
   const showWhen = Boolean(landing.dateLabel || landing.timeLabel);
   const showWhere = showVenue || showWhen;
@@ -197,30 +198,15 @@ export function GinhawaLanding({ landing }: { landing: GinhawaLanding }) {
 
       <main className="wrap">
         <div className="meet-band">
-          <section className="meet">
-            <div
-              className={"video" + (video?.kind === "drive" ? " video--drive" : "")}
-              role="group"
-              aria-label="Video: meet the doctor and nurse"
-            >
-              {video?.kind === "drive" ? (
-                <iframe
-                  src={video.src}
-                  title={landing.videoCaption || "Event video"}
-                  allow="autoplay; encrypted-media"
-                  allowFullScreen
-                />
-              ) : video?.kind === "file" ? (
-                <video controls playsInline preload="metadata" src={video.src} />
-              ) : (
-                <div className="video-ph">
-                  <span className="play">▶</span>
-                  {landing.videoLength ? <span className="vlen">{landing.videoLength}</span> : null}
-                </div>
-              )}
-            </div>
-            {landing.videoCaption ? <p className="vcap">{landing.videoCaption}</p> : null}
-          </section>
+          {slides.length ? (
+            <section className="meet">
+              <MediaCarousel
+                items={slides}
+                label="Meet the doctor and nurse"
+                className="gg-media"
+              />
+            </section>
+          ) : null}
           <div className="ask-gut">
             {showAsk ? (
               <section className="ask">
