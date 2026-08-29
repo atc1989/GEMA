@@ -63,9 +63,11 @@
   transition: transform 0.15s ease, background 0.15s ease;
 }
 .sz-btn:hover { transform: translateY(-1px); }
-.sz-btn--solid { background: var(--sz-ink); color: var(--sz-forest-deep); margin-left: auto; }
-.sz-btn--gold { background: var(--sz-gold); color: #1a1208; }
-.sz-btn--ghost { border-color: rgba(243, 239, 230, 0.35); margin-top: 12px; }
+/* Scoped to the surface (0,2,0) so these outrank `.sz-surface a` (0,1,1).
+   Unscoped, the reset won and --solid rendered cream-on-cream: invisible. */
+.sz-surface .sz-btn--solid { background: var(--sz-ink); color: var(--sz-forest-deep); margin-left: auto; }
+.sz-surface .sz-btn--gold { background: var(--sz-gold); color: #1a1208; }
+.sz-surface .sz-btn--ghost { border-color: rgba(243, 239, 230, 0.35); margin-top: 12px; }
 
 .sz-hero { padding: clamp(40px, 8vw, 88px) clamp(16px, 4vw, 40px) 48px; }
 .sz-hero-in { max-width: 720px; }
