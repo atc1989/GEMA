@@ -1,3 +1,4 @@
+import { CheckupLanding } from "@/components/landing/checkup-landing";
 import { GinhawaEmpty, GinhawaLanding } from "@/components/landing/ginhawa-landing";
 import { SessionLanding } from "@/components/landing/session-landing";
 import { SizzleLanding } from "@/components/landing/sizzle-landing";
@@ -11,6 +12,8 @@ export function EventLandingView({ landing }: { landing: PublicLanding }) {
       return <SizzleLanding landing={landing} />;
     case "session":
       return <SessionLanding landing={landing} />;
+    case "checkup":
+      return <CheckupLanding landing={landing} />;
     case "medical":
       return <GinhawaLanding landing={landing} />;
     default:

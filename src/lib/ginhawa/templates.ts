@@ -1,6 +1,6 @@
 /** Landing page template ids shared by forms, sync, and public render. */
 
-export const LANDING_TEMPLATES = ["medical", "sizzle", "session"] as const;
+export const LANDING_TEMPLATES = ["medical", "checkup", "sizzle", "session"] as const;
 
 export type LandingTemplate = (typeof LANDING_TEMPLATES)[number];
 
@@ -11,6 +11,10 @@ export const LANDING_TEMPLATE_META: Record<
   medical: {
     label: "Medical (Ginhawa)",
     hint: "Free check-up layout with clinicians, Ask, and Why the gut.",
+  },
+  checkup: {
+    label: "Check-up (narrow)",
+    hint: "Same check-up content as Medical, but single-column and phone-first.",
   },
   sizzle: {
     label: "Sizzle",

@@ -1,4 +1,5 @@
 import type { GinhawaClinician, GinhawaLanding } from "@/lib/database/types";
+import { asLandingTemplate } from "@/lib/ginhawa/templates";
 import type { GinhawaLandingFormInput } from "@/lib/schemas/ginhawa-landing";
 import { formatLandingDate, formatLandingTime } from "@/lib/utils/format";
 
@@ -208,7 +209,7 @@ export function landingToFormValues(
 ): GinhawaLandingFormInput {
   return {
     sourceEventId: landing.sourceEventId,
-    template: (landing.template as "medical" | "sizzle" | "session") || "medical",
+    template: asLandingTemplate(landing.template),
     title: landing.title,
     dateLabel: landing.dateLabel,
     timeLabel: landing.timeLabel,
@@ -241,7 +242,7 @@ export function eventToFormValues(
 ): GinhawaLandingFormInput {
   return {
     sourceEventId: event.id,
-    template: (copy?.template as "medical" | "sizzle" | "session") || "medical",
+    template: asLandingTemplate(copy?.template),
     title: event.title,
     dateLabel: formatLandingDate(event.starts_at, event.timezone),
     timeLabel: formatLandingTime(event.starts_at, event.timezone),
