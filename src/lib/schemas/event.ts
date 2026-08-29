@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { DEFAULT_ASK, DEFAULT_GUT } from "@/lib/ginhawa/prefill";
-import { LANDING_TEMPLATES } from "@/lib/ginhawa/templates";
+import { LANDING_COPY, landingCopyFor } from "@/lib/ginhawa/prefill";
+import { LANDING_TEMPLATES, asLandingTemplate } from "@/lib/ginhawa/templates";
 
 export const eventTypeSchema = z.enum([
   "presentation",
@@ -104,12 +104,14 @@ export const eventLandingFieldsSchema = z.object({
   videoUrl: optionalLenientUrl,
   videoLength: z.string().trim().max(20).default(""),
   videoCaption: z.string().trim().max(240).default(""),
-  askTitle: z.string().trim().max(200).default(DEFAULT_ASK.askTitle),
-  askBody: z.string().trim().max(2000).default(DEFAULT_ASK.askBody),
-  askHit: z.string().trim().max(200).default(DEFAULT_ASK.askHit),
-  gutTitle: z.string().trim().max(200).default(DEFAULT_GUT.gutTitle),
-  gutBody: z.string().trim().max(2000).default(DEFAULT_GUT.gutBody),
-  gutClose: z.string().trim().max(400).default(DEFAULT_GUT.gutClose),
+  // Fallbacks for a payload missing these keys; they track the schema's own
+  // default template (session), not the medical copy.
+  askTitle: z.string().trim().max(200).default(LANDING_COPY.session.askTitle),
+  askBody: z.string().trim().max(2000).default(LANDING_COPY.session.askBody),
+  askHit: z.string().trim().max(200).default(LANDING_COPY.session.askHit),
+  gutTitle: z.string().trim().max(200).default(LANDING_COPY.session.gutTitle),
+  gutBody: z.string().trim().max(2000).default(LANDING_COPY.session.gutBody),
+  gutClose: z.string().trim().max(400).default(LANDING_COPY.session.gutClose),
 });
 
 export type EventLandingFieldsInput = z.input<typeof eventLandingFieldsSchema>;
@@ -118,9 +120,13 @@ export type EventLandingFieldsValues = z.output<typeof eventLandingFieldsSchema>
 export function defaultEventLandingFields(
   overrides?: Partial<EventLandingFieldsInput>,
 ): EventLandingFieldsInput {
+  // Copy follows the template, so a new Session landing does not open with
+  // the medical Ask block.
+  const template = asLandingTemplate(overrides?.template ?? "session");
+  const copy = landingCopyFor(template);
   return {
     enabled: false,
-    template: "session",
+    template,
     heroWhat: "",
     giftPoints: 750,
     giftPeso: 750,
@@ -128,12 +134,12 @@ export function defaultEventLandingFields(
     videoUrl: "",
     videoLength: "",
     videoCaption: "",
-    askTitle: DEFAULT_ASK.askTitle,
-    askBody: DEFAULT_ASK.askBody,
-    askHit: DEFAULT_ASK.askHit,
-    gutTitle: DEFAULT_GUT.gutTitle,
-    gutBody: DEFAULT_GUT.gutBody,
-    gutClose: DEFAULT_GUT.gutClose,
+    askTitle: copy.askTitle,
+    askBody: copy.askBody,
+    askHit: copy.askHit,
+    gutTitle: copy.gutTitle,
+    gutBody: copy.gutBody,
+    gutClose: copy.gutClose,
     ...overrides,
   };
 }

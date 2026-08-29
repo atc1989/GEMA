@@ -12,7 +12,13 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import { emptyClinician, initialsFromName } from "@/lib/ginhawa/prefill";
+import {
+  emptyClinician,
+  initialsFromName,
+  isDefaultLandingCopy,
+  landingCopyFor,
+  type LandingCopy,
+} from "@/lib/ginhawa/prefill";
 import {
   defaultLandingTemplateForEventType,
   LANDING_TEMPLATE_META,
@@ -54,6 +60,7 @@ export function MedicalLandingFields({
     "session") as LandingTemplate;
   const eventType = useWatch({ control, name: "eventType" });
   const wasEnabled = useRef(enabled);
+  const lastTemplate = useRef(template);
   const { fields, append, remove } = useFieldArray({
     control,
     name: "landing.clinicians",
@@ -68,6 +75,19 @@ export function MedicalLandingFields({
     }
     wasEnabled.current = enabled;
   }, [enabled, eventType, setValue]);
+
+  // Move the Ask / takeaway copy over to the new template's wording, but only
+  // for fields the host has left at a default. Anything they wrote is kept.
+  useEffect(() => {
+    if (lastTemplate.current === template) return;
+    lastTemplate.current = template;
+
+    const copy = landingCopyFor(template);
+    for (const field of Object.keys(copy) as (keyof LandingCopy)[]) {
+      if (!isDefaultLandingCopy(field, getValues(`landing.${field}`))) continue;
+      setValue(`landing.${field}`, copy[field], { shouldDirty: true });
+    }
+  }, [template, getValues, setValue]);
 
   const landingErrors = errors.landing;
   const isClinical = template === "medical" || template === "checkup";
