@@ -61,3 +61,16 @@ Server-only, never `NEXT_PUBLIC_`:
 
 Email + password login works without the OneGrinders key. A missing key only
 turns off the username half.
+
+## Rotating `ONEGRINDERS_API_KEY`
+
+A rejected API key and a rejected member password both come back 401 from the
+guild, and only the message tells them apart. A `credentials` verdict revokes
+that member's mirrored password, so misreading one for the other would lock
+members out a login at a time.
+
+Two guards: a 403, or a 401 whose message points at the key, is raised as
+`authorization` and falls back to the mirrored password instead of blaming the
+member; and revocation runs only on a confirmed `credentials` verdict. To
+suspend revocation entirely for the duration of a rotation, set
+`ONE_ACCOUNT_KEEP_MIRROR_ON_REVOKE=1`.
