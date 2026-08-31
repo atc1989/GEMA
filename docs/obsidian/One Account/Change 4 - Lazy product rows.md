@@ -30,6 +30,8 @@ First Lifestyle visit creates the card/member row. First Academy visit creates t
 - [ ] Academy: on authenticated visit, if no trainee/progress, create Academy-local row + member role + BASE **open**. Not completed.
 - [ ] GEMA signup / OneGrinders still must not call those inserts (already forbidden in Change 1–2).
 - [ ] Ginhawa register: Auth + person + Lifestyle row only.
+- [ ] A OneGrinders member opening Lifestyle gets a card built from their guild
+  name, without ever seeing the register form (D13).
 
 ## Owner steps in
 

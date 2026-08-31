@@ -4,6 +4,7 @@ import test from "node:test";
 import { isMissingTable, looksLikeEmail, normalizeIdentifier } from "./support.ts";
 import {
   externalEmailForUsername,
+  looksLikeKeyRejection,
   externalFullName,
   isSyntheticExternalEmail,
   memberCodeForExternalUser,
@@ -78,6 +79,17 @@ test("relative avatar paths resolve against the guild host", () => {
 
 test("usernames are compared lowercase and trimmed", () => {
   assert.equal(normalizeUsername("  NaJee "), "najee");
+});
+
+test("a 401 about the API key is not read as a bad member password", () => {
+  // Getting this wrong revokes a real member's mirrored password.
+  assert.equal(looksLikeKeyRejection("Invalid API key"), true);
+  assert.equal(looksLikeKeyRejection("Missing X-API-Key header"), true);
+  assert.equal(looksLikeKeyRejection("Forbidden"), true);
+  assert.equal(looksLikeKeyRejection("Invalid token"), true);
+  assert.equal(looksLikeKeyRejection("Invalid username or password."), false);
+  assert.equal(looksLikeKeyRejection("Wrong password"), false);
+  assert.equal(looksLikeKeyRejection(undefined), false);
 });
 
 test("a missing identity table degrades instead of failing the login", () => {

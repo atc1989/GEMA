@@ -54,8 +54,13 @@ export type ExternalLoginProvisionResult = {
 };
 
 export type ExternalLoginErrorKind =
+  /** Our server is not set up: no API key. */
   | "configuration"
+  /** The guild rejected *our* API key, not the member's password. */
+  | "authorization"
+  /** The guild rejected the member's username or password. */
   | "credentials"
+  /** The guild could not be reached, or answered with nonsense. */
   | "remote"
   | "provisioning";
 
@@ -86,6 +91,29 @@ export function isSyntheticExternalEmail(email: string) {
 
 export function memberCodeForExternalUser(userId: number) {
   return `OGG-${String(userId).padStart(6, "0")}`;
+}
+
+/**
+ * A rejected API key and a rejected member password both come back 401, and
+ * only the message tells them apart. Getting this wrong is expensive: a
+ * `credentials` verdict revokes the member's mirrored password (see
+ * `provision.ts`), so a botched key rotation would lock members out one login
+ * at a time. When the message points at the key, say so.
+ */
+export function looksLikeKeyRejection(message: string | undefined | null) {
+  if (!message) return false;
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("api key") ||
+    lower.includes("api_key") ||
+    lower.includes("apikey") ||
+    lower.includes("x-api-key") ||
+    lower.includes("forbidden") ||
+    lower.includes("not authorized") ||
+    lower.includes("unauthorized client") ||
+    lower.includes("invalid client") ||
+    lower.includes("invalid token")
+  );
 }
 
 function normalizeStatus(status: string) {
@@ -173,7 +201,13 @@ export async function verifyExternalCredentials(username: string, password: stri
     throw new ExternalLoginError("Login service returned an invalid response.", "remote");
   }
 
-  if (response.status === 401) {
+  if (response.status === 401 || response.status === 403) {
+    if (response.status === 403 || looksLikeKeyRejection(data?.message)) {
+      throw new ExternalLoginError(
+        "Login service rejected this app's credentials. Check ONEGRINDERS_API_KEY.",
+        "authorization",
+      );
+    }
     throw new ExternalLoginError("Invalid username or password.", "credentials");
   }
 
