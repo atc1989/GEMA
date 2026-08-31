@@ -286,11 +286,23 @@ async function ensureProfileAndMember(
  * local mirrored password is scrambled so the stale one stops working on the
  * next attempt — on every app, not just the one they signed into.
  */
+/**
+ * Scrambling a member's mirrored password is destructive and hard to undo, so
+ * it happens only on a verdict we trust: the guild rejected *this member*.
+ * A rejected API key, an unreachable guild, or a misconfigured server all leave
+ * the mirror alone. Set ONE_ACCOUNT_KEEP_MIRROR_ON_REVOKE=1 to suspend
+ * revocation entirely — useful while rotating the API key.
+ */
+function mirrorRevocationAllowed(error: unknown) {
+  if (process.env.ONE_ACCOUNT_KEEP_MIRROR_ON_REVOKE === "1") return false;
+  return error instanceof ExternalLoginError && error.kind === "credentials";
+}
+
 export async function syncExternalLoginInBackground(username: string, password: string) {
   try {
     await provisionOneGrindersLogin(username, password);
   } catch (error) {
-    if (error instanceof ExternalLoginError && error.kind === "credentials") {
+    if (mirrorRevocationAllowed(error)) {
       const supabase = createIdentityAdminClient();
       const { data: member } = await supabase
         .from("members")
@@ -304,7 +316,8 @@ export async function syncExternalLoginInBackground(username: string, password: 
         console.warn("[one-account] revoked stale mirrored password", { username });
       }
     } else {
-      // Remote/config hiccup: keep the mirror, the next login re-syncs.
+      // Unreachable guild, a rejected API key, or revocation suspended: keep the
+      // mirror so the member can still sign in, and re-sync on the next login.
       console.error("[one-account] background sync skipped", error);
     }
   }

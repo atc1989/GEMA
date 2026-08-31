@@ -327,6 +327,49 @@ test("a username is never sent to the email code step", async () => {
   }
 });
 
+test("a rejected API key falls back to the mirror instead of blaming the member", async () => {
+  const recorded: string[] = [];
+  let attempts = 0;
+  const result = await resolveLogin(
+    "johndoe",
+    "Secret1",
+    ports({
+      recordFailedLogin: async (id) => {
+        recorded.push(id);
+      },
+      emailForUsername: async () => "johndoe@onegrindersguild.local",
+      signInWithPassword: async () => {
+        attempts += 1;
+        return attempts === 1 ? { ok: false } : { ok: true, userId: "user-6" };
+      },
+      provisionOneGrinders: async () => {
+        throw new ExternalLoginError(
+          "Login service rejected this app's credentials. Check ONEGRINDERS_API_KEY.",
+          "authorization",
+        );
+      },
+    }),
+  );
+
+  // A botched key rotation must degrade to backup access, not lock members out.
+  assert.equal(result.ok, true);
+  if (result.ok) assert.equal(result.backupLogin, true);
+  assert.deepEqual(recorded, [], "our own misconfiguration must not spend the member's throttle");
+});
+
+test("a rejected API key with no local member says so without accusing them", async () => {
+  const result = await resolveLogin(
+    "newbie",
+    "Secret1",
+    ports({
+      provisionOneGrinders: async () => {
+        throw new ExternalLoginError("rejected", "authorization");
+      },
+    }),
+  );
+  assert.deepEqual(result, { ok: false, error: BACKUP_NO_ACCOUNT });
+});
+
 test("the provisioner's remit stays the identity spine", () => {
   // Change 4 owns Academy BASE rows and Lifestyle cards, not this engine.
   assert.deepEqual(ONEGRINDERS_PRODUCT_WRITES, ["profiles", "members"]);

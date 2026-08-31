@@ -15,7 +15,7 @@ GutGuard identity board. **Lifestyle is the hub. GEMA and Academy are spokes. On
 
 Canonical folder on Najee’s machine:
 
-`C:\Users\najee\OneDrive\Documents\GutGuard\One Account\`
+`C:\Users\najee\OneDrive\Documents\Obsidian Vault\One Account\`
 
 Copy this whole folder there (not inside Tech Stack, not inside Design System). Cloud agents read the product-repo copy at `docs/obsidian/One Account/`.
 
@@ -48,7 +48,7 @@ flowchart TB
 
 ## Owner steps in only when
 
-Listed on each Change. Typical: copy this folder to `C:\Users\najee\OneDrive\Documents\GutGuard\One Account\`, Vercel env for Preview, custom domains, production cutover. Agents must not invent extra owner work.
+Listed on each Change. Typical: copy this folder to `C:\Users\najee\OneDrive\Documents\Obsidian Vault\One Account\`, Vercel env for Preview, custom domains, production cutover. Agents must not invent extra owner work.
 
 ## Repos
 

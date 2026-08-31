@@ -117,8 +117,13 @@ export async function resolveLogin(
       email = provisioned.email;
       signInPassword = provisioned.password;
     } catch (error) {
-      if (error instanceof ExternalLoginError && error.kind === "remote") {
-        // External API unreachable — try the locally mirrored password instead.
+      if (
+        error instanceof ExternalLoginError &&
+        (error.kind === "remote" || error.kind === "authorization")
+      ) {
+        // The guild is unreachable, or it rejected *our* API key. Either way the
+        // member did nothing wrong, so fall back to the mirrored password rather
+        // than lock them out of an app they can otherwise use.
         const fallbackEmail = await ports.emailForUsername(identifier);
         if (!fallbackEmail) {
           return { ok: false, error: BACKUP_NO_ACCOUNT };
