@@ -60,12 +60,15 @@ export function GinhawaLanding({ landing }: { landing: GinhawaLanding }) {
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [holder, setHolder] = useState<Holder | null>(null);
+  const [showBar, setShowBar] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const restoreFocus = useRef<HTMLElement | null>(null);
+  const heroRef = useRef<HTMLElement>(null);
   const shop = shopEntryUrl();
   const seats = landing.capacity;
   const taken = landing.seatsTaken;
   const left = seats == null ? null : Math.max(seats - taken, 0);
+  const takenPct = seats && seats > 0 ? Math.min(100, (taken / seats) * 100) : 0;
   const slides = landingSlides(landing);
   const showVenue = Boolean(landing.venueName || landing.venueAddress || landing.mapUrl);
   const showWhen = Boolean(landing.dateLabel || landing.timeLabel);
@@ -140,6 +143,15 @@ export function GinhawaLanding({ landing }: { landing: GinhawaLanding }) {
     };
   }, [overlayOpen]);
 
+  // The bottom bar arrives once the hero is behind you, same rule as the
+  // check-up template — measured against the hero's real height, no magic px.
+  useEffect(() => {
+    const onScroll = () => setShowBar(window.scrollY > (heroRef.current?.offsetHeight ?? 0));
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const openClaim = () => {
     if (sent) return;
     setClaim(true);
@@ -156,7 +168,7 @@ export function GinhawaLanding({ landing }: { landing: GinhawaLanding }) {
     <div id="top" className="gg-surface">
       <TopBar bookUrl={landing.bookUrl} />
 
-      <header className="hero" id="event">
+      <header className="hero" id="event" ref={heroRef}>
         <img src="/watermark.png" alt="" aria-hidden="true" className="hero-g" />
         <div className="hero-in hero-grid">
           <div>
@@ -479,6 +491,41 @@ export function GinhawaLanding({ landing }: { landing: GinhawaLanding }) {
             <div className="gg-dialog-footer">
               <button className="gg-button gg-button--ghost" type="button" onClick={() => setWho(null)}>Close</button>
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Bottom Bar — one persistent CTA, paper surface, hidden at >= 900px
+          where the Top Bar already carries "Book my seat". */}
+      {landing.bookUrl ? (
+        <div className={"stick" + (showBar ? " on" : "") + (overlayOpen ? " hide" : "")}>
+          <div className="stick-in">
+            <div className="stick-grow">
+              <span className="stick-eyebrow">
+                {landing.dateLabel}
+                {landing.timeLabel ? ` · ${landing.timeLabel}` : ""}
+              </span>
+              {seats != null && left != null ? (
+                <>
+                  <div
+                    className="stick-bar"
+                    role="progressbar"
+                    aria-valuenow={taken}
+                    aria-valuemin={0}
+                    aria-valuemax={seats}
+                    aria-label={`${left} of ${seats} seats left`}
+                  >
+                    <i style={{ width: `${takenPct}%` }} />
+                  </div>
+                  <b>
+                    {left} of {seats} seats left
+                  </b>
+                </>
+              ) : null}
+            </div>
+            <a className="gg-button gg-button--primary" href={landing.bookUrl}>
+              Book my seat
+            </a>
           </div>
         </div>
       ) : null}

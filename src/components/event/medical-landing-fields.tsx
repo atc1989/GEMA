@@ -12,6 +12,7 @@ import {
   useWatch,
 } from "react-hook-form";
 
+import { MediaUploadField } from "@/components/event/media-upload-field";
 import { MAX_LANDING_MEDIA } from "@/lib/ginhawa/media";
 import {
   emptyClinician,
@@ -71,6 +72,9 @@ export function MedicalLandingFields({
     append: appendMedia,
     remove: removeMedia,
   } = useFieldArray({ control, name: "landing.media" });
+  // Watched, not read from `media`: useFieldArray's snapshot does not update
+  // when the uploader writes the poster back into the form.
+  const mediaValues = useWatch({ control, name: "landing.media" });
 
   // Suggest a template the first time the host turns landing on for this visit.
   useEffect(() => {
@@ -324,10 +328,21 @@ export function MedicalLandingFields({
                     Remove
                   </Button>
                 </div>
+                <input type="hidden" {...register(`landing.media.${i}.kind`)} />
+                <input type="hidden" {...register(`landing.media.${i}.poster`)} />
+                <MediaUploadField
+                  poster={mediaValues?.[i]?.poster}
+                  onUploaded={(m) => {
+                    setValue(`landing.media.${i}.url`, m.url, { shouldDirty: true });
+                    setValue(`landing.media.${i}.kind`, m.kind, { shouldDirty: true });
+                    setValue(`landing.media.${i}.poster`, m.poster ?? "", { shouldDirty: true });
+                  }}
+                />
                 <Field
-                  label="Drive, video, or image URL"
+                  label="Or paste a URL"
                   htmlFor={`landing-media-url-${i}`}
                   error={landingErrors?.media?.[i]?.url?.message}
+                  hint="Uploaded files play most reliably. Drive links need 'Anyone with the link'."
                 >
                   <Input
                     id={`landing-media-url-${i}`}

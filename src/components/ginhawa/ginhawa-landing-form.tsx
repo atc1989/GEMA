@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import { publishGinhawaLanding, type FieldErrors } from "@/lib/actions/ginhawa-landing";
+import { MediaUploadField } from "@/components/event/media-upload-field";
 import { MAX_LANDING_MEDIA } from "@/lib/ginhawa/media";
 import { emptyClinician, initialsFromName } from "@/lib/ginhawa/prefill";
 import {
@@ -59,6 +60,9 @@ export function GinhawaLandingForm({
     append: appendMedia,
     remove: removeMedia,
   } = useFieldArray({ control, name: "media" });
+  // Watched, not read from `media`: useFieldArray's snapshot does not update
+  // when the uploader writes the poster back into the form.
+  const mediaValues = useWatch({ control, name: "media" });
 
   const applyFieldErrors = (fieldErrors?: FieldErrors) => {
     if (!fieldErrors) return;
@@ -299,10 +303,21 @@ export function GinhawaLandingForm({
                 Remove
               </Button>
             </div>
+            <input type="hidden" {...register(`media.${i}.kind`)} />
+            <input type="hidden" {...register(`media.${i}.poster`)} />
+            <MediaUploadField
+              poster={mediaValues?.[i]?.poster}
+              onUploaded={(m) => {
+                setValue(`media.${i}.url`, m.url, { shouldDirty: true });
+                setValue(`media.${i}.kind`, m.kind, { shouldDirty: true });
+                setValue(`media.${i}.poster`, m.poster ?? "", { shouldDirty: true });
+              }}
+            />
             <Field
-              label="Drive, video, or image URL"
+              label="Or paste a URL"
               htmlFor={`media-url-${i}`}
               error={errors.media?.[i]?.url?.message}
+              hint="Uploaded files play most reliably. Drive links need 'Anyone with the link'."
             >
               <Input
                 id={`media-url-${i}`}

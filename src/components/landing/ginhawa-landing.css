@@ -920,11 +920,27 @@
   transition: transform 0.3s var(--gg-ease-out), visibility 0s linear 0.3s;
 }
 .stick.on .stick-in { transform: translateY(0); visibility: visible; transition: transform 0.3s var(--gg-ease-out); }
+.stick-grow { flex: 1; min-width: 0; }
+/* DS anatomy: eyebrow over the title, then the button. The date is the eyebrow
+   so it stays one line at 375px; seats left is the title, because that is the
+   number the CTA is arguing with.
+   Sentence case, not the uppercase micro-label cue — that cue is for section
+   labels ("WHERE AND WHEN"), and tracked caps overflow this 185px column. */
+.stick-eyebrow {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--gg-ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .stick-in b { display: block; font-size: 15px; }
 .stick-bar { height: 5px; border-radius: 99px; background: var(--gg-bone-soft); overflow: hidden; margin: 6px 0 5px; }
 .stick-bar i { display: block; height: 100%; background: var(--gg-gold); }
-.stick-in em { display: block; font-style: normal; font-size: 13px; color: var(--gg-gold); }
-.stick .gg-button { min-height: 48px; flex-shrink: 0; }
+/* Tighter than the page button: the 48px height keeps the touch target, and the
+   narrower padding buys the date line the width it needs at 375px. */
+.stick .gg-button { min-height: 48px; flex-shrink: 0; padding: 12px 14px; }
 
 .cf-wrap { position: fixed; inset: 0; z-index: 90; pointer-events: none; overflow: hidden; }
 .cf { position: absolute; top: 30%; border-radius: 2px; animation: cf 1.1s cubic-bezier(.15,.6,.4,1) forwards; }
@@ -935,6 +951,8 @@
 @media (max-width: 899px) {
   .gg-dialog-footer { flex-direction: column-reverse; }
   .gg-dialog-footer .gg-button { width: 100%; }
+  /* Clear the fixed Bottom Bar so it never covers the legal line. */
+  .close-band-in { padding-bottom: calc(150px + env(safe-area-inset-bottom)); }
 }
 
 @media (max-width: 360px) {

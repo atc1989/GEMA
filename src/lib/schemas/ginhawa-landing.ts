@@ -48,6 +48,10 @@ const nonNegInt = z
 export const landingMediaSchema = z.object({
   url: optionalLenientUrl,
   caption: z.string().trim().max(240).default(""),
+  // Both are set by the uploader, not typed by hand: `kind` comes from the
+  // file's real MIME type, `poster` from the frame grabbed at upload.
+  kind: z.enum(["video", "image"]).optional(),
+  poster: optionalLenientUrl,
 });
 
 export const landingMediaListSchema = z

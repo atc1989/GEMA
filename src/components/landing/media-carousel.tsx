@@ -23,6 +23,19 @@ export function MediaCarousel({
   const track = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState(0);
 
+  // Leaving a slide stops its video — otherwise the audio keeps playing from
+  // a slide nobody can see any more.
+  const pauseOthers = (keep: number) => {
+    track.current?.querySelectorAll("video").forEach((video, i) => {
+      if (i !== keep && !video.paused) video.pause();
+    });
+  };
+
+  const settle = (to: number) => {
+    setAt(to);
+    pauseOthers(to);
+  };
+
   if (!items.length) return null;
 
   const go = (n: number) => {
@@ -31,14 +44,14 @@ export function MediaCarousel({
     const to = Math.min(Math.max(n, 0), items.length - 1);
     // Move the dots and caption on the click, not on the scroll event the
     // smooth scroll will eventually emit — onScroll only has to catch swipes.
-    setAt(to);
+    settle(to);
     el.scrollTo({ left: to * el.clientWidth, behavior: "smooth" });
   };
 
   const onScroll = () => {
     const el = track.current;
     if (!el || !el.clientWidth) return;
-    setAt(Math.round(el.scrollLeft / el.clientWidth));
+    settle(Math.round(el.scrollLeft / el.clientWidth));
   };
 
   const many = items.length > 1;
@@ -73,7 +86,16 @@ export function MediaCarousel({
               ) : m.kind === "image" ? (
                 <img src={m.src} alt={m.caption || ""} loading={n ? "lazy" : undefined} />
               ) : (
-                <video controls playsInline preload="metadata" src={m.src} />
+                <video
+                  controls
+                  playsInline
+                  // With a poster there is a real first frame to show, so the
+                  // file itself can wait for a tap — that is bytes a guest on
+                  // mobile data does not spend to see a still.
+                  preload={m.poster ? "none" : "metadata"}
+                  poster={m.poster}
+                  src={m.src}
+                />
               )}
             </div>
           ))}
