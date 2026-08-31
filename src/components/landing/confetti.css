@@ -1,4 +1,4 @@
-.cf-wrap { position: fixed; inset: 0; z-index: 90; pointer-events: none; overflow: hidden; }
+.cf-wrap { position: fixed; inset: 0; z-index: 500; pointer-events: none; overflow: hidden; }
 .cf {
   position: absolute;
   top: 30%;

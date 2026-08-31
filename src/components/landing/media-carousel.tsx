@@ -25,6 +25,13 @@ export function MediaCarousel({
   const [at, setAt] = useState(0);
   /** Slide a click is scrolling toward, or null when the user is in control. */
   const target = useRef<number | null>(null);
+  /**
+   * Slides whose Drive iframe may mount. A Drive embed boots Google's whole
+   * player, so mounting all three on load meant three players racing on one
+   * phone — which is what left the frame black on a spinner. A slide earns its
+   * iframe when it is first reached, and keeps it so returning is instant.
+   */
+  const [booted, setBooted] = useState<number[]>([0]);
 
   // Leaving a slide stops its video — otherwise the audio keeps playing from
   // a slide nobody can see any more.
@@ -37,6 +44,7 @@ export function MediaCarousel({
   const settle = (to: number) => {
     setAt(to);
     pauseOthers(to);
+    setBooted((prev) => (prev.includes(to) ? prev : [...prev, to]));
   };
 
   if (!items.length) return null;
@@ -73,9 +81,12 @@ export function MediaCarousel({
 
   const many = items.length > 1;
   const caption = items[at]?.caption;
+  // One Drive slide sets the height for all of them, so slides never jump.
+  const hasDrive = items.some((m) => m.kind === "drive");
+  const root = ["lm", hasDrive ? "lm--drive" : "", className].filter(Boolean).join(" ");
 
   return (
-    <div className={className ? `lm ${className}` : "lm"}>
+    <div className={root}>
       <div className="lm-frame">
         <div
           className="lm-track"
@@ -95,12 +106,19 @@ export function MediaCarousel({
               aria-label={`${n + 1} of ${items.length}`}
             >
               {m.kind === "drive" ? (
-                <iframe
-                  src={m.src}
-                  title={m.caption || `Slide ${n + 1}`}
-                  allow="autoplay; encrypted-media"
-                  allowFullScreen
-                />
+                booted.includes(n) ? (
+                  <iframe
+                    src={m.src}
+                    title={m.caption || `Slide ${n + 1}`}
+                    allow="autoplay; encrypted-media"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                ) : (
+                  // Same 16/9 box, so snap geometry does not shift when the
+                  // real player takes its place.
+                  <div className="lm-idle" aria-hidden="true" />
+                )
               ) : m.kind === "image" ? (
                 <img src={m.src} alt={m.caption || ""} loading={n ? "lazy" : undefined} />
               ) : (

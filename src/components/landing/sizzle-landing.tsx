@@ -2,6 +2,7 @@
 
 import { Fragment } from "react";
 
+import { BookSheet } from "@/components/landing/book-sheet";
 import { MediaCarousel } from "@/components/landing/media-carousel";
 import type { Clinician, PublicLanding } from "@/lib/ginhawa/public-landing";
 import { MarkdownBody } from "@/lib/ginhawa/markdown";
@@ -29,7 +30,13 @@ function speakerLabel(p: Clinician) {
 }
 
 /** High-energy public landing for Sizzle-style events. */
-export function SizzleLanding({ landing }: { landing: PublicLanding }) {
+export function SizzleLanding({
+  landing,
+  refCode,
+}: {
+  landing: PublicLanding;
+  refCode?: string | null;
+}) {
   const slides = landingSlides(landing);
   const shop = shopEntryUrl();
   const seats =
@@ -158,6 +165,12 @@ export function SizzleLanding({ landing }: { landing: PublicLanding }) {
           </a>
         ) : null}
       </footer>
+
+      <BookSheet
+        eventId={landing.sourceEventId}
+        refCode={refCode}
+        giftPoints={landing.giftPoints}
+      />
     </div>
   );
 }

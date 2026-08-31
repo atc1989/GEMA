@@ -489,49 +489,8 @@
 .ck-fine { font-size: 13.5px; color: var(--ck-mute); margin-top: 10px; text-align: center; line-height: 1.55; }
 /* the two fine-print lines are one paragraph to the eye — close the gap */
 .ck-fine + .ck-fine { margin-top: 2px; }
-.ck-fine--left { text-align: left; }
 
 /* ---- claim sheet ---- */
-.ck-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  background: rgba(14, 34, 73, 0.6);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-.ck-sheet {
-  width: 100%;
-  max-width: 520px;
-  max-height: 88vh;
-  overflow-y: auto;
-  background: var(--ck-card);
-  border-radius: 20px 20px 0 0;
-  padding: 14px 20px calc(26px + env(safe-area-inset-bottom));
-}
-.ck-grab { width: 40px; height: 4px; border-radius: 2px; background: var(--ck-line); margin: 0 auto 16px; }
-.ck-claim-head { margin-bottom: 18px; }
-.ck-claim-head h3 {
-  font-family: var(--ck-display);
-  font-size: 23px;
-  font-weight: 700;
-  color: var(--ck-navy);
-  margin-top: 8px;
-}
-.ck-label { display: block; margin-bottom: 14px; }
-.ck-label span { display: block; font-size: 14px; font-weight: 600; color: var(--ck-mute); margin-bottom: 6px; }
-.ck-label input {
-  width: 100%;
-  font-size: 16px;
-  padding: 15px;
-  min-height: 54px;
-  border: 2px solid var(--ck-line);
-  border-radius: 13px;
-  color: var(--ck-navy);
-  background: #fff;
-}
-.ck-label input::placeholder { color: #aab6c6; }
 .ck-surface .ck-cta:disabled {
   background: #dfe5ec;
   color: #9aa7b8;

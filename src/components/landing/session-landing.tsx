@@ -2,6 +2,7 @@
 
 import { Fragment } from "react";
 
+import { BookSheet } from "@/components/landing/book-sheet";
 import { MediaCarousel } from "@/components/landing/media-carousel";
 import type { Clinician, PublicLanding } from "@/lib/ginhawa/public-landing";
 import { MarkdownBody } from "@/lib/ginhawa/markdown";
@@ -29,7 +30,13 @@ function speakerLabel(p: Clinician) {
 }
 
 /** Clean public landing for presentations, training, and business sessions. */
-export function SessionLanding({ landing }: { landing: PublicLanding }) {
+export function SessionLanding({
+  landing,
+  refCode,
+}: {
+  landing: PublicLanding;
+  refCode?: string | null;
+}) {
   const slides = landingSlides(landing);
   const shop = shopEntryUrl();
   const seats =
@@ -260,6 +267,12 @@ export function SessionLanding({ landing }: { landing: PublicLanding }) {
           </a>
         </div>
       ) : null}
+
+      <BookSheet
+        eventId={landing.sourceEventId}
+        refCode={refCode}
+        giftPoints={landing.giftPoints}
+      />
     </div>
   );
 }

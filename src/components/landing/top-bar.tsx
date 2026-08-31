@@ -139,7 +139,15 @@ export function TopBar({ bookUrl }: { bookUrl?: string | null }) {
             </nav>
             {bookUrl ? (
               <div className="sheet-nav-foot">
-                <a className="gg-button gg-button--primary gg-button--wide" href={bookUrl} rel="noopener noreferrer">
+                {/* Close the nav first: this CTA opens the BookSheet in place,
+                    and leaving the nav up stacks two focus traps and two
+                    scroll locks on the same page. */}
+                <a
+                  className="gg-button gg-button--primary gg-button--wide"
+                  href={bookUrl}
+                  rel="noopener noreferrer"
+                  onClick={close}
+                >
                   Book my seat
                 </a>
               </div>

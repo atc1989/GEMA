@@ -1,0 +1,219 @@
+/* Shared registration sheet, used by all four landing templates.
+
+   Specificity note: every surface resets bare elements at (0,1,1) —
+   `.gg-surface button`, `.gg-surface input`, `.ck-surface a`, `.sz-surface a`.
+   A single-class rule (0,1,0) loses to those silently, so every rule below
+   carries two classes, or a class pair plus the element. Never `!important`. */
+.bs-modal {
+  --bs-navy: #0e2249;
+  --bs-ink: #1a2740;
+  --bs-mute: #64748b;
+  --bs-line: #e9edf3;
+  --bs-gold: #f5b716;
+  --bs-bad: #b4232a;
+  --bs-sans: var(--font-sans), "Inter", system-ui, sans-serif;
+  --bs-display: var(--font-sora), "Sora", system-ui, sans-serif;
+  position: fixed;
+  inset: 0;
+  /* above every template chrome: gg .modal is 300, the top bar 100, sticks 50 */
+  z-index: 400;
+  background: rgba(14, 34, 73, 0.6);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  font-family: var(--bs-sans);
+}
+
+.bs-modal .bs-sheet {
+  width: 100%;
+  max-width: 520px;
+  max-height: 92dvh;
+  overflow-y: auto;
+  background: #fff;
+  color: var(--bs-ink);
+  border-radius: 20px 20px 0 0;
+  padding: 14px 20px calc(26px + env(safe-area-inset-bottom));
+  text-align: left;
+}
+.bs-modal .bs-sheet * {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+.bs-modal .bs-grab {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bs-line);
+  margin: 0 auto 16px;
+}
+
+.bs-sheet .bs-head {
+  margin-bottom: 18px;
+}
+.bs-sheet .bs-eyebrow {
+  font-family: var(--bs-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--bs-mute);
+}
+.bs-sheet .bs-h {
+  font-family: var(--bs-display);
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--bs-navy);
+  margin: 8px 0 0;
+}
+.bs-sheet .bs-p {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--bs-mute);
+  margin: 8px 0 0;
+}
+
+/* ---- fields ---- */
+.bs-sheet .bs-label {
+  display: block;
+  margin-bottom: 14px;
+}
+.bs-sheet .bs-label span {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bs-mute);
+  margin-bottom: 6px;
+}
+.bs-sheet .bs-label input {
+  width: 100%;
+  font-family: var(--bs-sans);
+  font-size: 16px;
+  padding: 15px;
+  min-height: 54px;
+  border: 2px solid var(--bs-line);
+  border-radius: 13px;
+  color: var(--bs-navy);
+  background: #fff;
+}
+.bs-sheet .bs-label input::placeholder {
+  color: #aab6c6;
+}
+.bs-sheet .bs-err {
+  display: block;
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bs-bad);
+  margin-top: 6px;
+}
+
+.bs-sheet .bs-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--bs-ink);
+  cursor: pointer;
+}
+.bs-sheet .bs-check input {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--bs-navy);
+}
+.bs-sheet .bs-check-soft {
+  color: var(--bs-mute);
+}
+
+.bs-sheet .bs-alert {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--bs-bad);
+  background: #fdecec;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 4px 0 0;
+}
+
+/* ---- the button. Two classes so `.gg-surface button` cannot blank it. ---- */
+.bs-sheet .bs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--bs-display);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--bs-navy);
+  background: var(--bs-gold);
+  border: none;
+  border-radius: 14px;
+  min-height: 56px;
+  padding: 0 26px;
+  cursor: pointer;
+  box-shadow: 0 10px 26px -12px rgba(0, 0, 0, 0.5);
+  transition: transform 0.08s ease;
+}
+.bs-sheet .bs-btn:active {
+  transform: scale(0.985);
+}
+.bs-sheet .bs-btn--wide {
+  width: 100%;
+  margin-top: 18px;
+}
+.bs-sheet .bs-btn:disabled {
+  background: #dfe5ec;
+  color: #9aa7b8;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.bs-sheet .bs-fine {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--bs-mute);
+  text-align: center;
+  margin: 10px 0 0;
+}
+.bs-sheet .bs-fine + .bs-fine {
+  margin-top: 6px;
+}
+.bs-sheet .bs-link {
+  color: #1f5d99;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---- booked ---- */
+.bs-sheet .bs-done {
+  text-align: center;
+}
+.bs-sheet .bs-done .bs-h,
+.bs-sheet .bs-done .bs-p {
+  text-align: center;
+}
+.bs-sheet .bs-qr {
+  display: block;
+  width: 220px;
+  height: 220px;
+  margin: 18px auto 0;
+  border: 1px solid var(--bs-line);
+  border-radius: 16px;
+  background: #fff;
+}
+.bs-sheet .bs-qr--wait {
+  background: var(--bs-line);
+}
+.bs-sheet .bs-code {
+  font-family: var(--bs-display);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--bs-navy);
+  margin-top: 12px;
+}

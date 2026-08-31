@@ -46,5 +46,5 @@ export default async function EventLandingPage({
     notFound();
   }
 
-  return <EventLandingView landing={landing} />;
+  return <EventLandingView landing={landing} refCode={ref} />;
 }

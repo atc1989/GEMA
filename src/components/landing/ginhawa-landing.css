@@ -153,27 +153,6 @@
   color: var(--gg-gold-soft);
 }
 
-.gg-field { display: grid; gap: 7px; margin-bottom: 14px; }
-.gg-field__label {
-  color: var(--gg-ink-3);
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-.gg-field__control {
-  width: 100%;
-  min-height: 52px;
-  border: 1px solid var(--gg-rule);
-  border-radius: var(--gg-r-sm);
-  background: var(--gg-paper);
-  padding: 12px 14px;
-  outline: none;
-}
-.gg-field__control:focus-visible {
-  border-color: var(--gg-blue);
-  box-shadow: 0 0 0 3px rgba(6, 8, 169, 0.14);
-}
 
 .gg-eyebrow {
   color: var(--gg-gold);
@@ -805,16 +784,16 @@
 .qr-right { flex-shrink: 0; background: #fff; padding: 10px; border-radius: var(--gg-r-md); border: 1px solid var(--gg-rule); }
 .qr-right svg { width: min(112px, 28vw); height: min(112px, 28vw); display: block; }
 
-/* ponytail: Drive's /preview draws its own progress + control bars inside the
-   frame, so a strict 16/9 box crushes them on a phone. The extra height on the
-   slide is a chrome allowance, not the media's ratio. */
 .gg-media {
   --lm-radius: var(--gg-r-md);
   --lm-bg: var(--gg-ink);
   --lm-accent: var(--gg-gold, #f5b716);
   --lm-cap: var(--gg-ink-3);
 }
-.gg-media .lm-slide { aspect-ratio: 16 / 10; }
+/* The Drive chrome allowance lives in media-carousel.css on .lm--drive now:
+   it belongs to the media type, not to this template. Applying it here gave
+   every medical slide the taller box and left Drive embeds on the other
+   templates with none — which clipped Drive's controls. */
 
 .modal {
   position: fixed; inset: 0; z-index: 300;

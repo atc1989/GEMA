@@ -117,6 +117,9 @@ export async function registerProspectForEvent(
       };
     }
 
+    // The guest only ever sees friendlyDbError(); without this line the real
+    // cause (a missing RPC, a constraint name) is lost entirely.
+    console.error("register_prospect_for_event failed:", error.code, error.message);
     // Retry once only on a pass-code/qr collision; otherwise surface a message.
     const message = error.message.toLowerCase();
     if (message.includes("uniq_event_registration_attendee")) {

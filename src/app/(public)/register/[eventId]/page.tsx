@@ -37,6 +37,9 @@ export default async function RegisterPage({
     );
   }
 
+  // Keep ?ref= on every hop out of this page, or a returning member logs in
+  // and comes back with the referral attribution stripped.
+  const selfPath = ref ? `/register/${eventId}?ref=${encodeURIComponent(ref)}` : `/register/${eventId}`;
   const landingPath = await getPublishedLandingPath(eventId);
   const backHref = landingPath
     ? ref
@@ -69,7 +72,7 @@ export default async function RegisterPage({
       <Card className="flex flex-wrap items-center justify-between gap-2 border-brand/20 bg-secondary/40 p-4">
         <p className="text-sm font-semibold">Already have a GEMA or One Grinders account?</p>
         <Link
-          href={`/login?redirectTo=${encodeURIComponent(`/register/${eventId}`)}`}
+          href={`/login?redirectTo=${encodeURIComponent(selfPath)}`}
           className="shrink-0 font-bold text-brand underline underline-offset-4 hover:text-purple"
         >
           Log in instead

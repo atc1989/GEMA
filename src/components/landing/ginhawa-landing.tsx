@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
+import { BookSheet } from "@/components/landing/book-sheet";
 import { MediaCarousel } from "@/components/landing/media-carousel";
 import { TopBar } from "@/components/landing/top-bar";
 import { shopEntryUrl } from "@/lib/ginhawa/ecosystem";
@@ -52,13 +53,16 @@ function clinicianLabel(p: Clinician) {
   return p.suffix ? `${p.name}, ${p.suffix}` : p.name;
 }
 
-type Holder = { name: string; mobile: string };
+type Holder = { name: string; passCode: string };
 
-export function GinhawaLanding({ landing }: { landing: GinhawaLanding }) {
+export function GinhawaLanding({
+  landing,
+  refCode,
+}: {
+  landing: GinhawaLanding;
+  refCode?: string | null;
+}) {
   const [who, setWho] = useState<Clinician | null>(null);
-  const [claim, setClaim] = useState(false);
-  const [name, setName] = useState("");
-  const [mobile, setMobile] = useState("");
   const [holder, setHolder] = useState<Holder | null>(null);
   const [showBar, setShowBar] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -94,9 +98,7 @@ export function GinhawaLanding({ landing }: { landing: GinhawaLanding }) {
   );
   const showAsk = Boolean(landing.askTitle || landing.askBody || landing.askHit);
   const showGut = Boolean(landing.gutTitle || landing.gutBody || landing.gutClose);
-  const sent = Boolean(holder);
-  const valid = name.trim().length > 1 && mobile.replace(/\D/g, "").length >= 10;
-  const overlayOpen = claim || Boolean(who);
+  const overlayOpen = Boolean(who);
 
   useEffect(() => {
     document.body.style.overflow = overlayOpen ? "hidden" : "";
@@ -118,7 +120,6 @@ export function GinhawaLanding({ landing }: { landing: GinhawaLanding }) {
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setClaim(false);
         setWho(null);
         return;
       }
@@ -151,18 +152,6 @@ export function GinhawaLanding({ landing }: { landing: GinhawaLanding }) {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  const openClaim = () => {
-    if (sent) return;
-    setClaim(true);
-  };
-
-  const issue = (n: string, m: string) => {
-    setHolder({ name: n.trim(), mobile: m.trim() });
-    setName(n.trim());
-    setMobile(m.trim());
-    setClaim(false);
-  };
 
   return (
     <div id="top" className="gg-surface">
@@ -281,7 +270,7 @@ export function GinhawaLanding({ landing }: { landing: GinhawaLanding }) {
                     </div>
                     <div className="lc-name">{holder.name}</div>
                     <div className="lc-state on">GUEST · PASS RESERVED</div>
-                    <div className="lc-no">{holder.mobile}</div>
+                    <div className="lc-no">{holder.passCode}</div>
                     <div className="lc-since">Issued today</div>
                     <div className="lc-row">
                       <span className="lc-pad" aria-hidden="true" />
@@ -294,7 +283,7 @@ export function GinhawaLanding({ landing }: { landing: GinhawaLanding }) {
                   </div>
                 </div>
               ) : (
-                <button className="lc" type="button" onClick={openClaim} aria-label="Claim your Ginhawa Pass">
+                <button className="lc" type="button" data-book-cta aria-label="Claim your Ginhawa Pass">
                   <img src="/watermark.png" alt="" aria-hidden="true" className="lc-mark" />
                   <div className="lc-body">
                     <span className="lc-chev" aria-hidden="true">▲</span>
@@ -425,44 +414,14 @@ export function GinhawaLanding({ landing }: { landing: GinhawaLanding }) {
         </div>
       </div>
 
-      {claim && !sent ? (
-        <div className="modal" role="dialog" aria-modal="true" aria-labelledby="claim-title" onClick={() => setClaim(false)}>
-          <div className="gg-dialog" ref={dialogRef} onClick={(e) => e.stopPropagation()}>
-            <div className="gg-dialog-header">
-              <div>
-                <div className="gg-dialog-kicker">Your Ginhawa Pass</div>
-                <h3 id="claim-title">Put your name on it</h3>
-              </div>
-              <button type="button" className="gg-icon-btn gg-icon-btn--ghost" aria-label="Close" onClick={() => setClaim(false)}>
-                <IconX />
-              </button>
-            </div>
-            <div className="gg-dialog-body">
-              <p className="fine" style={{ textAlign: "left", marginTop: 0 }}>
-                We will hold {landing.giftPoints} E-Points on your card until the event. Yours the moment you check in.
-              </p>
-              <label className="gg-field">
-                <span className="gg-field__label">Your name</span>
-                <input className="gg-field__control" value={name} onChange={(e) => setName(e.target.value)} placeholder="Juan dela Cruz" autoComplete="name" />
-              </label>
-              <label className="gg-field">
-                <span className="gg-field__label">Mobile number</span>
-                <input className="gg-field__control" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="09XX XXX XXXX" autoComplete="tel" inputMode="numeric" type="tel" />
-              </label>
-            </div>
-            <div className="gg-dialog-footer">
-              <button className="gg-button gg-button--ghost" type="button" onClick={() => setClaim(false)}>Cancel</button>
-              <button
-                className={"gg-button " + (valid ? "gg-button--primary" : "gg-button--secondary")}
-                type="button"
-                onClick={() => { if (valid) issue(name, mobile); }}
-              >
-                Claim my card
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <BookSheet
+        eventId={landing.sourceEventId}
+        refCode={refCode}
+        giftPoints={landing.giftPoints}
+        onRegistered={(booked) =>
+          setHolder({ name: booked.attendeeName, passCode: booked.passCode })
+        }
+      />
 
       {who ? (
         <div className="modal" role="dialog" aria-modal="true" aria-labelledby="cred-title" onClick={() => setWho(null)}>
