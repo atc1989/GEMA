@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef, useState } from "react";
 
 import type { MediaEmbed } from "@/lib/ginhawa/media";
@@ -22,6 +23,8 @@ export function MediaCarousel({
 }) {
   const track = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState(0);
+  /** Slide a click is scrolling toward, or null when the user is in control. */
+  const target = useRef<number | null>(null);
 
   // Leaving a slide stops its video — otherwise the audio keeps playing from
   // a slide nobody can see any more.
@@ -42,8 +45,11 @@ export function MediaCarousel({
     const el = track.current;
     if (!el) return;
     const to = Math.min(Math.max(n, 0), items.length - 1);
-    // Move the dots and caption on the click, not on the scroll event the
-    // smooth scroll will eventually emit — onScroll only has to catch swipes.
+    // Move the dots and caption on the click, then ignore the frames the smooth
+    // scroll passes through on the way. Without the target latch, onScroll
+    // overwrote this on every animation frame and the active dot walked
+    // backwards through every slide instead of jumping to the one tapped.
+    target.current = to;
     settle(to);
     el.scrollTo({ left: to * el.clientWidth, behavior: "smooth" });
   };
@@ -51,7 +57,18 @@ export function MediaCarousel({
   const onScroll = () => {
     const el = track.current;
     if (!el || !el.clientWidth) return;
-    settle(Math.round(el.scrollLeft / el.clientWidth));
+    const i = Math.round(el.scrollLeft / el.clientWidth);
+    if (target.current !== null) {
+      if (i === target.current) target.current = null; // arrived; user has it back
+      return;
+    }
+    settle(i);
+  };
+
+  // A touch beats an in-flight animation: hand control back immediately, so a
+  // swipe during a smooth scroll is never swallowed by the latch above.
+  const release = () => {
+    target.current = null;
   };
 
   const many = items.length > 1;
@@ -64,6 +81,7 @@ export function MediaCarousel({
           className="lm-track"
           ref={track}
           onScroll={onScroll}
+          onPointerDown={release}
           role="group"
           aria-roledescription="carousel"
           aria-label={label}
@@ -110,7 +128,7 @@ export function MediaCarousel({
               disabled={at === 0}
               aria-label="Previous"
             >
-              ‹
+              <ChevronLeft aria-hidden="true" />
             </button>
             <button
               type="button"
@@ -119,7 +137,7 @@ export function MediaCarousel({
               disabled={at === items.length - 1}
               aria-label="Next"
             >
-              ›
+              <ChevronRight aria-hidden="true" />
             </button>
           </>
         ) : null}
