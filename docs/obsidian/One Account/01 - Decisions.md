@@ -22,6 +22,7 @@ Frozen. Do not re-litigate inside a Change. If a Change needs a different rule, 
 | D9 | **Ginhawa register may create an email account** on the shared Auth. It must not require a OneGrinders username. OneGrinders members must not fill Ginhawa register again. |
 | D10 | **Prospects without login stay prospects** until convert or OneGrinders. |
 | D11 | **v1 session** = same password on each origin. Parent-domain cookies = Change 6. |
+| D13 | **One registration.** Account creation lives on Lifestyle only. Spokes never grow a sign-up form; they link to Lifestyle register and send the member back where they started. A OneGrinders member never registers at all — the guild username *is* the account. Product registration is not account registration: a Ginhawa event seat is booked in GEMA and stays there. |
 | D12 | **Dashboard rename** of `rvwseybgimmewuoccecu` from “GutGuard Life Style” to “GutGuard Identity” (or Production) is owner-only and can wait. |
 
 Recorded 2026-08-27 from owner direction: Lifestyle main, GEMA Auth + OneGrinders generalized, Academy/Lifestyle reset ok, one account first.

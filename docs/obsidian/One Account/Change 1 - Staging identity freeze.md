@@ -51,7 +51,7 @@ GutGuard Staging: `fxdsnacuonfvutdquogb`.
 
 ## Owner steps in
 
-**Now:** copy this `One Account` folder to `C:\Users\najee\OneDrive\Documents\GutGuard\One Account\` so Obsidian is the copy you read.
+**Now:** copy this `One Account` folder to `C:\Users\najee\OneDrive\Documents\Obsidian Vault\One Account\` so Obsidian is the copy you read.
 
 **When Preview should hit Staging:** set Vercel Preview env on Academy and Lifestyle (`NEXT_PUBLIC_SUPABASE_URL`, anon/publishable key, `NEXT_PUBLIC_SITE_URL`). Do not put service role in `NEXT_PUBLIC_`. Do not point Production at Staging.
 
