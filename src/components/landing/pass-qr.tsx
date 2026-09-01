@@ -75,7 +75,7 @@ export function PassQr({
   return (
     <div className="pq" id={id}>
       <div className="pq-left">
-        <p className="pq-eyebrow">Ipakita ito sa pintuan</p>
+        <p className="pq-eyebrow">Your Ginhawa Pass</p>
         <b className="pq-title">Show this at the door</b>
         <em className="pq-code">{passCode}</em>
         <button

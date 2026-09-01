@@ -83,8 +83,8 @@
 }
 .pq .pq-wait { border-radius: 8px; background: var(--pq-rule); }
 
-/* On a phone the QR takes a third of the row, so the copy has to give: without
-   this every line here wraps, down to "Download / QR" on two lines. */
+/* On a phone the QR would take a third of the row, so the copy has to give:
+   without this every line here wraps, down to "Download / QR" on two lines. */
 @media (max-width: 420px) {
   .pq { gap: 12px; padding: 14px; }
   .pq .pq-eyebrow { font-size: 8.5px; letter-spacing: 0.12em; }
