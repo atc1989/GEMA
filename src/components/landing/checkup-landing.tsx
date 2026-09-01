@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 
 import { BookSheet } from "@/components/landing/book-sheet";
+import { PassQr, usePassQr } from "@/components/landing/pass-qr";
 import { Confetti } from "@/components/landing/confetti";
 import { MediaCarousel } from "@/components/landing/media-carousel";
 import { shopEntryUrl } from "@/lib/ginhawa/ecosystem";
@@ -30,7 +31,7 @@ function clinicianLabel(p: Clinician) {
   return p.suffix ? `${p.name}, ${p.suffix}` : p.name;
 }
 
-type Holder = { name: string; passCode: string };
+type Holder = { name: string; passCode: string; qrToken: string };
 
 /**
  * Narrow, single-column check-up landing — the Ginhawa prototype layout.
@@ -47,6 +48,8 @@ export function CheckupLanding({
   const hero = useRef<HTMLElement>(null);
   const [showBar, setShowBar] = useState(false);
   const [holder, setHolder] = useState<Holder | null>(null);
+  // Drawn once and shared: the card face and the panel show the same QR.
+  const passQr = usePassQr(holder?.qrToken);
   const [fire, setFire] = useState(0);
 
   // The sticky bar appears once the hero is behind you.
@@ -231,6 +234,12 @@ export function CheckupLanding({
                     <div className="ck-lc-num">{landing.giftPoints}</div>
                     <div className="ck-lc-lbl">E-POINTS</div>
                   </div>
+                  {passQr ? (
+                    <span className="ck-lc-qr">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={passQr} alt="" aria-hidden="true" />
+                    </span>
+                  ) : null}
                 </div>
               </div>
             ) : (
@@ -259,6 +268,10 @@ export function CheckupLanding({
                 </div>
               </button>
             )}
+
+            {holder ? (
+              <PassQr id="pass" token={holder.qrToken} passCode={holder.passCode} />
+            ) : null}
 
             <div className="ck-gift-notes">
               <div className="ck-gn">
@@ -398,8 +411,13 @@ export function CheckupLanding({
         eventId={landing.sourceEventId}
         refCode={refCode}
         giftPoints={landing.giftPoints}
+        passAnchor="pass"
         onRegistered={(booked) => {
-          setHolder({ name: booked.attendeeName, passCode: booked.passCode });
+          setHolder({
+            name: booked.attendeeName,
+            passCode: booked.passCode,
+            qrToken: booked.qrToken,
+          });
           setFire(Date.now());
         }}
       />

@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import { BookSheet } from "@/components/landing/book-sheet";
+import { PassQr, usePassQr } from "@/components/landing/pass-qr";
 import { MediaCarousel } from "@/components/landing/media-carousel";
 import { TopBar } from "@/components/landing/top-bar";
 import { shopEntryUrl } from "@/lib/ginhawa/ecosystem";
@@ -53,7 +54,7 @@ function clinicianLabel(p: Clinician) {
   return p.suffix ? `${p.name}, ${p.suffix}` : p.name;
 }
 
-type Holder = { name: string; passCode: string };
+type Holder = { name: string; passCode: string; qrToken: string };
 
 export function GinhawaLanding({
   landing,
@@ -64,6 +65,8 @@ export function GinhawaLanding({
 }) {
   const [who, setWho] = useState<Clinician | null>(null);
   const [holder, setHolder] = useState<Holder | null>(null);
+  // Drawn once and shared: the card face and the panel show the same QR.
+  const passQr = usePassQr(holder?.qrToken);
   const [showBar, setShowBar] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const restoreFocus = useRef<HTMLElement | null>(null);
@@ -278,7 +281,14 @@ export function GinhawaLanding({
                         <div className="lc-num">{landing.giftPoints}</div>
                         <div className="lc-lbl">E-POINTS</div>
                       </div>
-                      <span className="lc-pad" aria-hidden="true" />
+                      {passQr ? (
+                        <span className="lc-qr">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={passQr} alt="" aria-hidden="true" />
+                        </span>
+                      ) : (
+                        <span className="lc-pad" aria-hidden="true" />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -308,6 +318,9 @@ export function GinhawaLanding({
                   </div>
                 </button>
               )}
+              {holder ? (
+                <PassQr id="pass" token={holder.qrToken} passCode={holder.passCode} />
+              ) : null}
             </div>
             <div>
               <div className="gift-notes">
@@ -418,8 +431,13 @@ export function GinhawaLanding({
         eventId={landing.sourceEventId}
         refCode={refCode}
         giftPoints={landing.giftPoints}
+        passAnchor="pass"
         onRegistered={(booked) =>
-          setHolder({ name: booked.attendeeName, passCode: booked.passCode })
+          setHolder({
+            name: booked.attendeeName,
+            passCode: booked.passCode,
+            qrToken: booked.qrToken,
+          })
         }
       />
 

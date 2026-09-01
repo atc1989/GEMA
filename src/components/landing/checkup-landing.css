@@ -436,6 +436,19 @@
   margin-top: 4px;
 }
 .ck-lc-state--on { color: var(--ck-gold); }
+/* The pass QR on the card face. Absolute so it never shifts the points block,
+   which stays optically centred. */
+.ck-lc-qr {
+  position: absolute;
+  right: 20px;
+  bottom: 16px;
+  width: 44px;
+  padding: 5px;
+  background: #fff;
+  border-radius: 8px;
+  line-height: 0;
+}
+.ck-lc-qr img { display: block; width: 100%; height: auto; }
 /* claimed: the name is real, so drop the dashed placeholder box */
 .ck-lc > .ck-lc-body .ck-lc-name:not(.ck-lc-claim) { border-style: solid; border-color: rgba(223, 215, 213, 0.28); }
 .ck-gift-notes { margin-top: 20px; display: grid; gap: 14px; }

@@ -1,0 +1,122 @@
+/* The pass panel under the Lifestyle Card.
+
+   Tokenised rather than written twice: the two landings that flip a card own
+   different palettes, so each themes `--pq-*` below and the layout is shared.
+   Rules are `.pq .pq-child` (0,2,0) on purpose — `.gg-surface button` and
+   `.ck-surface a` sit at (0,1,1) and would otherwise win. */
+.pq {
+  --pq-paper: #ffffff;
+  --pq-rule: #e9edf3;
+  --pq-gold: #c9890a;
+  --pq-ink: #0e2249;
+  --pq-ink-soft: #64748b;
+  --pq-btn: #0e2249;
+  --pq-btn-ink: #ffffff;
+  --pq-radius: 14px;
+
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: var(--pq-max, none);
+  margin: 14px auto 0;
+  padding: 16px;
+  background: var(--pq-paper);
+  border: 1px solid var(--pq-rule);
+  border-radius: var(--pq-radius);
+  text-align: left;
+}
+.pq .pq-left { flex: 1; min-width: 0; }
+.pq .pq-eyebrow {
+  margin: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--pq-gold);
+}
+.pq .pq-title {
+  display: block;
+  margin-top: 6px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--pq-ink);
+}
+.pq .pq-code {
+  display: block;
+  margin-top: 3px;
+  font-style: normal;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--pq-ink-soft);
+}
+.pq .pq-btn {
+  margin-top: 12px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--pq-btn);
+  color: var(--pq-btn-ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pq .pq-btn:disabled { opacity: 0.55; cursor: default; }
+.pq .pq-btn { white-space: nowrap; }
+.pq .pq-right {
+  flex-shrink: 0;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid var(--pq-rule);
+  border-radius: var(--pq-radius);
+  line-height: 0;
+}
+.pq .pq-right img,
+.pq .pq-wait {
+  display: block;
+  width: min(112px, 24vw);
+  height: min(112px, 24vw);
+}
+.pq .pq-wait { border-radius: 8px; background: var(--pq-rule); }
+
+/* On a phone the QR takes a third of the row, so the copy has to give: without
+   this every line here wraps, down to "Download / QR" on two lines. */
+@media (max-width: 420px) {
+  .pq { gap: 12px; padding: 14px; }
+  .pq .pq-eyebrow { font-size: 8.5px; letter-spacing: 0.12em; }
+  .pq .pq-title { font-size: 15px; }
+  .pq .pq-code { font-size: 12.5px; letter-spacing: 0.02em; }
+  .pq .pq-btn { min-height: 42px; padding: 0 14px; font-size: 15px; }
+  /* A quarter of the row, as on the card face — the copy needs the rest. */
+  .pq .pq-right { padding: 8px; }
+  .pq .pq-right img,
+  .pq .pq-wait { width: min(112px, 20vw); height: min(112px, 20vw); }
+}
+
+/* Ginhawa: bone paper, and pinned to the card's own 440px design width. */
+.gg-surface .pq {
+  --pq-max: 440px;
+  --pq-paper: var(--gg-paper);
+  --pq-rule: var(--gg-rule);
+  --pq-gold: var(--gg-gold);
+  --pq-ink: var(--gg-ink);
+  --pq-ink-soft: var(--gg-ink-3);
+  --pq-btn: var(--gg-ink);
+  --pq-btn-ink: var(--gg-bone);
+  --pq-radius: var(--gg-r-md);
+}
+
+/* Check-up: white card on the pale blue surface. */
+.ck-surface .pq {
+  --pq-paper: var(--ck-card);
+  --pq-rule: var(--ck-line);
+  --pq-gold: var(--ck-gold-d);
+  --pq-ink: var(--ck-navy);
+  --pq-ink-soft: var(--ck-mute);
+  --pq-btn: var(--ck-navy);
+  --pq-btn-ink: #ffffff;
+}

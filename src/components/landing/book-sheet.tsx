@@ -18,6 +18,12 @@ type Props = {
   /** Raw ?ref= from the landing URL, so referral attribution survives. */
   refCode?: string | null;
   giftPoints?: number;
+  /**
+   * Element id of the template's own pass panel. Given one, the sheet hands the
+   * QR over to the page instead of showing its own — a QR inside a dismissable
+   * sheet is gone the moment the guest closes it.
+   */
+  passAnchor?: string;
   /** Fired once the seat is really booked, so a template can flip its own card. */
   onRegistered?: (booked: RegistrationSuccess) => void;
 };
@@ -39,7 +45,7 @@ const FOCUSABLE =
  * sponsor resolution, the capacity check, the consent gate and the duplicate
  * index all behave identically. /register stays live as the no-JS fallback.
  */
-export function BookSheet({ eventId, refCode, giftPoints = 0, onRegistered }: Props) {
+export function BookSheet({ eventId, refCode, giftPoints = 0, passAnchor, onRegistered }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -109,9 +115,10 @@ export function BookSheet({ eventId, refCode, giftPoints = 0, onRegistered }: Pr
     };
   }, [open]);
 
-  // The pass QR is drawn from the signed token the action returns.
+  // The pass QR is drawn from the signed token the action returns. Skipped when
+  // the page shows its own panel, which draws the same token itself.
   useEffect(() => {
-    if (!success) return;
+    if (!success || passAnchor) return;
     let alive = true;
     QRCode.toDataURL(success.qrToken, { width: 320, margin: 1, errorCorrectionLevel: "M" })
       .then((url) => {
@@ -123,11 +130,22 @@ export function BookSheet({ eventId, refCode, giftPoints = 0, onRegistered }: Pr
     return () => {
       alive = false;
     };
-  }, [success]);
+  }, [success, passAnchor]);
 
   const registerPath = refCode
     ? `/register/${eventId}?ref=${encodeURIComponent(refCode)}`
     : `/register/${eventId}`;
+
+  const finish = () => {
+    setOpen(false);
+    if (!passAnchor) return;
+    // Next frame: the sheet's cleanup releases the body scroll lock first.
+    requestAnimationFrame(() => {
+      document
+        .getElementById(passAnchor)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
 
   const ready =
     name.trim().length > 1 &&
@@ -184,10 +202,12 @@ export function BookSheet({ eventId, refCode, giftPoints = 0, onRegistered }: Pr
               You&apos;re booked
             </h3>
             <p className="bs-p">
-              {success.attendeeName}, your seat for {success.eventTitle} is confirmed. Show this at
-              the door.
+              {success.attendeeName}, your seat for {success.eventTitle} is confirmed.{" "}
+              {passAnchor
+                ? "Your pass and its QR are on your Lifestyle Card, below."
+                : "Show this at the door."}
             </p>
-            {qr ? (
+            {passAnchor ? null : qr ? (
               <img
                 className="bs-qr"
                 src={qr}
@@ -200,7 +220,7 @@ export function BookSheet({ eventId, refCode, giftPoints = 0, onRegistered }: Pr
             )}
             <div className="bs-code">{success.passCode}</div>
             <p className="bs-fine">
-              Screenshot this, or{" "}
+              {passAnchor ? "Download it there, or " : "Screenshot this, or "}
               <a
                 className="bs-link"
                 href={`/passes?q=${encodeURIComponent(email)}&name=${encodeURIComponent(success.attendeeName)}`}
@@ -209,8 +229,8 @@ export function BookSheet({ eventId, refCode, giftPoints = 0, onRegistered }: Pr
               </a>{" "}
               with your name and email.
             </p>
-            <button type="button" className="bs-btn bs-btn--wide" onClick={() => setOpen(false)}>
-              Done
+            <button type="button" className="bs-btn bs-btn--wide" onClick={finish}>
+              {passAnchor ? "See my card" : "Done"}
             </button>
           </div>
         ) : (

@@ -768,21 +768,10 @@
 }
 .lc-lbl { font-size: 2.19cqw; font-weight: 700; letter-spacing: 0.3em; color: rgba(223,215,213,.85); margin-top: 0.83cqw; }
 .lc-qr { width: 9.58cqw; flex-shrink: 0; background: #fff; padding: 1.04cqw; border-radius: 1.67cqw; line-height: 0; }
+.lc-qr img { display: block; width: 100%; height: auto; }
 
-.qrcard {
-  display: flex; align-items: center; gap: 16px; margin-top: 14px;
-  background: var(--gg-paper); border: 1px solid var(--gg-rule);
-  border-radius: var(--gg-r-md); padding: 16px;
-}
-.qr-eyebrow { font-size: 9.5px; font-weight: 700; letter-spacing: 0.24em; color: var(--gg-gold); }
-.qr-left b { display: block; margin-top: 6px; }
-.qr-left em { display: block; font-style: normal; color: var(--gg-ink-3); margin-top: 3px; }
-.btn-dl {
-  margin-top: 12px; background: var(--gg-ink); color: var(--gg-bone);
-  border-radius: var(--gg-r-sm); padding: 0 16px; min-height: 44px; font-weight: 700;
-}
-.qr-right { flex-shrink: 0; background: #fff; padding: 10px; border-radius: var(--gg-r-md); border: 1px solid var(--gg-rule); }
-.qr-right svg { width: min(112px, 28vw); height: min(112px, 28vw); display: block; }
+/* The pass panel that used to be sketched here is now pass-qr.css (.pq),
+   themed for this surface at the bottom of that file. */
 
 .gg-media {
   --lm-radius: var(--gg-r-md);
