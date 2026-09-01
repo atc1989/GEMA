@@ -56,7 +56,13 @@
   background-image: radial-gradient(circle at 1px 1px, rgba(15, 15, 24, 0.016) 1px, transparent 0);
   background-size: 3px 3px;
 }
-#top { position: relative; z-index: 1; min-height: 100dvh; display: flex; flex-direction: column; }
+/* Scoped, not `#top`: the landing layout loads this file for every template and
+   all four roots carry id="top", so a bare ID rule handed check-up, Sizzle and
+   Session a flex column, a min-height and a stacking context they were never
+   built for. On check-up it met `.ck-wrap { max-width: 520px; margin: 0 auto }`
+   — auto inline margins opt a flex item out of stretch — and laid the page out
+   at 520px inside a 320px phone. */
+.gg-surface#top { position: relative; z-index: 1; min-height: 100dvh; display: flex; flex-direction: column; }
 
 .gg-button {
   min-height: 48px;
@@ -388,7 +394,12 @@
   display: grid; place-items: center; font-weight: 800; flex-shrink: 0;
 }
 
-.wrap { max-width: var(--gg-content); margin: 0 auto; padding: 0 20px; }
+/* `width: 100%`, because #top is a flex column and a flex item with auto inline
+   margins opts out of `stretch`: this was measured at 720px inside a 320px
+   phone. The carousel fix in media-carousel.css also settles it today, so this
+   is the belt to that braces — the hazard is structural and comes back with
+   any wide content. */
+.wrap { width: 100%; max-width: var(--gg-content); margin: 0 auto; padding: 0 20px; }
 .wrap section { padding: 38px 0; border-bottom: 1px solid var(--gg-rule); }
 .meet-band, .ask-gut, .close-pair, .close-side { border: 0; padding: 0; }
 .sec {
@@ -533,7 +544,9 @@
   display: block; font-style: normal; margin-top: 6px;
   color: var(--gg-ink-2); font-size: 15.5px; user-select: all;
 }
-.venue .gg-button--ghost { margin-top: 14px; min-height: 44px; width: max-content; }
+/* fit-content, not max-content: both hug the label, but max-content keeps
+   hugging it past the edge of the screen. */
+.venue .gg-button--ghost { margin-top: 14px; min-height: 44px; width: fit-content; }
 .venue .gg-button svg {
   width: 16px; height: 16px; fill: none; stroke: currentColor;
   stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;

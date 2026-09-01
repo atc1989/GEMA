@@ -65,6 +65,20 @@
   color: var(--session-accent);
 }
 
+/* Brand + two links + the CTA are 7px too wide for a 320px phone. Tightening
+   the gaps buys that back, so nothing has to be hidden or wrapped. */
+@media (max-width: 360px) {
+  .session-top-inner { gap: 0.5rem; }
+  .session-top-actions { gap: 0.4rem; }
+  .session-nav-link { font-size: 0.8rem; }
+}
+
+/* Narrower than any ordinary phone — a folded Fold. The two links duplicate
+   anchors further down the page, so the CTA is what stays. */
+@media (max-width: 319px) {
+  .session-nav-link { display: none; }
+}
+
 .session-btn {
   display: inline-flex;
   align-items: center;

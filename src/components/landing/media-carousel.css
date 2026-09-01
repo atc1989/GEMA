@@ -7,7 +7,21 @@
   --lm-cap: #64748b;
   --lm-dot: #93a1b5;
 }
-.lm-frame { position: relative; border-radius: var(--lm-radius); overflow: hidden; background: var(--lm-bg); }
+/* `contain: inline-size` is load-bearing. The Drive min-height below, against
+   the 16/9 ratio, transfers a ~570px minimum WIDTH to each slide, and three of
+   them sit in one flex track — so this frame reported a ~1700px min-content and
+   every grid or flex ancestor sizing itself from content grew to match, laying
+   whole landings out at 1757px inside a 375px phone. The frame scrolls its own
+   content; its width comes from the page, never the other way round.
+   (`min-width: 0` cannot fix this — an aspect-ratio transfer is not the
+   automatic minimum size.) */
+.lm-frame {
+  position: relative;
+  contain: inline-size;
+  border-radius: var(--lm-radius);
+  overflow: hidden;
+  background: var(--lm-bg);
+}
 .lm-track {
   display: flex;
   overflow-x: auto;
