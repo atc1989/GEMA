@@ -3,16 +3,20 @@ import { z } from "zod";
 import { MAX_LANDING_MEDIA } from "@/lib/ginhawa/media";
 import { LANDING_TEMPLATES } from "@/lib/ginhawa/templates";
 
+// Every "optional" field below has to survive an empty string as well as a
+// missing key: a hidden `register()`ed input mounts with value "", and rows
+// loaded from Postgres arrive with null. Either one used to fail the parse
+// and, for the hidden fields, fail it where no error is ever rendered.
 const optionalText = z
   .string()
   .trim()
-  .optional()
+  .nullish()
   .transform((v) => (v ? v : undefined));
 
 const optionalLenientUrl = z
   .string()
   .trim()
-  .optional()
+  .nullish()
   .transform((v) => {
     if (!v) return undefined;
     return /^https?:\/\//i.test(v) ? v : `https://${v}`;
@@ -23,9 +27,9 @@ const optionalLenientUrl = z
 
 const optionalCapacity = z
   .union([z.string(), z.number()])
-  .optional()
+  .nullish()
   .transform((v) => {
-    if (v === undefined || v === "") return undefined;
+    if (v === undefined || v === null || v === "") return undefined;
     const n = typeof v === "number" ? v : Number(v);
     return Number.isFinite(n) ? n : NaN;
   })
@@ -44,13 +48,23 @@ const nonNegInt = z
     message: "Enter a whole number of 0 or more.",
   });
 
+/**
+ * Slide kind. Only the uploader sets it, so a pasted URL, a legacy row, and a
+ * slide the host has not uploaded to yet all reach the parser as "" or null —
+ * none of which is a bare `.optional()` enum.
+ */
+const optionalMediaKind = z
+  .union([z.enum(["video", "image"]), z.literal("")])
+  .nullish()
+  .transform((v) => (v === "video" || v === "image" ? v : undefined));
+
 /** One carousel slide. Blank rows are allowed in the form and dropped on save. */
 export const landingMediaSchema = z.object({
   url: optionalLenientUrl,
   caption: z.string().trim().max(240).default(""),
   // Both are set by the uploader, not typed by hand: `kind` comes from the
   // file's real MIME type, `poster` from the frame grabbed at upload.
-  kind: z.enum(["video", "image"]).optional(),
+  kind: optionalMediaKind,
   poster: optionalLenientUrl,
 });
 

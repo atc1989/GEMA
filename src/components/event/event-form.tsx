@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { firstFieldErrorMessage } from "@/lib/utils/form-errors";
 
 const EVENT_TYPES: EventFormInput["eventType"][] = [
   "presentation",
@@ -163,6 +164,13 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
       const id = mode === "create" ? result.data.id : eventId;
       router.push(`/admin/events/${id}`);
       router.refresh();
+    });
+  }, (formErrors) => {
+    // The hidden landing inputs (clinician ids, uploaded media kind/poster)
+    // have nowhere to render an error, so a blocked submit would otherwise
+    // look like a dead button.
+    setError("root", {
+      message: firstFieldErrorMessage(formErrors) ?? "Please fix the highlighted fields.",
     });
   });
 

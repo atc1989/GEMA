@@ -20,7 +20,8 @@ export function MediaUploadField({
   poster,
 }: {
   onUploaded: (media: UploadedMedia) => void;
-  poster?: string;
+  /** Nullable: the form value comes straight from the stored slide. */
+  poster?: string | null;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);

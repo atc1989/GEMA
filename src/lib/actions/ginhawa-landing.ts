@@ -20,6 +20,21 @@ export type { ActionResult, FieldErrors };
 
 const GINHAWA_PATH = "/admin/ginhawa";
 
+/**
+ * Zod issues keyed by their full dotted path (`media.0.url`) rather than by
+ * `flattenError`'s top-level key. The form sets errors by path, so a bad slide
+ * or clinician marks the field the host has to fix instead of the whole array,
+ * which renders nowhere.
+ */
+function fieldErrorsFromZod(error: z.ZodError): FieldErrors {
+  const out: FieldErrors = {};
+  for (const issue of error.issues) {
+    const key = issue.path.length ? issue.path.join(".") : "root";
+    (out[key] ??= []).push(issue.message);
+  }
+  return out;
+}
+
 function friendlyDbError(message: string, fallback = "Something went wrong. Please try again."): string {
   console.error("[ginhawa-landing]", message);
   const m = message.toLowerCase();
@@ -28,6 +43,11 @@ function friendlyDbError(message: string, fallback = "Something went wrong. Plea
   }
   if (m.includes("foreign key") || m.includes("source_event_id")) {
     return "That event is no longer available. Pick another event.";
+  }
+  // The template list is a CHECK constraint, so a template the dropdown offers
+  // but the database has not been migrated for fails here, not in validation.
+  if (m.includes("ginhawa_landing_template_check")) {
+    return "That template is not enabled on this database yet. Pick another template, or apply the matching supabase/ginhawa_landing_*.sql migration.";
   }
   if (m.includes("ginhawa_landing_source_event") || m.includes("unique")) {
     return "A landing for this event already exists. Refresh and try again.";
@@ -96,7 +116,7 @@ export async function publishGinhawaLanding(
     return {
       ok: false,
       error: "Please fix the highlighted fields.",
-      fieldErrors: z.flattenError(parsed.error).fieldErrors,
+      fieldErrors: fieldErrorsFromZod(parsed.error),
     };
   }
 

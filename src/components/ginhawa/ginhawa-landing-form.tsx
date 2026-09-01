@@ -4,7 +4,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import {
+  useFieldArray,
+  useForm,
+  useWatch,
+  type FieldErrors as RhfFieldErrors,
+  type Path,
+} from "react-hook-form";
 
 import { publishGinhawaLanding, type FieldErrors } from "@/lib/actions/ginhawa-landing";
 import { MediaUploadField } from "@/components/event/media-upload-field";
@@ -25,6 +31,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { firstFieldErrorMessage } from "@/lib/utils/form-errors";
 
 export function GinhawaLandingForm({
   defaultValues,
@@ -67,10 +74,20 @@ export function GinhawaLandingForm({
   const applyFieldErrors = (fieldErrors?: FieldErrors) => {
     if (!fieldErrors) return;
     for (const [name, messages] of Object.entries(fieldErrors)) {
+      // Keys are dotted paths (`media.0.url`), so nested errors land on the
+      // field that caused them rather than on the array as a whole.
       if (messages?.length) {
-        setError(name as keyof GinhawaLandingFormInput, { message: messages[0] });
+        setError(name as Path<GinhawaLandingFormInput>, { message: messages[0] });
       }
     }
+  };
+
+  // Nothing renders the errors of the hidden inputs, so a blocked submit would
+  // otherwise look like a dead button.
+  const onInvalid = (formErrors: RhfFieldErrors<GinhawaLandingFormInput>) => {
+    setFormError(
+      firstFieldErrorMessage(formErrors) ?? "Please fix the highlighted fields.",
+    );
   };
 
   const onSubmit = (values: GinhawaLandingFormInput) => {
@@ -88,7 +105,7 @@ export function GinhawaLandingForm({
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+    <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="grid gap-4">
       <input type="hidden" {...register("sourceEventId")} />
 
       <Card className="grid gap-4 p-5">
