@@ -48,7 +48,7 @@ export function SessionLanding({
       <header className="session-top">
         <div className="session-shell session-top-inner">
           <a className="session-brand" href="#top">
-            GutGuard
+            Gutguard
           </a>
           <div className="session-top-actions">
             <a className="session-nav-link" href="#event">
@@ -256,7 +256,7 @@ export function SessionLanding({
 
       <footer className="session-footer">
         <div className="session-shell">
-          <p>GutGuard · focused sessions for members and guests.</p>
+          <p>Gutguard · focused sessions for members and guests.</p>
         </div>
       </footer>
 

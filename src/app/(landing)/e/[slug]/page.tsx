@@ -23,9 +23,9 @@ export async function generateMetadata({
   const description =
     landing.heroWhat ||
     `${landing.dateLabel} ${landing.timeLabel}`.trim() ||
-    "Event landing on GutGuard.";
+    "Event landing on Gutguard.";
   return {
-    title: `${title} · GutGuard`,
+    title: `${title} · Gutguard`,
     description,
   };
 }

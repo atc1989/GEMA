@@ -22,7 +22,7 @@ export async function generateMetadata({
   }
   const title = landing.title.replace(/\s+/g, " ").trim();
   return {
-    title: `Preview · ${title} · GutGuard`,
+    title: `Preview · ${title} · Gutguard`,
     robots: { index: false, follow: false },
   };
 }

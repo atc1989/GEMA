@@ -345,7 +345,7 @@ export function GinhawaLanding({
               {holder ? (
                 <p className="shop-note">
                   After check-in, redeem at the{" "}
-                  <a href={shop}>GutGuard shop</a>.
+                  <a href={shop}>Gutguard shop</a>.
                 </p>
               ) : null}
             </div>
@@ -410,7 +410,7 @@ export function GinhawaLanding({
           <footer className="foot">
             <img src="/wordmark.png" alt="Gutguard" className="foot-mark" width={120} height={21} />
             <p className="foot-emerg">For emergencies, please go to the hospital.</p>
-            <nav className="foot-nav" aria-label="GutGuard">
+            <nav className="foot-nav" aria-label="Gutguard">
               <a href="#event">Event</a>
               <a href={shop}>Shop</a>
               <span className="soon">Lifestyle <span className="soon-tag">soon</span></span>
@@ -522,7 +522,7 @@ export function GinhawaEmpty() {
           <p className="hero-what">No event is scheduled right now.</p>
           <p className="hero-note">Check back soon, or visit the shop in the meantime.</p>
           <a className="gg-button gg-button--bone" href={shop} style={{ marginTop: 22, display: "inline-flex" }}>
-            GutGuard shop
+            Gutguard shop
           </a>
         </div>
       </header>
