@@ -64,19 +64,50 @@ export async function emailForUsername(
   username: string,
   client?: IdentityAdminClient,
 ): Promise<string | null> {
+  const name = normalizeUsername(username);
   try {
     const supabase = admin(client);
-    const { data: member } = await supabase
+    const { data: member, error } = await supabase
       .from("members")
       .select("profile_id")
-      .eq("username", normalizeUsername(username))
+      .eq("username", name)
       .maybeSingle<{ profile_id: string }>();
-    if (!member) return null;
 
-    const { data } = await supabase.auth.admin.getUserById(member.profile_id);
-    return data.user?.email ?? null;
-  } catch {
-    // A missing table or service-role key must never block sign-in.
+    // Never block sign-in on this lookup — but never fail silently either. A
+    // rejected key, an unexposed schema and an absent member all end up as
+    // `null`, and the login then escalates to the guild API for a username
+    // that may never have left this system. Say which one happened.
+    if (error) {
+      console.warn("[one-account] member lookup failed", {
+        username: name,
+        code: error.code,
+        message: error.message,
+      });
+      return null;
+    }
+    if (!member) {
+      console.info("[one-account] no local member for username", { username: name });
+      return null;
+    }
+
+    const { data, error: authError } = await supabase.auth.admin.getUserById(
+      member.profile_id,
+    );
+    if (authError || !data.user?.email) {
+      console.warn("[one-account] auth user lookup failed", {
+        username: name,
+        profileId: member.profile_id,
+        message: authError?.message ?? "no email on the auth user",
+      });
+      return null;
+    }
+
+    return data.user.email;
+  } catch (error) {
+    console.warn("[one-account] identity client unavailable", {
+      username: name,
+      message: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }

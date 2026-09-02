@@ -20,10 +20,28 @@ export function createIdentityAdminClient() {
     );
   }
 
+  announceTarget(url);
+
   return createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
     db: { schema: identitySchema() },
   });
+}
+
+let announced = "";
+
+/**
+ * Says once per process which Supabase project and schema the identity spine
+ * is pointed at. A deployment silently built against the wrong project looks
+ * exactly like a member who does not exist, and that cost a debugging round.
+ * The URL is public (`NEXT_PUBLIC_`); the key is never logged.
+ */
+function announceTarget(url: string) {
+  const schema = identitySchema();
+  const target = `${url}|${schema}`;
+  if (announced === target) return;
+  announced = target;
+  console.info("[one-account] identity spine", { url, schema });
 }
 
 export type IdentityAdminClient = ReturnType<typeof createIdentityAdminClient>;
