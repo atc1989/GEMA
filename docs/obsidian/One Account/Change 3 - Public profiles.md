@@ -82,6 +82,29 @@ refused while their real balance is untouched.
 This proves the migration **applies**. It does not prove Staging matches these
 migration files — that is the preflight below, and it has to come back first.
 
+## Open question — which `handle_new_user` is armed on Staging
+
+The trigger on `auth.users` is `on_auth_user_created` → **`public.handle_new_user`**
+(confirmed by query, 2026-09-04). Two different functions carry that name across
+these projects and they write to different tables:
+
+| Source | Inserts |
+|---|---|
+| GEMA `supabase/fix_auth_user_triggers.sql` | `public.profiles (id, email, first_name, last_name, full_name)` |
+| Staging report of 2026-09-03 | `gema.profiles` only |
+| Academy `20260827120000_person_only_new_user` | `public.profiles (id, full_name, email, account_status)` — **`academy.handle_new_user`**, not the armed one |
+
+Staging's `public.profiles` is Lifestyle-shaped and has no `first_name`,
+`last_name` or `full_name`, so if the GEMA version were the one armed there,
+creating an Auth user on Staging would fail outright. Fifteen users exist, so it
+is not that version — but "not that one" is not an identification. Section 9 of
+the preflight returns the body. Read it before assuming what a new Auth user
+does today.
+
+This decides a Change 3 question the board has not asked yet: **what writes the
+person row.** Right now nothing reliably does, which is the likeliest source of
+the six Auth users with no `public.profiles` row.
+
 ## Preflight before applying
 
 `supabase/verify_change3_preflight.sql` in Lifestyle, read-only. The migration was
