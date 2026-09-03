@@ -34,17 +34,22 @@ select n.nspname as schema, p.proname, pg_get_functiondef(p.oid) as body
  where p.proname in ('is_admin', 'lifestyle_is_admin')
  order by n.nspname, p.proname;
 
--- D. Dependencies the migration checks for. Both must be true, or it aborts
---    whole rather than half-applying.
-select to_regprocedure('public.lifestyle_is_admin(uuid)') is not null as has_lifestyle_is_admin,
-       to_regclass('public.app_roles')                    is not null as has_app_roles;
+-- D. What admin machinery exists here at all. public.app_roles came back
+--    absent on 2026-09-04, so Lifestyle's admin RBAC migration was never
+--    applied to this database. The migration no longer depends on it.
+select to_regclass('public.app_roles')                          as app_roles,
+       to_regprocedure('public.lifestyle_is_admin(uuid)')       as lifestyle_is_admin,
+       to_regprocedure('public.is_admin()')                     as is_admin,
+       to_regclass('gema.members')                              as gema_members;
 
--- E. Who is already an admin, on either table.
-select 'public' as src, id, name, role::text, card_no from public.profiles where role::text = 'admin'
-union all
-select 'gema', id, full_name, role::text, null from gema.profiles where role::text = 'admin' or is_admin
-union all
-select 'app_roles', user_id, null, role, null from public.app_roles;
+-- E. Who is already an admin. Each part is separate so a missing table cannot
+--    abort the rest -- which is exactly what happened to the first version of
+--    this file, and why sections F and G never ran.
+select 'public.profiles' as src, id::text, name as who, role::text
+  from public.profiles where role::text = 'admin';
+
+select 'gema.profiles' as src, id::text, full_name as who, role::text
+  from gema.profiles where role::text = 'admin' or is_admin;
 
 -- F. What a new Auth user actually writes today.
 select n.nspname as schema, p.proname, pg_get_functiondef(p.oid) as body

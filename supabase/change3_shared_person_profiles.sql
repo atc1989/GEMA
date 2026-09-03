@@ -27,15 +27,6 @@
 
 begin;
 
--- 0. Fail early and whole rather than half-applying if a dependency is absent.
-do $$
-begin
-  if to_regprocedure('public.lifestyle_is_admin(uuid)') is null then
-    raise exception
-      'public.lifestyle_is_admin(uuid) is missing. Apply the Lifestyle admin RBAC migration (20260902000000_lifestyle_admin_rbac.sql) first, or tell me which admin predicate this database uses.';
-  end if;
-end $$;
-
 -- 1. Identity columns. The person, not the card.
 alter table public.profiles
   add column if not exists full_name text,
@@ -139,25 +130,22 @@ grant update (
 -- Deliberately not granted: role, account_status, card_no, sponsor, team,
 -- phase, claimed, points, pending, banked, days_left, id, created_at.
 
--- 6. account_status changes go through an admin-only definer function.
-create or replace function public.set_account_status(p_user uuid, p_status text)
-returns void
-language plpgsql
-security definer
-set search_path = pg_catalog, public
-as $$
-begin
-  if not public.lifestyle_is_admin() then
-    raise exception 'not authorized' using errcode = '42501';
-  end if;
-  if p_status not in ('active', 'suspended', 'closed') then
-    raise exception 'invalid account status: %', p_status using errcode = '22023';
-  end if;
-  update public.profiles set account_status = p_status where id = p_user;
-end;
-$$;
-
-revoke all on function public.set_account_status(uuid, text) from public;
-grant execute on function public.set_account_status(uuid, text) to authenticated;
+-- 6. account_status has no writer here, and that is deliberate.
+--
+-- An earlier draft put it behind a definer function gated on
+-- public.lifestyle_is_admin(). That function and public.app_roles come from
+-- Lifestyle's 20260902000000_lifestyle_admin_rbac.sql, which is NOT applied to
+-- this database — the card table is here, the RBAC is not. Rather than create
+-- an admin surface this database has never had, or import a migration whose
+-- scope belongs to its own Change, account_status simply is not granted to
+-- anyone.
+--
+-- The service role bypasses RLS and column grants, so status changes go through
+-- the admin client or the SQL editor, which is already how this schema does
+-- admin writes (see the note in 20260902010000_lifestyle_orders_stories.sql:
+-- "Inserts come from service role / Route Handler with admin client").
+--
+-- When Lifestyle's admin RBAC does land here, a definer function gated on
+-- lifestyle_is_admin() is the right way to open it up. Not before.
 
 commit;

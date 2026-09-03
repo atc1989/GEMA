@@ -60,18 +60,14 @@ create table gema.profiles (
   last_seen_at timestamptz, can_publish_events boolean not null default false
 );
 
--- Lifestyle admin RBAC (20260902000000), which the migration depends on.
-create table public.app_roles (
-  user_id uuid primary key references auth.users (id) on delete cascade,
-  role text not null check (role in ('admin')),
-  created_at timestamptz not null default now()
-);
-create function public.lifestyle_is_admin(p_user uuid default auth.uid())
-returns boolean language sql stable security invoker set search_path = public as $$
-  select exists (select 1 from public.app_roles where user_id = p_user and role = 'admin') $$;
+-- Lifestyle's admin RBAC (20260902000000) is deliberately NOT created here.
+-- public.app_roles does not exist on Staging -- confirmed 2026-09-04 by an
+-- error from the preflight -- so neither does lifestyle_is_admin(). The card
+-- table landed there; the RBAC did not. The fixture has to be missing it too,
+-- or the migration would be tested against a database more complete than the
+-- real one.
 
 alter table public.profiles enable row level security;
-alter table public.app_roles enable row level security;
 
 create policy profiles_select_own on public.profiles
   for select to authenticated using (id = auth.uid());
@@ -79,8 +75,6 @@ create policy profiles_insert_own on public.profiles
   for insert to authenticated with check (id = auth.uid());
 create policy profiles_update_own on public.profiles
   for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
-create policy profiles_select_admin on public.profiles
-  for select to authenticated using (public.lifestyle_is_admin());
 
 -- Supabase grants ALL on public tables to anon/authenticated by default. This
 -- is what makes the whole-row UPDATE reachable, and what the migration revokes.

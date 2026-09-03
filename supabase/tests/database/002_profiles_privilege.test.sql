@@ -94,9 +94,9 @@ begin
   end;
 
   begin
-    perform public.set_account_status(
-      'bbbb1111-0000-0000-0000-000000000001', 'suspended');
-    raise exception 'a non-admin changed an account status';
+    update public.profiles set account_status = 'suspended'
+     where id = 'bbbb1111-0000-0000-0000-000000000001';
+    raise exception 'a member set their own account_status';
   exception when insufficient_privilege then null;
   end;
 end $$;
