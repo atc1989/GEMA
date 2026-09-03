@@ -20,22 +20,22 @@ $AS "PATH=$PGBIN:\$PATH pg_ctl -D $WORK/pgdata -o '-k $WORK -p $PORT -c listen_a
 
 psql -q -v ON_ERROR_STOP=1 -d postgres -f "$HERE/bootstrap_staging_shape.sql"
 
-# Demonstrate the hole BEFORE the fix: an ordinary member sets role = 'admin'
-# and public.is_admin() starts returning true for them.
+# Demonstrate the hole BEFORE the fix: profiles_update_own covers the whole
+# row, so a member can PATCH their own role and points.
 psql -q -v ON_ERROR_STOP=1 -d postgres <<'SQL'
 insert into auth.users (id, email) values ('cccc0000-0000-0000-0000-000000000001','probe@example.invalid');
-insert into public.profiles (id, email, full_name, role)
-  values ('cccc0000-0000-0000-0000-000000000001','probe@example.invalid','Probe','member');
+insert into public.profiles (id, name, mobile, email, card_no)
+  values ('cccc0000-0000-0000-0000-000000000001','Probe','09990000000','probe@example.invalid','GG-P001');
 SQL
-before=$(psql -X -t -A -d postgres <<'SQL'
+before=$(psql -X -t -A -d postgres 2>&1 <<'SQL'
 set role authenticated;
 set request.jwt.claim.sub = 'cccc0000-0000-0000-0000-000000000001';
-update public.profiles set role = 'admin' where id = auth.uid();
-select public.is_admin();
+update public.profiles set role = 'admin', points = 999999 where id = auth.uid();
+select role || ' / points=' || points from public.profiles where id = auth.uid();
 SQL
 )
-echo "before fix: member self-escalation -> is_admin() = $(echo "$before" | tail -1)"
-psql -q -d postgres -c "update public.profiles set role='member' where id='cccc0000-0000-0000-0000-000000000001';"
+echo "before fix: member self-write -> $(echo "$before" | tail -1)"
+psql -q -d postgres -c "update public.profiles set role='prospect', points=0 where id='cccc0000-0000-0000-0000-000000000001';"
 
 printf '%-46s ' "change3_shared_person_profiles.sql"
 psql -q -v ON_ERROR_STOP=1 -d postgres -f "$HERE/../change3_shared_person_profiles.sql" >/dev/null 2>"$WORK/err.log" \
