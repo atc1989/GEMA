@@ -24,102 +24,124 @@ One person table at `public.profiles` with **the same UUIDs** as `auth.users` / 
 - Tech Stack: OWNER, Canonical, **Supabase** (RLS, views `security_invoker`)
 - Design System: skip
 
-## What `public.profiles` actually is today
+## What `public.profiles` actually is — confirmed by query, 2026-09-04
 
-One table name, three shapes, and they have already collided:
+An earlier pass on this Change recorded that Staging's `public.profiles` is the
+Lifestyle card table. **That was wrong**, and everything built on it was wrong
+with it. The claim came from a comment in Academy's
+`20260827120000_person_only_new_user.sql` and from Lifestyle's migration files,
+which define such a table — but those migrations were **never applied to
+Staging**. The preflight is what caught it.
 
-| Written by | Columns |
+What is actually there:
+
+| | |
 |---|---|
-| Lifestyle `20260822000000_lifestyle_member` — **this is what Staging has** | `name`, `mobile`, `email`, `sponsor`, `team`, `card_no`, `phase`, `claimed`, `points`, `pending`, `banked`, `days_left`, `capsules_per_day`, … |
-| Academy `20260813120000_init` | `full_name`, `member_card`, `team_id`, `current_rank_id`, `is_demo` |
-| Academy `20260827120000_person_only_new_user` expects | `full_name`, `email`, `account_status` |
+| `public.profiles` | The person table GEMA extended from a pre-existing project: `id`, `email`, `first_name`, `last_name`, `full_name`, `created_at`, `updated_at`, `phone`, `role` (`app_role` enum), `is_admin`, `avatar_url`, `last_seen_at`, `can_publish_events`. Written on signup by `public.handle_new_user`. |
+| `gema.profiles` | What the GEMA app actually reads — every client in `src/lib/supabase/` pins `db: { schema: "gema" }`. Shape still outstanding (preflight 10). |
+| Lifestyle's card table | Not on Staging at all. |
 
-Academy's `src/lib/ops/profile.ts` already selects `full_name, email` from
-`public.profiles`. On Staging those columns do not exist, which is why an
-Academy member reads as **not enrolled**. This is live, not hypothetical.
+So `public.profiles` is **already most of the person table this Change wants**,
+and the armed trigger already writes it. Three identity columns are missing —
+`locale`, `timezone`, `account_status` — and that is the small half of the work.
 
-Two consequences worth naming:
+## The reason this Change is now urgent
 
-- **A person cannot exist without a card.** `name`, `mobile` and `card_no` are
-  `NOT NULL` and `card_no` has no default, so any insert into `public.profiles`
-  mints a Lifestyle card. [[00 - Locks]] forbids exactly that. Change 1's
-  person-only trigger cannot be applied to Staging until this is fixed — its own
-  header says so.
-- **Members can write their own points.** `profiles_update_own` grants UPDATE on
-  the whole row, so an authenticated member can PATCH `points`, `banked`,
-  `phase` and `claimed`. RLS cannot express column limits; column `GRANT`s can.
+`profiles_update_own` is `with check (id = auth.uid() and is_admin = false)`. It
+pins `is_admin`. It says nothing about `role`. And `public.is_admin()` is:
+
+```sql
+select exists (select 1 from public.profiles
+                where id = auth.uid() and (is_admin = true or role = 'admin'))
+```
+
+So one request from any signed-in member —
+
+```sql
+update profiles set role = 'admin' where id = auth.uid();
+```
+
+— passes the check, and `is_admin()` returns true for them from then on.
+**Verified, not inferred**: `supabase/tests/run.sh` reproduces this schema on a
+throwaway Postgres and shows `is_admin()` flipping to `t`, then shows the same
+statement refused after the migration. `is_admin = true` is blocked; `role` is
+not; `can_publish_events` has its own guard trigger.
+
+This is what [[03 - Identity model]] means by "members must not write their own
+roles". RLS cannot express column limits — column `GRANT`s can, and do not
+depend on a policy's with-check staying correct as policies get redefined.
+
+**The migration closes the door. It cannot say who already walked through it.**
+Preflight 5b lists every row with `is_admin`, `role = 'admin'` or
+`can_publish_events`. Only the owner can say which of those belong.
+
+**Production.** The same policy and the same `is_admin()` are defined in GEMA's
+`supabase/schema.sql`, so production may carry the same hole against ~431 real
+accounts. Whether it does is a question for preflight 2 run against production —
+read-only, and nothing else. Do not apply this migration to production; the
+hard stop stands, and this is the owner's call to make, not an agent's.
 
 ## Work
 
-- [ ] Staging only: `public.profiles` identity columns (full_name, email, phone, avatar, locale, timezone, account_status, last_seen). Same ids as Auth. *(written: Lifestyle `supabase/migrations/20260904000000_shared_person_profiles.sql` — expand only, nothing renamed or dropped)*
-- [ ] Backfill `full_name`/`phone` from the Lifestyle `name`/`mobile` columns, and keep both spellings in step with a trigger until Change 4 drops the old ones. Do not drop `gema.profiles` until GEMA has a compatibility view or a public identity client.
-- [ ] Drop `NOT NULL` on the card columns so a person row can exist without a card.
-- [ ] RLS: own row read/update except status. Column `GRANT`s for the writable identity columns; `account_status` through `public.set_account_status()`, admin only.
-- [ ] Reconcile the six Auth users with no person row — decide what each one is. Not a backfill.
-- [ ] Lifestyle and Academy read `public.profiles` for name/email/mobile. Stop treating a wide Lifestyle `profiles` as the person if those columns still mix card/points — split is Change 4.
+- [ ] Add `locale`, `timezone`, `account_status` to `public.profiles`. *(written: GEMA `supabase/change3_shared_person_profiles.sql`)*
+- [ ] Revoke the whole-row UPDATE from `authenticated`; grant back only the identity columns a person may edit about themselves.
+- [ ] `account_status` through `public.set_account_status()`, admin only.
+- [ ] Audit preflight 5b — who is already an admin, and should they be.
+- [ ] Reconcile the Auth users with no person row. Nothing reliably writes both `public.profiles` and `gema.profiles`, so this is a decision per user, not a backfill.
+- [ ] Decide what `gema.profiles` becomes once `public.profiles` is the person: a view, or the GEMA clients stop pinning the `gema` schema. Needs preflight 10 first.
+- [ ] Lifestyle and Academy read `public.profiles` for name/email/phone.
 
-## Proven locally, not yet on Staging
+## Proven locally
 
-`supabase/tests/run.sh` in Lifestyle builds a throwaway Postgres, applies every
-Lifestyle migration in order, then runs `tests/database/*.test.sql`. On a clean
-rebuild the Change 3 migration applies to the real schema, is idempotent on a
-second run, and the test passes. What the test pins:
+`GEMA/supabase/tests/run.sh` reproduces Staging's `public.profiles` — the real
+column list, `public.is_admin()`, and the three policies as last redefined by
+`member_event_publishing_permissions.sql` — then:
 
-- `full_name`/`phone` backfill from `name`/`mobile`, and the two spellings stay
-  in step in both directions.
-- A person row can exist with no `card_no` — the Lock that the `NOT NULL`s made
-  unenforceable. The insert `academy.handle_new_user()` performs now succeeds.
-- `account_status` rejects a value outside the allowed set.
-- `authenticated` holds no UPDATE grant on `points`, `pending`, `banked`,
-  `phase`, `claimed`, `account_status`, `card_no`, `sponsor`, `team`,
-  `days_left` — and still holds one on `full_name`.
-- A non-admin calling `set_account_status()` is refused.
+1. shows an ordinary member escalating to admin, `is_admin()` returning `t`;
+2. applies the migration, and re-applies it to prove it is idempotent;
+3. shows the same escalation refused with `permission denied for table profiles`;
+4. runs `tests/database/002_profiles_privilege.test.sql`, which pins the identity
+   columns, the `account_status` constraint, the absence of any member UPDATE
+   grant on `role` / `is_admin` / `can_publish_events` / `account_status`, the
+   presence of one on `full_name`, and a non-admin being refused by
+   `set_account_status()`.
 
-Checked by hand in the same harness: a member updating another member's row
-affects 0 rows, and a member attempting `points = 999999` on their own row is
-refused while their real balance is untouched.
+Confirmed alongside: a member can still edit their own `full_name` and `phone`
+after the fix.
 
-This proves the migration **applies**. It does not prove Staging matches these
-migration files — that is the preflight below, and it has to come back first.
-
-## Open question — which `handle_new_user` is armed on Staging
-
-The trigger on `auth.users` is `on_auth_user_created` → **`public.handle_new_user`**
-(confirmed by query, 2026-09-04). Two different functions carry that name across
-these projects and they write to different tables:
-
-| Source | Inserts |
-|---|---|
-| GEMA `supabase/fix_auth_user_triggers.sql` | `public.profiles (id, email, first_name, last_name, full_name)` |
-| Staging report of 2026-09-03 | `gema.profiles` only |
-| Academy `20260827120000_person_only_new_user` | `public.profiles (id, full_name, email, account_status)` — **`academy.handle_new_user`**, not the armed one |
-
-Staging's `public.profiles` is Lifestyle-shaped and has no `first_name`,
-`last_name` or `full_name`, so if the GEMA version were the one armed there,
-creating an Auth user on Staging would fail outright. Fifteen users exist, so it
-is not that version — but "not that one" is not an identification. Section 9 of
-the preflight returns the body. Read it before assuming what a new Auth user
-does today.
-
-This decides a Change 3 question the board has not asked yet: **what writes the
-person row.** Right now nothing reliably does, which is the likeliest source of
-the six Auth users with no `public.profiles` row.
+This proves the migration applies and does what it says on this schema. It does
+not prove Staging carries these policies — that is preflight 2, outstanding.
 
 ## Preflight before applying
 
-`supabase/verify_change3_preflight.sql` in Lifestyle, read-only. The migration was
-written from this repo's migration files; the preflight checks Staging actually
-matches them. The Staging report of 2026-09-03 mentioned a `role text` column on
-`public.profiles` that **no migration in any of the three repos creates** — section 1
-settles what is really there. Do not apply the migration until it agrees.
+`GEMA/supabase/verify_change3_preflight.sql`, read-only. Section 1 came back on
+2026-09-04 and is what disproved the Lifestyle-shaped premise. Still outstanding
+and still gating the apply:
+
+- **2** — the policies actually on Staging. The escalation above is proven
+  against this repo's schema files, not against Staging itself.
+- **3** — column grants already in place.
+- **5b** — who is already an admin.
+- **9** — the body of `public.handle_new_user`, so we know what a new Auth user
+  really writes today.
+- **10** — whether `gema.profiles` exists on Staging and in what shape.
+
+Sections 6 and 7 give the Auth users with no person row, for the reconcile step.
 
 ## Owner steps in
 
-None unless Staging SQL must be applied in the dashboard by hand. Agent uses Staging MCP/SQL, not production.
+Run the preflight and hand back 2, 3, 5b, 9, 10. Then apply
+`change3_shared_person_profiles.sql` to **Staging only**.
+
+Production is a separate decision and a separate conversation: the same policy
+and `is_admin()` live in `schema.sql`, so the escalation may exist against the
+real accounts too. Running the preflight against production is read-only and
+safe; applying anything there is not this Change's business.
 
 ## Done when
 
-Same id is the person in GEMA and in `public.profiles` on Staging. GEMA member dashboard still loads.
+Same id is the person in GEMA and in `public.profiles` on Staging, no member can
+write their own `role`, and the GEMA member dashboard still loads.
 
 ## Next
 
