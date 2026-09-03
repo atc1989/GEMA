@@ -150,6 +150,21 @@ begin
   select count(*) into blank from public.profiles
    where coalesce(btrim(full_name), '') = '';
   if blank > 0 then raise exception '% person rows have a blank name', blank; end if;
+
+  -- 7. Both sides of the spine. GEMA reads gema.profiles; a member with a row
+  --    in public.profiles but not there loops between /onboarding and /login.
+  -- Only the fixture users, which existed when the migration ran. Rows this
+  -- test inserts afterwards are the trigger's job, not the backfill's.
+  select count(*) into missing
+    from auth.users u
+   where u.id::text like 'dddd0000-%'
+     and not exists (select 1 from gema.profiles g where g.id = u.id);
+  if missing > 0 then
+    raise exception '% fixture users have no gema.profiles row', missing;
+  end if;
+
+  if exists (select 1 from gema.profiles where coalesce(btrim(full_name), '') = '')
+  then raise exception 'a gema.profiles row has a blank name'; end if;
 end $$;
 
 rollback;

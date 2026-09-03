@@ -120,6 +120,37 @@ select u.id,
  where not exists (select 1 from public.profiles p where p.id = u.id)
 on conflict (id) do nothing;
 
+-- 3c. The other side of the spine. GEMA reads gema.profiles, not
+--     public.profiles -- every client in src/lib/supabase pins schema "gema".
+--
+-- Filling public.profiles alone left a signed-in member with no GEMA person
+-- row, and GEMA's landing loops on that: redirectAfterLogin finds no profile
+-- and no member so it sends them to /onboarding, and /onboarding finds no
+-- profile so it sends them back to /login. A valid session, and the login page
+-- forever.
+--
+-- 00 - Locks: one auth.users.id is one person row. A person row is exactly
+-- what this creates -- no gema.members row, no Lifestyle card, no Academy BASE.
+insert into gema.profiles (id, email, full_name)
+select p.id,
+       p.email,
+       coalesce(nullif(btrim(p.full_name), ''),
+                nullif(split_part(coalesce(p.email, ''), '@', 1), ''),
+                'member')
+  from public.profiles p
+ where not exists (select 1 from gema.profiles g where g.id = p.id)
+on conflict (id) do nothing;
+
+-- full_name is NOT NULL but an empty string passes that, and at least one row
+-- carries its name only in first_name/last_name. A person with a blank name
+-- renders as nobody, so fill it from the parts, then the address.
+update gema.profiles
+   set full_name = coalesce(
+         nullif(btrim(concat_ws(' ', first_name, last_name)), ''),
+         nullif(split_part(coalesce(email::text, ''), '@', 1), ''),
+         'member')
+ where coalesce(btrim(full_name), '') = '';
+
 -- 4. Keep the old and new spellings in step until Change 4 removes the old
 --    ones. Lifestyle writes name/mobile; anything person-shaped writes
 --    full_name/phone. Either side filling one fills the other.
