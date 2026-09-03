@@ -59,9 +59,8 @@ begin
     from information_schema.column_privileges
    where table_schema = 'public' and table_name = 'profiles'
      and grantee in ('authenticated','anon') and privilege_type = 'UPDATE'
-     and column_name in ('role','account_status','points','pending','banked',
-                         'phase','claimed','card_no','sponsor','team',
-                         'days_left','id','created_at');
+     and column_name in ('role','account_status','sponsor','team',
+                         'id','created_at');
   if leaked is not null then
     raise exception 'members can update privileged columns: %', leaked;
   end if;
@@ -86,12 +85,12 @@ begin
   exception when insufficient_privilege then null;
   end;
 
-  begin
-    update public.profiles set points = 999999
-     where id = 'bbbb1111-0000-0000-0000-000000000001';
-    raise exception 'a member set their own points';
-  exception when insufficient_privilege then null;
-  end;
+  -- Lifestyle's card flow must keep working from the member's own session.
+  -- Revoking these is what broke claimCard() and the register upsert.
+  update public.profiles set claimed = true, phase = 'claimed'
+   where id = 'bbbb1111-0000-0000-0000-000000000001';
+  update public.profiles set points = 10, banked = 1, days_left = 9
+   where id = 'bbbb1111-0000-0000-0000-000000000001';
 
   begin
     update public.profiles set account_status = 'suspended'

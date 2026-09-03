@@ -159,14 +159,30 @@ create trigger profiles_sync_identity
   before insert or update on public.profiles
   for each row execute function public.sync_profile_identity();
 
--- 5. Members must not write their own role, status, or points.
+-- 5. Members must not write their own role or account status.
 --
 -- profiles_update_own (Lifestyle 20260822000000) grants UPDATE on the whole
--- row, so a member can PATCH points, banked, phase, claimed — and `role`, a
--- column no Lifestyle migration creates and whose purpose is still unconfirmed.
--- 03 - Identity model: members must not write their own roles, on any column.
--- RLS cannot express column limits; column GRANTs can, and do not depend on a
--- policy's with-check staying correct as policies get redefined.
+-- row. RLS cannot express column limits; column GRANTs can, and do not depend
+-- on a policy's with-check staying correct as policies get redefined.
+--
+-- WHAT IS AND IS NOT PROTECTED HERE, and why the line is where it is:
+--
+-- `role` is an authorization column. 03 - Identity model: members must not
+-- write their own roles, on any column. It is revoked, and that is the whole
+-- point of this step.
+--
+-- `points`, `phase`, `claimed`, `banked`, `pending`, `days_left`, `card_no`
+-- are NOT revoked, and an earlier draft of this file revoked them. That was
+-- wrong and it broke Lifestyle: lib/actions/member.ts claimCard() and the
+-- profile patch, and the register upsert in lib/actions/auth.ts, all write
+-- those columns with the MEMBER'S OWN session client. That is Lifestyle's
+-- design -- a self-service card app whose client advances its own progress --
+-- not an oversight to close from underneath it.
+--
+-- So yes: a member can still inflate their own points. That is a product
+-- question about the card, not an auth bypass, it predates this Change, and
+-- Change 4 is where it belongs -- once card/points live in their own table
+-- with their own policy, they can be governed without breaking the app.
 revoke update on public.profiles from authenticated, anon;
 grant update (
   full_name,
@@ -182,11 +198,19 @@ grant update (
   notifications,
   welcome_seen,
   capsules_per_day,
-  updated_at
+  updated_at,
+  -- Lifestyle's own card flow, written by the member's session client:
+  card_no,
+  phase,
+  claimed,
+  points,
+  pending,
+  banked,
+  days_left
 ) on public.profiles to authenticated;
 
--- Deliberately not granted: role, account_status, card_no, sponsor, team,
--- phase, claimed, points, pending, banked, days_left, id, created_at.
+-- Deliberately not granted: role, account_status, sponsor, team, id,
+-- created_at. Nothing in Lifestyle writes those from a member session.
 
 -- 6. account_status has no writer here, and that is deliberate.
 --

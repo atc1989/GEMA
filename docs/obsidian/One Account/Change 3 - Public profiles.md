@@ -119,12 +119,43 @@ not prove Staging carries these policies — that is preflight A, outstanding.
 - [x] Identity columns on `public.profiles` — `full_name`, `phone`, `avatar_url`, `locale`, `timezone`, `account_status`, `last_seen_at`.
 - [x] `NOT NULL` dropped on `name`, `mobile`, `card_no`, `sponsor`, `team`, so a person can exist without a Lifestyle card ([[00 - Locks]]).
 - [x] Backfill. All 15 Auth users have a person row at the same id — 9 copied from `gema.profiles`, 6 built from their auth record. Confirmed on Staging: `still_missing = 0`.
-- [x] Whole-row UPDATE revoked from `authenticated`; column grants in its place. **Confirmed on Staging 2026-09-04**: `authenticated` holds UPDATE on exactly the 14 identity columns and on none of `role`, `points`, `pending`, `banked`, `phase`, `claimed`, `account_status`, `card_no`, `sponsor`, `team`, `days_left`. A member can no longer write their own role or points.
+- [x] Whole-row UPDATE revoked from `authenticated`; column grants in its place. `role` and `account_status` withheld.
+- [ ] **Corrective grant outstanding on Staging.** The first grant list was too narrow and broke Lifestyle — see below.
 - [ ] `account_status` has no writer at all. Lifestyle's admin RBAC (`public.app_roles`, `lifestyle_is_admin()`) is **not on this database**, so status changes go through the service role. A definer function is the right answer once that RBAC lands, not before.
 - [ ] Audit preflight E — who is already an admin, on either table, and should they be.
 - [ ] Confirm preflight A and C: the policies as they really are, and what `public.profiles.role` is for. The grants hold regardless, but if something authorizes off `role`, this was an escalation and not merely an ungoverned column.
 - [ ] Lifestyle and Academy read `public.profiles` for name/email/phone. Academy's `src/lib/ops/profile.ts` already selects `full_name, email`; those columns now exist, so it should stop reading "not enrolled". Untested.
 - [ ] Decide what `gema.profiles` becomes now that `public.profiles` is the person: a view, or the GEMA clients stop pinning the `gema` schema. GEMA keeps working either way until then.
+
+## The grant list was too narrow, and it broke Lifestyle
+
+Applied on Staging 2026-09-04, then corrected the same day.
+
+The first version revoked `points`, `phase`, `claimed`, `banked`, `pending`,
+`days_left` and `card_no` along with `role`. Lifestyle writes every one of
+those **with the member's own session client**:
+
+- `lib/actions/member.ts` — `claimCard()` writes `claimed`, `phase`; the profile
+  patch writes `points`, `pending`, `banked`, `days_left`, `capsules_per_day`.
+- `lib/actions/auth.ts` — the register upsert writes `card_no`, `phase`,
+  `claimed`, `points`, `pending`, `banked`, `days_left`. Before the backfill
+  that was always an INSERT; now that every Auth user has a person row it is an
+  UPDATE, so it needs those grants where it never did before.
+
+That is Lifestyle's design — a self-service card app whose client advances its
+own progress — not an oversight to close from underneath it. The revoke was an
+overreach dressed as a security fix.
+
+**Where the line actually belongs:** `role` is an authorization column and stays
+revoked; that was always the real finding. `account_status` stays revoked. The
+card columns go back.
+
+So a member can still inflate their own points. That is a product question about
+the card, not an auth bypass, it predates this Change, and [[Change 4 - Lazy
+product rows]] is where it belongs — once card/points live in their own table
+with their own policy they can be governed without breaking the app.
+
+`admin.ts` only reads `public.profiles`, so nothing there was affected.
 
 ## Preflight before applying
 
