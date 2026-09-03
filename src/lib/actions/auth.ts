@@ -10,7 +10,9 @@ import { getCurrentMember } from "@/lib/auth/require-member";
 import {
   createLoginEngine,
   emailForUsername,
+  isCompleteEmailCode,
   isSyntheticExternalEmail,
+  normalizeEmailCode,
   normalizeIdentifier,
 } from "@/lib/one-account";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -121,7 +123,14 @@ export async function requestPasswordResetAction(
     redirectTo: `${origin}/reset-password`,
   });
 
-  return { ok: true, message: "If an email is on file, a password reset link has been sent." };
+  // Deliberately vague about whether the address exists, and deliberately
+  // vague about link vs code: this project's template sends one, Staging's
+  // sends the other, and the member is told how to finish either way.
+  return {
+    ok: true,
+    message:
+      "If an email is on file, a reset is on its way. It may be a link or a 6-digit code.",
+  };
 }
 
 export type ResetPasswordResult = { ok: false; error: string } | undefined;
@@ -137,11 +146,39 @@ export async function resetPasswordAction(
   }
 
   const supabase = await createSupabaseServerClient();
-  if (code) {
+
+  // A reset arrives one of two ways and the app has to take both.
+  //
+  // The Reset Password template on this project emails a 6-digit code, not a
+  // link — the same partner template that made Staging's Confirm signup send a
+  // code. exchangeCodeForSession cannot consume a 6-digit OTP, so before this
+  // there was no way to finish a reset at all: the link path had nothing to
+  // exchange and the code path had no handler.
+  //
+  // Typing the code also sidesteps the second failure. A link points at
+  // ${origin}/reset-password, and on a protected preview host that lands the
+  // member on Vercel's login wall instead of the app. A code needs no redirect.
+  const email = String(formData.get("email") ?? "").trim();
+
+  if (isCompleteEmailCode(code)) {
+    if (!email) {
+      return { ok: false, error: "Enter the email address you asked the reset for." };
+    }
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: normalizeEmailCode(code),
+      type: "recovery",
+    });
+    if (error) {
+      return { ok: false, error: "That code did not work. Ask for a new one." };
+    }
+  } else if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       return { ok: false, error: "This reset link is invalid or has expired. Request a new one." };
     }
+  } else {
+    return { ok: false, error: "Enter the 6-digit code from your reset email." };
   }
 
   const { error } = await supabase.auth.updateUser({ password });
