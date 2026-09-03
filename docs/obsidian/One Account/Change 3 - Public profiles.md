@@ -112,6 +112,24 @@ after the fix.
 This proves the migration applies and does what it says on this schema. It does
 not prove Staging carries these policies — that is preflight 2, outstanding.
 
+## Two databases, and we do not yet know which is which
+
+Section 1 of the preflight returned a `public.profiles` **with** `full_name`
+(2026-09-04). A later run of the admin audit against `public.profiles` failed
+with `column "full_name" does not exist`. Both cannot describe the same
+database, so at least one of those runs was against a project other than the
+one intended — and nothing downstream should be trusted until that is settled.
+
+Do not resolve this by guessing which run was "the real one". The preflight now
+opens with a section 0 that returns `current_database()` and the columns of
+every table named `profiles` in every schema, so each result set says for itself
+where it came from. Ask for section 0 alone first.
+
+Standing rule from this: any query whose answer will drive a migration has to
+identify its own database in the same result set. Two projects with a
+same-named table in the same schema is exactly the shape of mistake that ends
+with a migration applied to the wrong one.
+
 ## Preflight before applying
 
 `GEMA/supabase/verify_change3_preflight.sql`, read-only. Section 1 came back on
