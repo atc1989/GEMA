@@ -119,7 +119,7 @@ not prove Staging carries these policies — that is preflight A, outstanding.
 - [x] Identity columns on `public.profiles` — `full_name`, `phone`, `avatar_url`, `locale`, `timezone`, `account_status`, `last_seen_at`.
 - [x] `NOT NULL` dropped on `name`, `mobile`, `card_no`, `sponsor`, `team`, so a person can exist without a Lifestyle card ([[00 - Locks]]).
 - [x] Backfill. All 15 Auth users have a person row at the same id — 9 copied from `gema.profiles`, 6 built from their auth record. Confirmed on Staging: `still_missing = 0`.
-- [x] Whole-row UPDATE revoked from `authenticated`; column grants in its place. Same transaction as the backfill, so it committed with it — **confirm with preflight B before calling this closed.**
+- [x] Whole-row UPDATE revoked from `authenticated`; column grants in its place. **Confirmed on Staging 2026-09-04**: `authenticated` holds UPDATE on exactly the 14 identity columns and on none of `role`, `points`, `pending`, `banked`, `phase`, `claimed`, `account_status`, `card_no`, `sponsor`, `team`, `days_left`. A member can no longer write their own role or points.
 - [ ] `account_status` has no writer at all. Lifestyle's admin RBAC (`public.app_roles`, `lifestyle_is_admin()`) is **not on this database**, so status changes go through the service role. A definer function is the right answer once that RBAC lands, not before.
 - [ ] Audit preflight E — who is already an admin, on either table, and should they be.
 - [ ] Confirm preflight A and C: the policies as they really are, and what `public.profiles.role` is for. The grants hold regardless, but if something authorizes off `role`, this was an escalation and not merely an ungoverned column.
