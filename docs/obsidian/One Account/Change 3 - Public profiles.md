@@ -10,7 +10,7 @@ tags:
 
 # Change 3 — Public profiles
 
-**Status:** current. [[Change 2 - Shared login engine]] is closed.
+**Status:** current. DB half **applied to Staging 2026-09-04** — every Auth user is a person in `public.profiles` at the same id (`still_missing = 0`). App reads and the admin audit remain. [[Change 2 - Shared login engine]] is closed.
 
 Read [[00 - Session gate]] and [[03 - Identity model]] before this Change.
 
@@ -114,6 +114,18 @@ refused by `set_account_status()`, and that `gema.profiles` was not touched.
 This proves the migration applies and does what it says on this shape. It does
 not prove Staging carries these policies — that is preflight A, outstanding.
 
+## Work
+
+- [x] Identity columns on `public.profiles` — `full_name`, `phone`, `avatar_url`, `locale`, `timezone`, `account_status`, `last_seen_at`.
+- [x] `NOT NULL` dropped on `name`, `mobile`, `card_no`, `sponsor`, `team`, so a person can exist without a Lifestyle card ([[00 - Locks]]).
+- [x] Backfill. All 15 Auth users have a person row at the same id — 9 copied from `gema.profiles`, 6 built from their auth record. Confirmed on Staging: `still_missing = 0`.
+- [x] Whole-row UPDATE revoked from `authenticated`; column grants in its place. Same transaction as the backfill, so it committed with it — **confirm with preflight B before calling this closed.**
+- [ ] `account_status` has no writer at all. Lifestyle's admin RBAC (`public.app_roles`, `lifestyle_is_admin()`) is **not on this database**, so status changes go through the service role. A definer function is the right answer once that RBAC lands, not before.
+- [ ] Audit preflight E — who is already an admin, on either table, and should they be.
+- [ ] Confirm preflight A and C: the policies as they really are, and what `public.profiles.role` is for. The grants hold regardless, but if something authorizes off `role`, this was an escalation and not merely an ungoverned column.
+- [ ] Lifestyle and Academy read `public.profiles` for name/email/phone. Academy's `src/lib/ops/profile.ts` already selects `full_name, email`; those columns now exist, so it should stop reading "not enrolled". Untested.
+- [ ] Decide what `gema.profiles` becomes now that `public.profiles` is the person: a view, or the GEMA clients stop pinning the `gema` schema. GEMA keeps working either way until then.
+
 ## Preflight before applying
 
 `GEMA/supabase/verify_change3_outstanding.sql`, read-only, every query
@@ -143,8 +155,10 @@ safe; applying anything there is not this Change's business.
 
 ## Done when
 
-Same id is the person in GEMA and in `public.profiles` on Staging, no member can
-write their own `role`, and the GEMA member dashboard still loads.
+Same id is the person in GEMA and in `public.profiles` on Staging — **met
+2026-09-04** — no member can write their own `role`, and the GEMA member
+dashboard still loads. The last two are confirmed by preflight B and by signing
+in, not by the migration having run.
 
 ## Next
 
