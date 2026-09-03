@@ -43,7 +43,7 @@ alter table public.profiles
   add constraint profiles_account_status_check
   check (account_status in ('active', 'suspended', 'closed'));
 
--- 2. Backfill from the columns that already hold this data.
+-- 2. Backfill from the Lifestyle columns, for any card rows that exist.
 update public.profiles
    set full_name = coalesce(full_name, nullif(btrim(name), '')),
        phone     = coalesce(phone, nullif(btrim(mobile), ''))
@@ -61,6 +61,64 @@ alter table public.profiles alter column mobile  drop not null;
 alter table public.profiles alter column card_no drop not null;
 alter table public.profiles alter column sponsor drop not null;
 alter table public.profiles alter column team    drop not null;
+
+-- 3b. Populate the person rows. This is the step that makes the Change true.
+--
+-- Section G, 2026-09-04: all 15 Auth users came back has_public_profile =
+-- false. public.profiles holds no person at all, so step 2 above updates
+-- nothing. Without this step the table gains columns and stays empty, and
+-- "same id is the person in GEMA and in public.profiles" stays false.
+--
+-- Two populations, and they are different problems:
+--   * 9 users have a gema.profiles row -- copy identity across, same id.
+--   * 6 users (created 2026-08-08 to 08-13) have neither, predating whatever
+--     began writing gema.profiles on 08-27. All that is known about them is
+--     their auth record, so that is what they get. They are people, not cards.
+--
+-- Idempotent: on conflict do nothing, and re-running adds nobody twice.
+
+-- Guard: refuse rather than half-apply if this table has a NOT NULL column
+-- with no default that the inserts below do not supply. `role` is the likely
+-- one -- its type and default were never confirmed.
+do $$
+declare blocking text;
+begin
+  select string_agg(column_name, ', ' order by column_name) into blocking
+    from information_schema.columns
+   where table_schema = 'public' and table_name = 'profiles'
+     and is_nullable = 'NO' and column_default is null
+     and column_name not in ('id', 'full_name', 'email', 'phone',
+                             'account_status', 'created_at', 'updated_at');
+  if blocking is not null then
+    raise exception
+      'public.profiles has NOT NULL columns with no default that this backfill does not fill: %. Tell me their intended values and I will supply them.', blocking;
+  end if;
+end $$;
+
+insert into public.profiles (id, full_name, email, phone, account_status)
+select g.id,
+       coalesce(nullif(btrim(g.full_name), ''),
+                nullif(btrim(concat_ws(' ', g.first_name, g.last_name)), ''),
+                split_part(coalesce(g.email::text, ''), '@', 1)),
+       g.email::text,
+       g.phone,
+       'active'
+  from gema.profiles g
+ where not exists (select 1 from public.profiles p where p.id = g.id)
+on conflict (id) do nothing;
+
+insert into public.profiles (id, full_name, email, account_status)
+select u.id,
+       coalesce(nullif(u.raw_user_meta_data ->> 'full_name', ''),
+                nullif(u.raw_user_meta_data ->> 'name', ''),
+                nullif(u.raw_user_meta_data ->> 'username', ''),
+                nullif(split_part(coalesce(u.email, ''), '@', 1), ''),
+                'member'),
+       u.email,
+       'active'
+  from auth.users u
+ where not exists (select 1 from public.profiles p where p.id = u.id)
+on conflict (id) do nothing;
 
 -- 4. Keep the old and new spellings in step until Change 4 removes the old
 --    ones. Lifestyle writes name/mobile; anything person-shaped writes

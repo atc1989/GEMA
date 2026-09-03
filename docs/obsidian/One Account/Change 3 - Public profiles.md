@@ -61,6 +61,31 @@ Expand only — nothing renamed, nothing dropped. Lifestyle keeps writing
 - Aborts whole, before changing anything, if `public.lifestyle_is_admin()` is
   absent.
 
+## The reconcile problem, answered — section G, 2026-09-04
+
+**All 15 Auth users came back `has_public_profile: false`.** Not one person
+exists in `public.profiles`. The table has the Lifestyle card shape and no
+people in it, so the identity backfill from `name`/`mobile` updates nothing.
+Adding columns alone would leave this Change's own "done when" false.
+
+The users split cleanly in two, and they are different problems:
+
+| | |
+|---|---|
+| **9 users** — `demo.*@gentrep.academy`, `testuser@test.com`, `nmapantas_2022000461@uic.edu.ph`, `testaccoount@onegrindersguild.local` | Have a `gema.profiles` row. Identity copies across at the same id. |
+| **6 users** — `atcoriginalnew@`, `najeebmapantas21@`, `lamnvisuals2020@`, `lukeaizone123@`, `jndlonsod@`, `jerickquijano29@` | Have neither. All created **2026-08-08 to 08-13**; every account from **08-27** onward has a `gema.profiles` row. |
+
+That date boundary is the finding. These six are not corrupt rows to repair —
+they predate whatever began writing `gema.profiles`, which is around when
+Change 1 landed. All that is known about them is their auth record, so that is
+what they get: email, and a name from `raw_user_meta_data` falling back to the
+address local-part. **A person row, never a card** — [[00 - Locks]].
+
+Both populations are filled by step 3b of the migration, idempotently. A guard
+ahead of it refuses the whole transaction if `public.profiles` has a `NOT NULL`
+column with no default that the inserts do not supply — `role` being the one
+whose type and default are still unconfirmed.
+
 ## Why the grants matter
 
 `profiles_update_own` (Lifestyle `20260822000000`) is `for update using (id =

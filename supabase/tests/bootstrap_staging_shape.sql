@@ -82,3 +82,17 @@ grant usage on schema public, auth, gema to anon, authenticated;
 grant all on all tables in schema public to anon, authenticated;
 grant all on all functions in schema public to anon, authenticated;
 grant select on auth.users to authenticated;
+
+-- Staging's actual data situation (section G, 2026-09-04): 15 Auth users, none
+-- with a public.profiles row, 9 with a gema.profiles row, 6 with neither.
+-- Scaled down but the same three shapes.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('dddd0000-0000-0000-0000-000000000001','has.gema@example.invalid','{"full_name":"Has Gema"}'),
+  ('dddd0000-0000-0000-0000-000000000002','names.only@example.invalid','{}'),
+  ('dddd0000-0000-0000-0000-000000000003','orphan.one@example.invalid','{"full_name":"Orphan One"}'),
+  ('dddd0000-0000-0000-0000-000000000004','orphan.two@example.invalid','{}');
+
+insert into gema.profiles (id, email, full_name, phone) values
+  ('dddd0000-0000-0000-0000-000000000001','has.gema@example.invalid','Has Gema','09990000101');
+insert into gema.profiles (id, email, first_name, last_name, full_name) values
+  ('dddd0000-0000-0000-0000-000000000002','names.only@example.invalid','Names','Only','');

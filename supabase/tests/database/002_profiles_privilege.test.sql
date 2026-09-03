@@ -111,4 +111,46 @@ begin
   then raise exception 'the migration reached into gema.profiles'; end if;
 end $$;
 
+-- 6. The backfill: every Auth user is now a person in public.profiles, with
+--    the same id, whether they came from gema.profiles or from auth alone.
+do $$
+declare missing int; blank int;
+begin
+  select count(*) into missing
+    from auth.users u
+   where not exists (select 1 from public.profiles p where p.id = u.id);
+  if missing > 0 then
+    raise exception '% Auth users still have no person row', missing;
+  end if;
+
+  -- Identity came across, not just an empty shell.
+  if (select full_name from public.profiles
+       where id = 'dddd0000-0000-0000-0000-000000000001') <> 'Has Gema'
+  then raise exception 'full_name did not come across from gema.profiles'; end if;
+
+  if (select phone from public.profiles
+       where id = 'dddd0000-0000-0000-0000-000000000001') <> '09990000101'
+  then raise exception 'phone did not come across from gema.profiles'; end if;
+
+  -- An empty gema full_name falls back to the name parts, not to blank.
+  if (select full_name from public.profiles
+       where id = 'dddd0000-0000-0000-0000-000000000002') <> 'Names Only'
+  then raise exception 'first/last name fallback did not fire'; end if;
+
+  -- An orphan gets its auth metadata, and no card.
+  if (select full_name from public.profiles
+       where id = 'dddd0000-0000-0000-0000-000000000003') <> 'Orphan One'
+  then raise exception 'orphan did not take its auth full_name'; end if;
+
+  if exists (select 1 from public.profiles
+              where id in ('dddd0000-0000-0000-0000-000000000003',
+                           'dddd0000-0000-0000-0000-000000000004')
+                and card_no is not null)
+  then raise exception 'the backfill minted a Lifestyle card'; end if;
+
+  select count(*) into blank from public.profiles
+   where coalesce(btrim(full_name), '') = '';
+  if blank > 0 then raise exception '% person rows have a blank name', blank; end if;
+end $$;
+
 rollback;
