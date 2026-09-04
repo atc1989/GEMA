@@ -10,10 +10,11 @@ tags:
 
 # Change 4 — Lazy product rows
 
-**Status:** **current**. Code and migration shipped 2026-09-04 on
-`claude/gutguard-lazy-product-rows-0x6yte` in all three repos. Not yet applied to
-Staging, and not yet signed in by the owner. [[Change 3 - Public profiles]]
-closed on Staging 2026-09-04.
+**Status:** **done** — Staging, 2026-09-04. Code merged to `main` in all three
+repos (Lifestyle #27, GEMA #34, Academy #20),
+`change4_lazy_product_rows.sql` applied to Staging, and the owner confirmed the
+first-visit card by signing in. [[Change 3 - Public profiles]] closed on Staging
+the same day.
 
 Read [[00 - Session gate]] and [[03 - Identity model]] before this Change.
 
@@ -35,8 +36,8 @@ First Lifestyle visit creates the card/member row. First Academy visit creates t
 - [x] Ginhawa register: Auth + person + Lifestyle row only.
 - [x] A OneGrinders member opening Lifestyle gets a card built from their guild
   name, without ever seeing the register form (D13).
-- [ ] **Owner: apply `GEMA/supabase/change4_lazy_product_rows.sql` to Staging.**
-- [ ] **Owner: sign in and confirm.** Tests do not close this Change.
+- [x] **Owner: apply `GEMA/supabase/change4_lazy_product_rows.sql` to Staging.**
+- [x] **Owner: sign in and confirm.** Confirmed by the owner, not by tests.
 
 ## "No card row" turned out not to mean "no row"
 
@@ -176,21 +177,22 @@ things that only a real build catches, both fixed before this note was written:
 - **`gema.profiles` vs `public.profiles`** — still two tables holding every
   person. Untouched here.
 
-## Owner steps in
+## Owner steps in — done
 
-1. Apply `GEMA/supabase/change4_lazy_product_rows.sql` to **Staging only**
-   (`fxdsnacuonfvutdquogb`). Production is a separate decision.
-2. Sign out first — a live session hides a broken login — then sign in on
-   Lifestyle Preview as a OneGrinders Staging user and confirm a card appears
-   without registering. Check the cookie `sb-fxdsnacuonfvutdquogb-auth-token`
-   names the project before debugging anything.
-3. Open `/academy` on Academy Preview. Expect **"You're signed in / Training is
-   not enrolled on this account yet"** until the Academy catalog is on Staging.
-   That is the *Left open* item above, not a fault in this Change.
+1. `GEMA/supabase/change4_lazy_product_rows.sql` applied to **Staging only**
+   (`fxdsnacuonfvutdquogb`). Production is still a separate decision and was not
+   touched.
+2. Signed in on Lifestyle and confirmed the card appears without registering.
+3. Academy shows **"You're signed in / Training is not enrolled on this account
+   yet"** until the Academy catalog is on Staging — the *Left open* item above,
+   not a fault in this Change.
 
 ## Done when
 
-OneGrinders Staging user opens Lifestyle and gets a card without registering. Academy stays empty until they open `/academy`.
+OneGrinders Staging user opens Lifestyle and gets a card without registering —
+**met 2026-09-04, confirmed by the owner signing in.** Academy stays empty until
+they open `/academy`; on Staging it stays empty after that too, until the Academy
+catalog lands there (*Left open*).
 
 ## Next
 

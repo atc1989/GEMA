@@ -10,7 +10,7 @@ tags:
 
 # Change 5 — Hub chrome
 
-**Status:** blocked on [[Change 4 - Lazy product rows]]
+**Status:** **current**. [[Change 4 - Lazy product rows]] closed on Staging 2026-09-04.
 
 Read [[00 - Session gate]] and [[04 - UX]] before this Change. **This Change touches UI — read the Design System.**
 
