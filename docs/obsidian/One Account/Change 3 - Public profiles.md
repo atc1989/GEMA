@@ -10,7 +10,7 @@ tags:
 
 # Change 3 — Public profiles
 
-**Status:** current. DB half **applied to Staging 2026-09-04** — every Auth user is a person in `public.profiles` at the same id (`still_missing = 0`). App reads and the admin audit remain. [[Change 2 - Shared login engine]] is closed.
+**Status:** **done** — Staging, 2026-09-04. Person rows on both sides of the spine, `role` no longer member-writable. Carried-forward items are listed under *Left open* below and belong to later Changes, not to reopening this one.
 
 Read [[00 - Session gate]] and [[03 - Identity model]] before this Change.
 
@@ -156,6 +156,46 @@ product rows]] is where it belongs — once card/points live in their own table
 with their own policy they can be governed without breaking the app.
 
 `admin.ts` only reads `public.profiles`, so nothing there was affected.
+
+## Left open, deliberately
+
+None of these block [[Change 4 - Lazy product rows]]; each is recorded so it is
+not rediscovered as a surprise.
+
+- **Preflight A and C never came back.** The whole-row UPDATE is proven from the
+  Lifestyle migration files, not from Staging itself, and nobody has confirmed
+  what `public.profiles.role` is *for*. The column grants hold either way. If
+  some function authorizes off that column, what was closed here was a live
+  escalation rather than an ungoverned column — worth knowing before the
+  production cutover.
+- **Preflight E, the admin audit.** Who already holds `role = 'admin'` on either
+  table. The door is shut; nobody has looked at who went through it first.
+- **`account_status` has no writer.** Lifestyle's admin RBAC (`public.app_roles`,
+  `lifestyle_is_admin()`) is not on this database. Service role only until it is.
+- **`gema.profiles` vs `public.profiles`.** Both now hold every person. GEMA
+  reads `gema.profiles`; the spokes read `public.profiles`. One of them should
+  eventually become a view over the other, or GEMA's clients should stop pinning
+  the `gema` schema. Two tables, one truth, kept in step by a backfill is not a
+  resting state.
+- **What writes the person row for a *new* Auth user.** `public.handle_new_user`
+  is armed and its body was never read (preflight F). GEMA now calls
+  `ensurePersonRow` on sign-in as a safety net, but a net is not a plan.
+- **Points are still member-writable.** Lifestyle's card flow needs it; Change 4
+  is where card/points move to their own table and can be governed properly.
+
+## Field notes from the Staging proof
+
+Two failures cost hours and were neither of them bugs:
+
+- **Two `profiles` tables.** An unqualified column list was read as
+  `public.profiles` when it described `gema.profiles`, and the migration was
+  rewritten for the wrong table and back again. Every query that drives a
+  migration must return its own schema.
+- **Testing against the wrong project.** "Invalid email or password" on GEMA was
+  production GEMA, where the Staging account does not exist. Before debugging a
+  login, confirm the project — `sb-<ref>-auth-token` names it.
+
+A third: a live session hides a broken password. Sign out before testing auth.
 
 ## Preflight before applying
 
