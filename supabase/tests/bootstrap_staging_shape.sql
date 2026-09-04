@@ -60,18 +60,14 @@ create table gema.profiles (
   last_seen_at timestamptz, can_publish_events boolean not null default false
 );
 
--- Lifestyle admin RBAC (20260902000000), which the migration depends on.
-create table public.app_roles (
-  user_id uuid primary key references auth.users (id) on delete cascade,
-  role text not null check (role in ('admin')),
-  created_at timestamptz not null default now()
-);
-create function public.lifestyle_is_admin(p_user uuid default auth.uid())
-returns boolean language sql stable security invoker set search_path = public as $$
-  select exists (select 1 from public.app_roles where user_id = p_user and role = 'admin') $$;
+-- Lifestyle's admin RBAC (20260902000000) is deliberately NOT created here.
+-- public.app_roles does not exist on Staging -- confirmed 2026-09-04 by an
+-- error from the preflight -- so neither does lifestyle_is_admin(). The card
+-- table landed there; the RBAC did not. The fixture has to be missing it too,
+-- or the migration would be tested against a database more complete than the
+-- real one.
 
 alter table public.profiles enable row level security;
-alter table public.app_roles enable row level security;
 
 create policy profiles_select_own on public.profiles
   for select to authenticated using (id = auth.uid());
@@ -79,8 +75,6 @@ create policy profiles_insert_own on public.profiles
   for insert to authenticated with check (id = auth.uid());
 create policy profiles_update_own on public.profiles
   for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
-create policy profiles_select_admin on public.profiles
-  for select to authenticated using (public.lifestyle_is_admin());
 
 -- Supabase grants ALL on public tables to anon/authenticated by default. This
 -- is what makes the whole-row UPDATE reachable, and what the migration revokes.
@@ -88,3 +82,17 @@ grant usage on schema public, auth, gema to anon, authenticated;
 grant all on all tables in schema public to anon, authenticated;
 grant all on all functions in schema public to anon, authenticated;
 grant select on auth.users to authenticated;
+
+-- Staging's actual data situation (section G, 2026-09-04): 15 Auth users, none
+-- with a public.profiles row, 9 with a gema.profiles row, 6 with neither.
+-- Scaled down but the same three shapes.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('dddd0000-0000-0000-0000-000000000001','has.gema@example.invalid','{"full_name":"Has Gema"}'),
+  ('dddd0000-0000-0000-0000-000000000002','names.only@example.invalid','{}'),
+  ('dddd0000-0000-0000-0000-000000000003','orphan.one@example.invalid','{"full_name":"Orphan One"}'),
+  ('dddd0000-0000-0000-0000-000000000004','orphan.two@example.invalid','{}');
+
+insert into gema.profiles (id, email, full_name, phone) values
+  ('dddd0000-0000-0000-0000-000000000001','has.gema@example.invalid','Has Gema','09990000101');
+insert into gema.profiles (id, email, first_name, last_name, full_name) values
+  ('dddd0000-0000-0000-0000-000000000002','names.only@example.invalid','Names','Only','');

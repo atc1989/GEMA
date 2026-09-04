@@ -8,9 +8,12 @@ import { after } from "next/server";
 import { getCurrentProfile } from "@/lib/auth/require-admin";
 import { getCurrentMember } from "@/lib/auth/require-member";
 import {
+  createIdentityAdminClient,
   createLoginEngine,
   emailForUsername,
+  isCompleteEmailCode,
   isSyntheticExternalEmail,
+  normalizeEmailCode,
   normalizeIdentifier,
 } from "@/lib/one-account";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -57,11 +60,73 @@ export async function loginAction(
     return { ok: false, error: outcome.error };
   }
 
+  await ensurePersonRow(outcome.userId);
+
   const redirectTo = formData.get("redirectTo");
   await redirectAfterLogin(
     typeof redirectTo === "string" ? redirectTo : undefined,
     outcome.backupLogin,
   );
+}
+
+/**
+ * One `auth.users.id` is one person row (00 - Locks). Under One Account an
+ * account can be created on Lifestyle or Academy and then arrive here, so GEMA
+ * cannot assume its own signup wrote the spine row.
+ *
+ * Without this the failure is silent and circular: redirectAfterLogin finds no
+ * profile and no member and sends them to /onboarding, /onboarding finds no
+ * profile and sends them back to /login. A valid session and the login page,
+ * forever, with no error anywhere.
+ *
+ * A person row only — never a members row, a Lifestyle card, or an Academy
+ * BASE row. Those stay lazy (Change 4).
+ */
+async function ensurePersonRow(userId: string | null) {
+  if (!userId) return;
+  try {
+    const admin = createIdentityAdminClient();
+    const { data: existing } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle<{ id: string }>();
+    if (existing) return;
+
+    const { data: authData } = await admin.auth.admin.getUserById(userId);
+    const user = authData?.user;
+    if (!user) return;
+
+    const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+    const named = (key: string) => {
+      const value = meta[key];
+      return typeof value === "string" && value.trim() ? value.trim() : null;
+    };
+
+    const { error } = await admin.from("profiles").insert({
+      id: userId,
+      email: user.email,
+      full_name:
+        named("full_name") ??
+        named("name") ??
+        named("username") ??
+        (user.email ? user.email.split("@")[0] : null) ??
+        "member",
+    });
+    if (error) {
+      console.warn("[gema] could not create the person row", {
+        userId,
+        code: error.code,
+        message: error.message,
+      });
+    }
+  } catch (error) {
+    // Never block a sign-in on this. A missing row costs a trip through
+    // onboarding; a thrown error costs the login.
+    console.warn("[gema] person row check skipped", {
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 /** Post-sign-in landing: honours an explicit redirect, then routes by role. */
@@ -121,7 +186,14 @@ export async function requestPasswordResetAction(
     redirectTo: `${origin}/reset-password`,
   });
 
-  return { ok: true, message: "If an email is on file, a password reset link has been sent." };
+  // Deliberately vague about whether the address exists, and deliberately
+  // vague about link vs code: this project's template sends one, Staging's
+  // sends the other, and the member is told how to finish either way.
+  return {
+    ok: true,
+    message:
+      "If an email is on file, a reset is on its way. It may be a link or a 6-digit code.",
+  };
 }
 
 export type ResetPasswordResult = { ok: false; error: string } | undefined;
@@ -137,11 +209,39 @@ export async function resetPasswordAction(
   }
 
   const supabase = await createSupabaseServerClient();
-  if (code) {
+
+  // A reset arrives one of two ways and the app has to take both.
+  //
+  // The Reset Password template on this project emails a 6-digit code, not a
+  // link — the same partner template that made Staging's Confirm signup send a
+  // code. exchangeCodeForSession cannot consume a 6-digit OTP, so before this
+  // there was no way to finish a reset at all: the link path had nothing to
+  // exchange and the code path had no handler.
+  //
+  // Typing the code also sidesteps the second failure. A link points at
+  // ${origin}/reset-password, and on a protected preview host that lands the
+  // member on Vercel's login wall instead of the app. A code needs no redirect.
+  const email = String(formData.get("email") ?? "").trim();
+
+  if (isCompleteEmailCode(code)) {
+    if (!email) {
+      return { ok: false, error: "Enter the email address you asked the reset for." };
+    }
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: normalizeEmailCode(code),
+      type: "recovery",
+    });
+    if (error) {
+      return { ok: false, error: "That code did not work. Ask for a new one." };
+    }
+  } else if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       return { ok: false, error: "This reset link is invalid or has expired. Request a new one." };
     }
+  } else {
+    return { ok: false, error: "Enter the 6-digit code from your reset email." };
   }
 
   const { error } = await supabase.auth.updateUser({ password });

@@ -1,6 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+
+import Link from "next/link";
 
 import { requestPasswordResetAction, type ResetRequestResult } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -12,6 +14,16 @@ export function ForgotPasswordForm() {
     requestPasswordResetAction,
     undefined,
   );
+  const [identifier, setIdentifier] = useState("");
+
+  // The reset email carries a link on some projects and a 6-digit code on
+  // others. With a code there is nothing to click, so always offer the way in
+  // to the code step. Prefill only what the member typed here — never anything
+  // the server said, which would leak whether the address exists.
+  const typedEmail = identifier.includes("@") ? identifier.trim() : "";
+  const codeStepHref = typedEmail
+    ? `/reset-password?email=${encodeURIComponent(typedEmail)}`
+    : "/reset-password";
 
   return (
     <form action={formAction} className="grid gap-4">
@@ -22,6 +34,8 @@ export function ForgotPasswordForm() {
           type="text"
           autoComplete="username"
           placeholder="johndoe or you@example.com"
+          value={identifier}
+          onChange={(event) => setIdentifier(event.target.value)}
           required
         />
       </Field>
@@ -39,8 +53,17 @@ export function ForgotPasswordForm() {
       ) : null}
 
       <Button type="submit" variant="brand" size="lg" className="w-full" disabled={pending}>
-        {pending ? "Sending..." : "Send reset link"}
+        {pending ? "Sending..." : "Send reset"}
       </Button>
+
+      {state?.ok ? (
+        <Link
+          href={codeStepHref}
+          className="text-center text-sm font-bold text-brand hover:underline"
+        >
+          Got a 6-digit code instead? Enter it here
+        </Link>
+      ) : null}
     </form>
   );
 }

@@ -19,7 +19,7 @@ Canonical folder on Najee’s machine:
 
 Copy this whole folder there (not inside Tech Stack, not inside Design System). Cloud agents read the product-repo copy at `docs/obsidian/One Account/`.
 
-**Current change:** [[Change 3 - Public profiles]]
+**Current change:** [[Change 4 - Lazy product rows]]
 
 Change 1 is checked done — proven on Staging 2026-08-28, production Auth untouched.  
 Change 2 is checked done — Staging shared-login proof recorded 2026-09-03 (`TEST_MANCERA` + `demo.admin` email across Lifestyle, Academy, GEMA Preview; OneGrinders-unavailable safe failure on Academy Preview).
@@ -44,8 +44,8 @@ flowchart TB
 
 1. [[Change 1 - Staging identity freeze]] — **done** (Staging, 2026-08-28)
 2. [[Change 2 - Shared login engine]] — **done** (Staging proof, 2026-09-03)
-3. [[Change 3 - Public profiles]] — **current**
-4. [[Change 4 - Lazy product rows]]
+3. [[Change 3 - Public profiles]] — **done** (Staging, 2026-09-04)
+4. [[Change 4 - Lazy product rows]] — **current**
 5. [[Change 5 - Hub chrome]]
 6. [[Change 6 - Shared domain SSO]]
 

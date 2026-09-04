@@ -10,7 +10,7 @@ tags:
 
 # Change 4 — Lazy product rows
 
-**Status:** blocked on [[Change 3 - Public profiles]]
+**Status:** **current**. [[Change 3 - Public profiles]] closed on Staging 2026-09-04.
 
 Read [[00 - Session gate]] and [[03 - Identity model]] before this Change.
 

@@ -59,9 +59,8 @@ begin
     from information_schema.column_privileges
    where table_schema = 'public' and table_name = 'profiles'
      and grantee in ('authenticated','anon') and privilege_type = 'UPDATE'
-     and column_name in ('role','account_status','points','pending','banked',
-                         'phase','claimed','card_no','sponsor','team',
-                         'days_left','id','created_at');
+     and column_name in ('role','account_status','sponsor','team',
+                         'id','created_at');
   if leaked is not null then
     raise exception 'members can update privileged columns: %', leaked;
   end if;
@@ -86,17 +85,17 @@ begin
   exception when insufficient_privilege then null;
   end;
 
-  begin
-    update public.profiles set points = 999999
-     where id = 'bbbb1111-0000-0000-0000-000000000001';
-    raise exception 'a member set their own points';
-  exception when insufficient_privilege then null;
-  end;
+  -- Lifestyle's card flow must keep working from the member's own session.
+  -- Revoking these is what broke claimCard() and the register upsert.
+  update public.profiles set claimed = true, phase = 'claimed'
+   where id = 'bbbb1111-0000-0000-0000-000000000001';
+  update public.profiles set points = 10, banked = 1, days_left = 9
+   where id = 'bbbb1111-0000-0000-0000-000000000001';
 
   begin
-    perform public.set_account_status(
-      'bbbb1111-0000-0000-0000-000000000001', 'suspended');
-    raise exception 'a non-admin changed an account status';
+    update public.profiles set account_status = 'suspended'
+     where id = 'bbbb1111-0000-0000-0000-000000000001';
+    raise exception 'a member set their own account_status';
   exception when insufficient_privilege then null;
   end;
 end $$;
@@ -109,6 +108,63 @@ begin
               where table_schema='gema' and table_name='profiles'
                 and column_name in ('locale','timezone','account_status'))
   then raise exception 'the migration reached into gema.profiles'; end if;
+end $$;
+
+-- 6. The backfill: every Auth user is now a person in public.profiles, with
+--    the same id, whether they came from gema.profiles or from auth alone.
+do $$
+declare missing int; blank int;
+begin
+  select count(*) into missing
+    from auth.users u
+   where not exists (select 1 from public.profiles p where p.id = u.id);
+  if missing > 0 then
+    raise exception '% Auth users still have no person row', missing;
+  end if;
+
+  -- Identity came across, not just an empty shell.
+  if (select full_name from public.profiles
+       where id = 'dddd0000-0000-0000-0000-000000000001') <> 'Has Gema'
+  then raise exception 'full_name did not come across from gema.profiles'; end if;
+
+  if (select phone from public.profiles
+       where id = 'dddd0000-0000-0000-0000-000000000001') <> '09990000101'
+  then raise exception 'phone did not come across from gema.profiles'; end if;
+
+  -- An empty gema full_name falls back to the name parts, not to blank.
+  if (select full_name from public.profiles
+       where id = 'dddd0000-0000-0000-0000-000000000002') <> 'Names Only'
+  then raise exception 'first/last name fallback did not fire'; end if;
+
+  -- An orphan gets its auth metadata, and no card.
+  if (select full_name from public.profiles
+       where id = 'dddd0000-0000-0000-0000-000000000003') <> 'Orphan One'
+  then raise exception 'orphan did not take its auth full_name'; end if;
+
+  if exists (select 1 from public.profiles
+              where id in ('dddd0000-0000-0000-0000-000000000003',
+                           'dddd0000-0000-0000-0000-000000000004')
+                and card_no is not null)
+  then raise exception 'the backfill minted a Lifestyle card'; end if;
+
+  select count(*) into blank from public.profiles
+   where coalesce(btrim(full_name), '') = '';
+  if blank > 0 then raise exception '% person rows have a blank name', blank; end if;
+
+  -- 7. Both sides of the spine. GEMA reads gema.profiles; a member with a row
+  --    in public.profiles but not there loops between /onboarding and /login.
+  -- Only the fixture users, which existed when the migration ran. Rows this
+  -- test inserts afterwards are the trigger's job, not the backfill's.
+  select count(*) into missing
+    from auth.users u
+   where u.id::text like 'dddd0000-%'
+     and not exists (select 1 from gema.profiles g where g.id = u.id);
+  if missing > 0 then
+    raise exception '% fixture users have no gema.profiles row', missing;
+  end if;
+
+  if exists (select 1 from gema.profiles where coalesce(btrim(full_name), '') = '')
+  then raise exception 'a gema.profiles row has a blank name'; end if;
 end $$;
 
 rollback;
