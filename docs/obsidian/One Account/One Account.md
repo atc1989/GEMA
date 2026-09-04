@@ -19,7 +19,7 @@ Canonical folder on Najee’s machine:
 
 Copy this whole folder there (not inside Tech Stack, not inside Design System). Cloud agents read the product-repo copy at `docs/obsidian/One Account/`.
 
-**Current change:** [[Change 5 - Hub chrome]]
+**Current change:** [[Change 4b - Academy on Staging]]
 
 Change 1 is checked done — proven on Staging 2026-08-28, production Auth untouched.  
 Change 2 is checked done — Staging shared-login proof recorded 2026-09-03 (`TEST_MANCERA` + `demo.admin` email across Lifestyle, Academy, GEMA Preview; OneGrinders-unavailable safe failure on Academy Preview).
@@ -48,7 +48,8 @@ flowchart TB
 2. [[Change 2 - Shared login engine]] — **done** (Staging proof, 2026-09-03)
 3. [[Change 3 - Public profiles]] — **done** (Staging, 2026-09-04)
 4. [[Change 4 - Lazy product rows]] — **done** (Staging, 2026-09-04)
-5. [[Change 5 - Hub chrome]] — **current**
+4b. [[Change 4b - Academy on Staging]] — **current** (opened 2026-09-04 from a live failure)
+5. [[Change 5 - Hub chrome]]
 6. [[Change 6 - Shared domain SSO]]
 
 ## Owner steps in only when
