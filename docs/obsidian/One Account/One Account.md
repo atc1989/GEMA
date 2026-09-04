@@ -19,12 +19,12 @@ Canonical folder on Najee’s machine:
 
 Copy this whole folder there (not inside Tech Stack, not inside Design System). Cloud agents read the product-repo copy at `docs/obsidian/One Account/`.
 
-**Current change:** [[Change 4 - Lazy product rows]]
+**Current change:** [[Change 5 - Hub chrome]]
 
 Change 1 is checked done — proven on Staging 2026-08-28, production Auth untouched.  
 Change 2 is checked done — Staging shared-login proof recorded 2026-09-03 (`TEST_MANCERA` + `demo.admin` email across Lifestyle, Academy, GEMA Preview; OneGrinders-unavailable safe failure on Academy Preview).
 Change 3 is checked done — Staging, 2026-09-04. Person rows on both sides of the spine.
-Change 4 code and migration shipped 2026-09-04; the migration is not applied to Staging yet and the owner has not signed in. See [[Change 4 - Lazy product rows]].
+Change 4 is checked done — Staging, 2026-09-04. Card and trainee rows are created on first visit, never at signup; the owner confirmed the card by signing in. Academy stays "not enrolled" on Staging until its catalog lands there — recorded under *Left open* on that note, and not a fault in the Change.
 
 That proof is a **Preview** proof — Preview env, Staging `fxdsnacuonfvutdquogb`. A `main`-branch deployment loads **Production** env, so a Staging username fails there by design, not by fault. See [[Change 2 - Shared login engine]].
 
@@ -47,8 +47,8 @@ flowchart TB
 1. [[Change 1 - Staging identity freeze]] — **done** (Staging, 2026-08-28)
 2. [[Change 2 - Shared login engine]] — **done** (Staging proof, 2026-09-03)
 3. [[Change 3 - Public profiles]] — **done** (Staging, 2026-09-04)
-4. [[Change 4 - Lazy product rows]] — **current**
-5. [[Change 5 - Hub chrome]]
+4. [[Change 4 - Lazy product rows]] — **done** (Staging, 2026-09-04)
+5. [[Change 5 - Hub chrome]] — **current**
 6. [[Change 6 - Shared domain SSO]]
 
 ## Owner steps in only when
