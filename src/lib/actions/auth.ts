@@ -8,9 +8,9 @@ import { after } from "next/server";
 import { getCurrentProfile } from "@/lib/auth/require-admin";
 import { getCurrentMember } from "@/lib/auth/require-member";
 import {
-  createIdentityAdminClient,
   createLoginEngine,
   emailForUsername,
+  ensurePersonRow,
   isCompleteEmailCode,
   isSyntheticExternalEmail,
   normalizeEmailCode,
@@ -67,66 +67,6 @@ export async function loginAction(
     typeof redirectTo === "string" ? redirectTo : undefined,
     outcome.backupLogin,
   );
-}
-
-/**
- * One `auth.users.id` is one person row (00 - Locks). Under One Account an
- * account can be created on Lifestyle or Academy and then arrive here, so GEMA
- * cannot assume its own signup wrote the spine row.
- *
- * Without this the failure is silent and circular: redirectAfterLogin finds no
- * profile and no member and sends them to /onboarding, /onboarding finds no
- * profile and sends them back to /login. A valid session and the login page,
- * forever, with no error anywhere.
- *
- * A person row only — never a members row, a Lifestyle card, or an Academy
- * BASE row. Those stay lazy (Change 4).
- */
-async function ensurePersonRow(userId: string | null) {
-  if (!userId) return;
-  try {
-    const admin = createIdentityAdminClient();
-    const { data: existing } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("id", userId)
-      .maybeSingle<{ id: string }>();
-    if (existing) return;
-
-    const { data: authData } = await admin.auth.admin.getUserById(userId);
-    const user = authData?.user;
-    if (!user) return;
-
-    const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
-    const named = (key: string) => {
-      const value = meta[key];
-      return typeof value === "string" && value.trim() ? value.trim() : null;
-    };
-
-    const { error } = await admin.from("profiles").insert({
-      id: userId,
-      email: user.email,
-      full_name:
-        named("full_name") ??
-        named("name") ??
-        named("username") ??
-        (user.email ? user.email.split("@")[0] : null) ??
-        "member",
-    });
-    if (error) {
-      console.warn("[gema] could not create the person row", {
-        userId,
-        code: error.code,
-        message: error.message,
-      });
-    }
-  } catch (error) {
-    // Never block a sign-in on this. A missing row costs a trip through
-    // onboarding; a thrown error costs the login.
-    console.warn("[gema] person row check skipped", {
-      message: error instanceof Error ? error.message : String(error),
-    });
-  }
 }
 
 /** Post-sign-in landing: honours an explicit redirect, then routes by role. */

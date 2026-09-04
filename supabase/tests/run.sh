@@ -53,6 +53,31 @@ SQL
 )
 echo "after fix:  member self-escalation -> $(echo "$after" | grep -o 'permission denied.*' || echo 'STILL ALLOWED')"
 
+# Change 4. Show the card numbers as they are first: one placeholder string
+# shared by the whole membership, and nothing objecting to a duplicate.
+before4=$(psql -X -t -A -d postgres -c "
+  select 'members sharing a card number: ' ||
+         coalesce(sum(n - 1), 0)
+    from (select count(*) as n from public.profiles
+           where card_no is not null and btrim(card_no) <> ''
+           group by regexp_replace(btrim(card_no), '\s+', ' ', 'g')) counted;")
+echo "before fix: $before4"
+
+printf '%-46s ' "change4_lazy_product_rows.sql"
+psql -q -v ON_ERROR_STOP=1 -d postgres -f "$HERE/../change4_lazy_product_rows.sql" >/dev/null 2>"$WORK/err.log" \
+  && echo applied || { echo FAILED; cat "$WORK/err.log"; exit 1; }
+
+printf '%-46s ' "re-apply (idempotency)"
+psql -q -v ON_ERROR_STOP=1 -d postgres -f "$HERE/../change4_lazy_product_rows.sql" >/dev/null 2>"$WORK/err.log" \
+  && echo ok || { echo FAILED; cat "$WORK/err.log"; exit 1; }
+
+after4=$(psql -X -t -A -d postgres 2>&1 <<'SQL' || true
+update public.profiles set card_no = '0240 9999 8888 7777'
+ where id = 'eeee0000-0000-0000-0000-000000000004';
+SQL
+)
+echo "after fix:  duplicate card number -> $(echo "$after4" | grep -o 'duplicate key value.*' | head -1 || echo 'STILL ALLOWED')"
+
 for t in "$HERE"/database/*.test.sql; do
   printf '%-46s ' "$(basename "$t")"
   psql -q -X -v ON_ERROR_STOP=1 -d postgres -f "$t" >/dev/null 2>"$WORK/err.log" \

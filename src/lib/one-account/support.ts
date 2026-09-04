@@ -37,3 +37,18 @@ export function isMissingTable(error: { code?: string; message?: string } | null
   const message = error.message?.toLowerCase() ?? "";
   return message.includes("does not exist") || message.includes("could not find the table");
 }
+
+/**
+ * True when a PostgREST error means "this column is not on that table here"
+ * rather than "this query failed". The three apps do not share one
+ * `profiles` shape yet — Academy's own project has no `account_status`, and a
+ * database without Change 3 has no `full_name` — so a person write has to be
+ * able to narrow its payload instead of failing the visit.
+ */
+export function isMissingColumn(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  // PGRST204: column not found in schema cache. 42703: undefined_column.
+  if (error.code === "PGRST204" || error.code === "42703") return true;
+  const message = error.message?.toLowerCase() ?? "";
+  return message.includes("column") && message.includes("does not exist");
+}
