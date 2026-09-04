@@ -27,6 +27,10 @@ Only behaviour that must be identical on every origin:
   verified password, and keeps the GEMA profile/member row in step.
 - `login-engine.ts` — the sign-in orchestration: throttle, local-first mirror,
   external verification, backup path, session sign-in.
+- `person.ts` / `person-admin.ts` — the person row on both sides of the spine
+  (`public.profiles` and `gema.profiles`, same id). An account can be created on
+  any of the three apps now, so no app may assume its own signup wrote the row
+  it needs. A person only — the card and the trainee row are lazy (Change 4).
 
 ## Two entry points
 
@@ -40,9 +44,11 @@ Only behaviour that must be identical on every origin:
   "Username or email" field in its own dialect.
 - **Redirects.** The engine returns an outcome; each app decides where a member
   lands (see `04 - UX`).
-- **Product rows.** The provisioner writes the GEMA profile/member spine and
-  nothing else. It must never write an Academy BASE row or a Lifestyle card —
-  those are lazy, on first visit, in Change 4.
+- **Product rows.** The provisioner and `person.ts` write the person spine and
+  nothing else. Neither may write an Academy BASE row or a Lifestyle card —
+  those are lazy, created on first visit, by the app that owns them (Change 4:
+  Lifestyle `lib/lifestyle/ensure-card.ts`, Academy
+  `src/lib/academy/first-visit.ts`).
 - **Framework imports.** Nothing from `next/*`, so the module works on Next 15
   (GEMA) and Next 16 (spokes) alike. `after()`, `headers()`, and `redirect()`
   are passed in or stay in the app.

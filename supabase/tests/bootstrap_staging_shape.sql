@@ -96,3 +96,24 @@ insert into gema.profiles (id, email, full_name, phone) values
   ('dddd0000-0000-0000-0000-000000000001','has.gema@example.invalid','Has Gema','09990000101');
 insert into gema.profiles (id, email, first_name, last_name, full_name) values
   ('dddd0000-0000-0000-0000-000000000002','names.only@example.invalid','Names','Only','');
+
+-- Change 4 fixture: the card numbers as they actually are before the Change.
+-- Every member registered through Lifestyle got the same literal string from
+-- lib/mock/seed.ts, there is no unique index, and nothing objected.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('eeee0000-0000-0000-0000-000000000001','legacy.one@example.invalid','{"full_name":"Legacy One"}'),
+  ('eeee0000-0000-0000-0000-000000000002','legacy.two@example.invalid','{"full_name":"Legacy Two"}'),
+  ('eeee0000-0000-0000-0000-000000000003','dup.early@example.invalid','{"full_name":"Dup Early"}'),
+  ('eeee0000-0000-0000-0000-000000000004','dup.late@example.invalid','{"full_name":"Dup Late"}'),
+  ('eeee0000-0000-0000-0000-000000000005','blank.card@example.invalid','{"full_name":"Blank Card"}'),
+  ('eeee0000-0000-0000-0000-000000000006','real.card@example.invalid','{"full_name":"Real Card"}');
+
+insert into public.profiles (id, name, mobile, email, card_no, points, phase, created_at) values
+  -- The placeholder, twice, and once with the spacing a hand-edit leaves behind.
+  ('eeee0000-0000-0000-0000-000000000001','Legacy One','09990000201','legacy.one@example.invalid','0240 5578 9012 3456', 120, 'claimed', '2026-08-01'),
+  ('eeee0000-0000-0000-0000-000000000002','Legacy Two','09990000202','legacy.two@example.invalid','0240  5578 9012 3456',  0, 'invited', '2026-08-02'),
+  -- A duplicate that is not the placeholder. The earliest row keeps it.
+  ('eeee0000-0000-0000-0000-000000000003','Dup Early','09990000203','dup.early@example.invalid','0240 1111 2222 3333',  5, 'invited', '2026-08-03'),
+  ('eeee0000-0000-0000-0000-000000000004','Dup Late','09990000204','dup.late@example.invalid','0240 1111 2222 3333',  7, 'invited', '2026-08-04'),
+  ('eeee0000-0000-0000-0000-000000000005','Blank Card','09990000205','blank.card@example.invalid','   ', 0, 'invited', '2026-08-05'),
+  ('eeee0000-0000-0000-0000-000000000006','Real Card','09990000206','real.card@example.invalid','0240 9999 8888 7777', 42, 'member', '2026-08-06');

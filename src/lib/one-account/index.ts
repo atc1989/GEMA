@@ -8,8 +8,24 @@ export {
 
 export {
   createIdentityAdminClient,
+  hasIdentityAdminCredentials,
   type IdentityAdminClient,
 } from "./identity-client.ts";
+
+export { ensurePersonRow } from "./person-admin.ts";
+
+export {
+  ensurePersonRowWith,
+  personNameFrom,
+  personRowVariants,
+  writePersonRow,
+  PERSON_SCHEMA,
+  type EnsurePersonResult,
+  type PersonClient,
+  type PersonIdentity,
+  type PersonPorts,
+  type PersonRowOutcome,
+} from "./person.ts";
 
 export {
   emailForUsername,
@@ -25,7 +41,14 @@ export {
   type ExternalLoginProvisionResult,
 } from "./onegrinders.ts";
 
-export { identitySchema, looksLikeEmail, normalizeIdentifier } from "./support.ts";
+export {
+  identitySchema,
+  isFrameworkControlFlow,
+  isMissingColumn,
+  isMissingTable,
+  looksLikeEmail,
+  normalizeIdentifier,
+} from "./support.ts";
 
 export {
   EMAIL_CODE_COPY,
