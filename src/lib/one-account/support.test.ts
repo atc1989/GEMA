@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { isMissingTable, looksLikeEmail, normalizeIdentifier } from "./support.ts";
+import {
+  isFrameworkControlFlow,
+  isMissingTable,
+  looksLikeEmail,
+  normalizeIdentifier,
+} from "./support.ts";
 import {
   externalEmailForUsername,
   looksLikeKeyRejection,
@@ -101,4 +106,16 @@ test("a missing identity table degrades instead of failing the login", () => {
   );
   assert.equal(isMissingTable({ code: "23505", message: "duplicate key value" }), false);
   assert.equal(isMissingTable(null), false);
+});
+
+test("Next's own control flow is not swallowed as an error", () => {
+  // A first-visit helper wraps everything in try/catch so a database problem
+  // cannot cost a page render. These are not database problems: catching the
+  // dynamic-rendering bail-out would let a member surface be prerendered.
+  assert.equal(isFrameworkControlFlow({ digest: "DYNAMIC_SERVER_USAGE" }), true);
+  assert.equal(isFrameworkControlFlow({ digest: "NEXT_REDIRECT;replace;/card;307;" }), true);
+  assert.equal(isFrameworkControlFlow({ name: "DynamicServerError" }), true);
+  assert.equal(isFrameworkControlFlow(new Error("permission denied")), false);
+  assert.equal(isFrameworkControlFlow(null), false);
+  assert.equal(isFrameworkControlFlow("boom"), false);
 });

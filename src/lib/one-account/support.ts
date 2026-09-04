@@ -52,3 +52,15 @@ export function isMissingColumn(error: { code?: string; message?: string } | nul
   const message = error.message?.toLowerCase() ?? "";
   return message.includes("column") && message.includes("does not exist");
 }
+
+/**
+ * True when the "error" is Next telling the framework something, not a failure:
+ * a redirect, a not-found, or the bail-out that marks a route dynamic because
+ * it read cookies. Catching one of those swallows the signal — a first-visit
+ * helper that wraps everything in try/catch must re-throw them.
+ */
+export function isFrameworkControlFlow(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  if (typeof (error as { digest?: unknown }).digest === "string") return true;
+  return (error as { name?: unknown }).name === "DynamicServerError";
+}

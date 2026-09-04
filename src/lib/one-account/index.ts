@@ -43,6 +43,7 @@ export {
 
 export {
   identitySchema,
+  isFrameworkControlFlow,
   isMissingColumn,
   isMissingTable,
   looksLikeEmail,

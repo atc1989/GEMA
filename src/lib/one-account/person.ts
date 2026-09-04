@@ -1,4 +1,9 @@
-import { identitySchema, isMissingColumn, isMissingTable } from "./support.ts";
+import {
+  identitySchema,
+  isFrameworkControlFlow,
+  isMissingColumn,
+  isMissingTable,
+} from "./support.ts";
 
 /**
  * The person row, on both sides of the spine — the decision half.
@@ -170,6 +175,8 @@ export async function ensurePersonRowWith(ports: PersonPorts): Promise<EnsurePer
 
     return { person, spine, identity };
   } catch (error) {
+    // A redirect or a dynamic-rendering bail-out is Next talking to itself.
+    if (isFrameworkControlFlow(error)) throw error;
     console.warn("[one-account] person row check skipped", {
       message: error instanceof Error ? error.message : String(error),
     });

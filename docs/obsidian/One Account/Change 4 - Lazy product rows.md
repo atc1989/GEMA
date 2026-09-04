@@ -127,7 +127,19 @@ and no requirement completed for them, a second visit being a no-op, one member
 card per member, and a person who never opened the Academy still not a trainee.
 
 TypeScript, `node --test`: 9 tests on the shared person row, 10 on the Lifestyle
-card, 11 on Academy enrolment.
+card, 11 on Academy enrolment. Lifestyle 75/75, Academy 112/112.
+
+`tsc --noEmit`, `next build` and `eslint` are clean in all three repos. Two
+things that only a real build catches, both fixed before this note was written:
+
+- **Both repos target ES2017**, where a BigInt literal does not compile. The
+  first card-number derivation used one; both mints now work in 32- and 12-bit
+  slices instead. This is what turned the first Lifestyle Preview deployment red.
+- **A first-visit helper wraps everything in try/catch** so a database problem
+  cannot cost a page render — and that swallowed Next's own dynamic-rendering
+  bail-out, which is how a route learns it read cookies. `isFrameworkControlFlow`
+  re-throws redirects and bail-outs; the member layout also says
+  `force-dynamic` outright rather than relying on the bail-out.
 
 ## Where the board and the code disagreed
 
