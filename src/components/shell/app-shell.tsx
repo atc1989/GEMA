@@ -5,9 +5,10 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
-import { Loader2, LogOut, Monitor, MoreHorizontal, Moon, Sun } from "lucide-react";
+import { Home, Loader2, LogOut, Monitor, MoreHorizontal, Moon, Sun } from "lucide-react";
 
 import { signOutAction } from "@/lib/actions/auth";
+import { hubOrigin } from "@/lib/hub-link";
 
 import {
   adminNavigation,
@@ -126,6 +127,29 @@ function MobileThemeToggle() {
   );
 }
 
+/**
+ * Change 5 — one link back to Gutguard home. A plain anchor, because the hub is
+ * another origin; same tab, because the three apps are meant to read as one
+ * system and Change 6 makes the session follow. Nothing renders when the hub
+ * origin is unset.
+ *
+ * GEMA keeps Tailwind/shadcn (00 - Locks), so this matches the menu's classes
+ * rather than importing Lifestyle's portable CSS.
+ */
+function HubHomeRow() {
+  const href = hubOrigin();
+  if (!href) return null;
+  return (
+    <a
+      href={href}
+      className="mt-2 flex w-full items-center gap-2 border-t border-border pt-2 text-[13px] font-semibold text-foreground hover:text-brand"
+    >
+      <Home className="size-4" aria-hidden />
+      Gutguard home
+    </a>
+  );
+}
+
 function SignOutRow() {
   const { pending } = useFormStatus();
   const Icon = pending ? Loader2 : LogOut;
@@ -174,6 +198,7 @@ function MobileUserMenu({ user }: { user: AppShellUser }) {
               </div>
             </div>
             <ThemeSwitcher />
+            <HubHomeRow />
             <form action={signOutAction} className="mt-2 border-t border-border pt-2">
               <SignOutRow />
             </form>
