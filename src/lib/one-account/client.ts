@@ -16,3 +16,13 @@ export {
 } from "./email-code.ts";
 
 export { looksLikeEmail, normalizeIdentifier } from "./support.ts";
+
+export {
+  configuredCookieDomain,
+  cookieDomainProblemMessage,
+  COOKIE_DOMAIN_ENV_KEY,
+  guardCookieDomain,
+  sharedSessionCookieOptions,
+  type CookieDomainProblem,
+  type CookieDomainResult,
+} from "./cookie-domain.ts";

@@ -26,13 +26,15 @@ export function mirrorManifest(files: Record<string, string>) {
 }
 
 export const MIRROR = {
-  version: "66d1535e2473260d",
+  version: "8b3c4bda01da0b0f",
   files: {
     "README.md": "7eddaec5df26a4a9d2de6a04c02682839944d973d5e238390fcfeb09074ec06b",
-    "client.ts": "aaebfe4f227c871a70d6ec391c38c049d0daf419904ded841665a43c62715817",
+    "client.ts": "1449527d672008c6e90769c532d07c64d42d2efc2c588ffd2139d23df6726f50",
+    "cookie-domain.test.ts": "a117f9197289a21f0dfc59eba66643fa6632b62ecf8c9ca0e7bbaa48ce020cb7",
+    "cookie-domain.ts": "4666acc34d9b0c0436fa615ae172b5c5fa51e1f2753d6dcaf5a5cfc0bdb401a1",
     "email-code.ts": "96d83d1624d7c2ebfc11fd79cb3976e0bf8e6d718ba00e122178dc8b1c6819b1",
     "identity-client.ts": "3b9854bf63dfc39c7eb3541e04c4e17132c5def70b98b7c80401afd63abde826",
-    "index.ts": "514b4085bfe99554022043b1760712747562c07a065be1735ca42c097ce8764c",
+    "index.ts": "cd9b59437e59b719e5729ff858579b76b231f7e475f80f143ab5ed0e4d574f8e",
     "login-engine.ts": "3043fb0030d2a21cbfe4d36d3af0c1e7bea0e3603b2d58ae3e84b77db548b86b",
     "mirror.test.ts": "bc896c1bad858de96cddc4ed4807eb0955ef66ba3ea9d8037033afb2b182e204",
     "onegrinders.ts": "24d009f0ad5493e62204d54e5f047dc36ca633c7a99698eeb40cb9bde5a92881",

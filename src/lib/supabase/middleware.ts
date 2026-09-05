@@ -1,4 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
+
+import { sharedSessionCookieOptions } from "@/lib/one-account";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
@@ -21,6 +23,9 @@ export async function updateSession(request: NextRequest) {
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     db: { schema: "gema" },
+    // Change 6: one session across the three origins. Undefined until
+    // NEXT_PUBLIC_ONE_ACCOUNT_COOKIE_DOMAIN is set, so this is a no-op today.
+    cookieOptions: sharedSessionCookieOptions(),
     cookies: {
       getAll() {
         return request.cookies.getAll();
