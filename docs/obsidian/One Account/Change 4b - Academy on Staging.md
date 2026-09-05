@@ -89,10 +89,12 @@ the repo and no drift.
 
 - [x] Extend `public.app_role` with `trainer`, `staff`, `academy_operator`. In the install script's first transaction.
 - [x] The trainee row off the person row — `public.academy_trainees` (migration `20260904120000_academy_trainees.sql`).
-- [x] The Academy catalog for Staging — `gentrep-academy/supabase/install_academy_on_staging.sql`, generated.
+- [x] The Academy catalog on Staging — **already installed**, confirmed by
+  `verify_staging_collisions.sql` on 2026-09-05. The generated install script
+  written for this was unnecessary and has been deleted; see below.
 - [x] App, seeds and scripts read the trainee table: 5 app files, 6 SQL scripts, 4 Node scripts.
 - [x] Prove end to end on a database built from the real Staging shape.
-- [ ] **Owner: apply the install, seed the catalog, sign in.**
+- [ ] **Owner: confirm the rank catalog is seeded, then sign in.**
 - [ ] Decide `profiles_scoped_read` on the shared person row — see *Left open*.
 
 ## The schema decision, revised
@@ -111,23 +113,6 @@ So Academy's tables install into `public` as they are, and the one real
 collision is answered by the split the Locks demanded anyway:
 `public.academy_trainees` holds the trainee, `public.profiles` stays the person.
 Owner decision, 2026-09-04.
-
-## What the install file is, and why it is generated
-
-`install_academy_on_staging.sql` is the end state of Academy's migrations minus
-twelve statements that would change what Staging already owns. The generated
-file lists all twelve in its trailer, so the omissions are reviewable rather
-than implied.
-
-**One of the twelve is the reason this is filtered rather than concatenated.**
-`pg_dump` emits `GRANT ALL ON TABLE public.profiles TO authenticated`. Applying
-that would silently undo [[Change 3 - Public profiles]] — the whole-row UPDATE
-revoke that closed the `role` escalation — on the row Lifestyle and GEMA share.
-It is dropped, and the test asserts `role` is still unwritable afterwards.
-
-`scripts/generate-staging-install.sh` rebuilds the file from a throwaway
-Postgres with the migrations applied in order. Add a migration, regenerate,
-commit. Editing the SQL by hand is how it drifts from what it mirrors.
 
 ## Scale, so nobody is surprised
 
@@ -151,19 +136,54 @@ Change 3 holds: role writable by member  no
 Also green: Academy 112/112 TypeScript tests, both database tests on the local
 harness, `tsc --noEmit`, `next build`, `eslint`.
 
+## The install script was unnecessary, and is gone — 2026-09-05
+
+`verify_staging_collisions.sql`, run against Staging, settled it: **the Academy
+catalog is already there.** Every table the dashboard reads exists — `ranks`,
+`user_roles`, `member_rank_progress`, `requirements`, `training_documents`,
+`training_events`, `certificates`, `teams` — along with `academy_trainees` and
+`academy.protect_trainee_update`, which are this Change's own migration. All ten
+types exist. `public.app_role` already reads
+`prospect,member,host,admin,trainer,staff,academy_operator`.
+
+Only `cms_entries` and `support_cases` are absent, and neither is read by the
+member dashboard.
+
+So `install_academy_on_staging.sql` — 3,463 generated lines — had nothing left
+to install and would now fail on every table it names. It is deleted, with its
+generator. The trainee migration, the enrolment script and the tests stay;
+those are small and they are what actually did the work.
+
+The lesson is cheap to write and was expensive to learn: **probe the database
+before building anything to change it.** The install was built against a fixture
+that was missing an `academy` schema Staging had, and the schema it was written
+to add was already installed.
+
+## The cardless-trainee bug, found and fixed — 2026-09-05
+
+Enrolling by SQL exposed a defect in Change 4's own wiring. `claimMemberCard`
+upserted with `ignoreDuplicates`, i.e. `ON CONFLICT DO NOTHING`. On a trainee
+row that already existed it reported success and wrote nothing — so a row with
+a null `member_card` could never be given one, on that visit or any visit after.
+
+That is exactly the row `enrol_academy_member.sql` writes. Its header promises
+*"leaves member_card null on purpose — the app mints it"*, and the app could
+not keep that promise. Anyone enrolled by SQL was permanently cardless.
+
+The port is now two: `createTrainee` is a plain insert that reports its
+conflict, and `fillMemberCard` updates under a `member_card is null` guard.
+The decision between them sits in `first-visit.ts`, where it is tested rather
+than assumed — four new cases, including a member who already has a card
+keeping it, and a card collision during the fill being re-derived.
+
 ## Owner steps in
 
-1. Apply `gentrep-academy/supabase/install_academy_on_staging.sql` to **Staging
-   only** (`fxdsnacuonfvutdquogb`). It extends the enum in its first
-   transaction, then installs the catalog in a second.
-2. Run the catalog half of `gentrep-academy/supabase/seed.sql` — teams, ranks,
-   requirements, training documents. **Present is not the same as seeded**, and
-   enrolment refuses without a BASE rank.
-3. Sign in and open `/academy`. The trainee row is created on that first visit;
-   no SQL per account.
-4. Nothing to change in Settings → API. Everything lands in `public`, which is
-   already exposed — that step existed only for the `academy_app` design that
-   the measurement above ruled out.
+1. Run `gentrep-academy/supabase/verify_academy_enrolment.sql` with your email.
+   It reports whether the rank catalog is **seeded** (present is not the same as
+   seeded) and whether that account has a trainee row.
+2. If BASE is missing, run the catalog half of `gentrep-academy/supabase/seed.sql`.
+3. Open `/academy`. The trainee row is created on that first visit — no SQL per
+   account.
 
 ## Left open
 

@@ -10,7 +10,7 @@ tags:
 
 # Change 5 — Hub chrome
 
-**Status:** blocked on [[Change 4b - Academy on Staging]], opened 2026-09-04 from a live failure and taken before this Change by owner decision.
+**Status:** blocked on [[Change 4b - Academy on Staging]] and [[Change 4c - One registration]], both taken before this Change by owner decision.
 
 Read [[00 - Session gate]] and [[04 - UX]] before this Change. **This Change touches UI — read the Design System.**
 
@@ -31,22 +31,11 @@ Lifestyle feels like Gutguard home. Events and Academy are spokes. One Settings 
 - [ ] GEMA and Academy: Gutguard home link to Lifestyle origin.
 - [ ] Settings: name/mobile on Lifestyle; spokes link there.
 
-### One registration (D13)
+### One registration
 
-Account registration is already Lifestyle-only — Academy has no sign-up form,
-and GEMA's `/register/<event>` is Ginhawa prospect capture, not account
-creation. So this is finishing the seam, not removing pages.
-
-- [ ] Lifestyle `/register` accepts `?returnTo=` (same-origin or a known spoke
-  origin only) and sends the member there after the confirm code, instead of
-  always landing on the door card.
-- [ ] Lifestyle register offers "Already a OneGrinders member? Sign in with your
-  username" and routes an identifier with no `@` to sign-in rather than
-  creating a second account.
-- [ ] Academy and GEMA login pages link to Lifestyle register with `returnTo`.
-  Neither grows a form of its own.
-- [ ] Leave Ginhawa `/register/<event>` alone. It captures a prospect and a
-  sponsor `ref`; the Auth user is minted at conversion, not here.
+Split out on 2026-09-05 into [[Change 4c - One registration]], which comes
+before this Change. A nav bar and a cross-origin auth redirect are unlike risks
+and want separate proofs. This Change is chrome only.
 
 ## Owner steps in
 

@@ -49,7 +49,8 @@ flowchart TB
 3. [[Change 3 - Public profiles]] — **done** (Staging, 2026-09-04)
 4. [[Change 4 - Lazy product rows]] — **done** (Staging, 2026-09-04)
 4b. [[Change 4b - Academy on Staging]] — **current** (opened 2026-09-04 from a live failure)
-5. [[Change 5 - Hub chrome]]
+4c. [[Change 4c - One registration]] — planned (D13; split out of Change 5 on 2026-09-05)
+5. [[Change 5 - Hub chrome]] — chrome only, once 4c lands
 6. [[Change 6 - Shared domain SSO]]
 
 ## Owner steps in only when
