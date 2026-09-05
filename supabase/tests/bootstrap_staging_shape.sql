@@ -48,6 +48,16 @@ create table public.profiles (
   role public.app_role not null default 'prospect'
 );
 
+-- Staging has an `academy` schema already. Found the hard way on 2026-09-05:
+-- the Academy catalog install died with `42P06: schema "academy" already
+-- exists` against the real database, having applied cleanly against this
+-- fixture — because this fixture did not know the schema was there. A model of
+-- Staging that is missing something Staging has will happily prove a migration
+-- that then fails. What is inside it is still being established (see
+-- gentrep-academy/supabase/verify_staging_collisions.sql); that it exists is
+-- enough to reproduce the failure.
+create schema if not exists academy;
+
 -- gema.profiles: GEMA's person table. Not touched by the migration.
 create schema gema;
 create table gema.profiles (
