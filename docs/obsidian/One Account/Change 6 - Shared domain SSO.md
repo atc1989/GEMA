@@ -10,7 +10,7 @@ tags:
 
 # Change 6 — Shared domain SSO
 
-**Status:** **in progress** — the code half is built and inert (2026-09-05).
+**Status:** **done** — proven on Staging at `gutguard.ph`, 2026-09-07.
 Taken before [[Change 5 - Hub chrome]] by owner decision: Change 5 is chrome,
 this is not blocked on it, and the DNS half has lead time that runs in
 parallel. Recorded here rather than left to look like a skipped Change.
@@ -28,11 +28,17 @@ The board previously guessed `events.…` for GEMA; the real one is `gema.…`, 
 this note follows reality rather than the other way round.
 
 ```text
-app.gutguard.ph        Lifestyle   — not yet, owner waiting on GoDaddy DNS access
-gema.gutguard.ph       GEMA        — exists
-academy.gutguard.ph    Academy     — exists
+lifestyle.gutguard.ph    Lifestyle (hub)
+gema.gutguard.ph         GEMA
+gentrep.gutguard.ph      Academy
 cookie domain = .gutguard.ph
 ```
+
+These are the names as registered. Earlier drafts of this note guessed
+`app.` and `academy.`; both were wrong, and a stale `NEXT_PUBLIC_ACADEMY_URL`
+pointing at `academy.gutguard.ph` is what made the Academy nav link disappear
+during the first test — the omit-when-unset rule firing correctly on a value
+that named a host which does not exist.
 
 `gutguard.ph` sits directly under `.ph`, so it is registrable and a browser will
 accept a cookie on it. `com.ph`, `net.ph` and the rest are public suffixes and
@@ -47,12 +53,21 @@ than leaving it to a console nobody reads.
 - [x] Sign out on the hub signs out everywhere — falls out of the shared cookie.
   `@supabase/ssr` also clears the leftover host-only cookie on sign-out once
   `cookieOptions.domain` is set, so the migration does not strand one.
-- [ ] **Owner: `app.gutguard.ph` on the Lifestyle Vercel project.** The hub is
-  the missing third; see *Why two out of three is worse than none*.
-- [ ] **Owner: Auth redirect allow-list** — all three origins on the one
+- [x] **Owner: the hub's subdomain.** It is `lifestyle.gutguard.ph`, not
+  `app.` — and Academy is `gentrep.`, not `academy.`. The names above are
+  corrected to what was actually registered.
+- [x] **Owner: Auth redirect allow-list** — all three origins on the one
   Staging Auth project `fxdsnacuonfvutdquogb`.
-- [ ] **Owner: set `NEXT_PUBLIC_ONE_ACCOUNT_COOKIE_DOMAIN=gutguard.ph`** on all
-  three projects, Preview first, and redeploy.
+- [x] **Owner: set `NEXT_PUBLIC_ONE_ACCOUNT_COOKIE_DOMAIN=gutguard.ph`** on all
+  three projects and redeploy. **On Preview**, not Production — the domains
+  serve the `staging` branch. Getting this wrong is what
+  [[Change 6b - Staging on the real domain]] is about.
+
+## Proven on the real domain, 2026-09-07
+
+Owner-verified in a browser on `lifestyle.gutguard.ph`, `gema.gutguard.ph` and
+`gentrep.gutguard.ph`, all three serving the `staging` branch against Staging
+Auth `fxdsnacuonfvutdquogb`.
 
 ## Why two out of three is worse than none
 

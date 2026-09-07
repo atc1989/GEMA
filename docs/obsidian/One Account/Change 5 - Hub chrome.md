@@ -10,8 +10,8 @@ tags:
 
 # Change 5 — Hub chrome
 
-**Status:** **in progress** — cross-app chrome shipped 2026-09-05; Settings is
-the item left. 4b and 4c came first by owner decision; Change 6's code also
+**Status:** **done** for the chrome — proven on the real domain 2026-09-07.
+Settings name/mobile is the item left. 4b and 4c came first by owner decision; Change 6's code also
 landed before this, which the Change 6 note records.
 
 Read [[00 - Session gate]] and [[04 - UX]] before this Change. **This Change touches UI — read the Design System.**
