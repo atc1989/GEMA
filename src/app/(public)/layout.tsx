@@ -7,10 +7,10 @@ export default function PublicLayout({
 }>) {
   return (
     <AppShell
-      eyebrow="Public Experience"
+      eyebrow="Gutguard"
       role="public"
-      subtitle="Invite, registration, rewards, and QR pass surfaces for prospects."
-      title="Prospect Invite"
+      subtitle="Events, rewards, and your pass."
+      title="Gutguard Events"
     >
       {children}
     </AppShell>

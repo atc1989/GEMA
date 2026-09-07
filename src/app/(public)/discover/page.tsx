@@ -1,8 +1,11 @@
 import Link from "next/link";
+
 import { CalendarDays, Gift, ShieldCheck, Ticket, Users, Zap } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { AccountCta } from "@/components/public/account-cta";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
 const WHY_ITEMS = [
@@ -46,7 +49,21 @@ const HOW_STEPS = [
   },
 ];
 
-export default function DiscoverPage() {
+// The root of gema.gutguard.ph lands here, so it reads the session: a member
+// must not be shown a "Sign in" button on the page they were sent to by name.
+export const dynamic = "force-dynamic";
+
+export default async function DiscoverPage() {
+  let signedIn = false;
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase.auth.getClaims();
+    signedIn = Boolean(data?.claims);
+  } catch {
+    // No Supabase env, or an auth call that failed: show the visitor version.
+    // A public page must render for someone with no account at all.
+  }
+
   return (
     <div className="grid gap-6">
       {/* Hero */}
@@ -135,6 +152,16 @@ export default function DiscoverPage() {
             <Ticket aria-hidden="true" />
             View my passes
           </Link>
+        </div>
+        <div className="mt-3 border-t border-border pt-4">
+          <p className="text-xs text-muted-foreground">
+            {signedIn
+              ? "You are signed in with your Gutguard account."
+              : "One Gutguard account opens events, training, and your card."}
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <AccountCta signedIn={signedIn} />
+          </div>
         </div>
       </Card>
 
