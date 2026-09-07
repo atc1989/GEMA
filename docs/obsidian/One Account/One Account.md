@@ -19,9 +19,14 @@ Canonical folder on Najee’s machine:
 
 Copy this whole folder there (not inside Tech Stack, not inside Design System). Cloud agents read the product-repo copy at `docs/obsidian/One Account/`.
 
-**Current change:** none. Changes 1 through 6b are done and proven on Staging
-at `gutguard.ph`, 2026-09-07. The next thing is a decision, not a Change — see
-*What is actually left* below.
+**Current change:** [[Change 7 - Production cutover]] — written 2026-09-07,
+**not started, owner-gated.**
+
+Changes 1 through 6 are done and proven on Staging at `gutguard.ph`, 2026-09-07.
+One Account is finished as an **engine** and unfinished as a **deployment**:
+GEMA serves production Auth, the two spokes serve Staging Auth, and cross-app
+sign-in is therefore off in the real world on purpose. Change 7 is the only
+thing that ends that, and no agent may run it.
 
 Change 1 is checked done — proven on Staging 2026-08-28, production Auth untouched.  
 Change 2 is checked done — Staging shared-login proof recorded 2026-09-03 (`TEST_MANCERA` + `demo.admin` email across Lifestyle, Academy, GEMA Preview; OneGrinders-unavailable safe failure on Academy Preview).
@@ -55,6 +60,7 @@ flowchart TB
 5. [[Change 5 - Hub chrome]] — **done** (Staging, 2026-09-07) — cross-app links, and Settings name/mobile closed the same day
 6. [[Change 6 - Shared domain SSO]] — **done** (Staging, 2026-09-07)
 6b. [[Change 6b - Staging on the real domain]] — **done** (2026-09-07), opened from a failed Change 6 test that turned out to be environment scoping
+7. [[Change 7 - Production cutover]] — **not started, owner-gated.** The last Change. Four owner decisions and six preflight answers come before the first statement runs
 
 ## Proven end to end, 2026-09-07
 
@@ -93,10 +99,13 @@ safe.
 
 ## What is actually left
 
-- **The production cutover** — the only thing that ends the split. All three on
+- **The production cutover** — the only thing that ends the split, now written
+  up in full as [[Change 7 - Production cutover]]. All three on
   `rvwseybgimmewuoccecu`; Lifestyle needs production Supabase credentials, and
   every Staging account retires, including the ones that proved this board.
-  Its own Change, and it needs the owner. Nothing here implies it.
+  **No app code changes** — it is SQL, environment variables and Vercel
+  settings. What stands between here and there is four owner decisions and six
+  read-only preflight answers, all listed on that note. It needs the owner.
 - **Settings name/mobile on Staging.** The drawer shipped 2026-09-07 and is
   proven with Supabase env empty; reading the real row and the duplicate-mobile
   collision are proven by construction, not on `lifestyle.gutguard.ph` yet.
