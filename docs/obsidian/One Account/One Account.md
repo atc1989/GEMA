@@ -52,7 +52,7 @@ flowchart TB
 4. [[Change 4 - Lazy product rows]] — **done** (Staging, 2026-09-04)
 4b. [[Change 4b - Academy on Staging]] — **done** (Staging, 2026-09-05)
 4c. [[Change 4c - One registration]] — **done** (2026-09-07), copy included
-5. [[Change 5 - Hub chrome]] — **done** (Staging, 2026-09-07) — cross-app links; Settings name/mobile still open
+5. [[Change 5 - Hub chrome]] — **done** (Staging, 2026-09-07) — cross-app links, and Settings name/mobile closed the same day
 6. [[Change 6 - Shared domain SSO]] — **done** (Staging, 2026-09-07)
 6b. [[Change 6b - Staging on the real domain]] — **done** (2026-09-07), opened from a failed Change 6 test that turned out to be environment scoping
 
@@ -97,11 +97,20 @@ safe.
   `rvwseybgimmewuoccecu`; Lifestyle needs production Supabase credentials, and
   every Staging account retires, including the ones that proved this board.
   Its own Change, and it needs the owner. Nothing here implies it.
-- **Settings name/mobile**, the last item on [[Change 5 - Hub chrome]].
-- **Registration asks for a PH mobile, and requires it.** Fine for a Lifestyle
-  card. An Academy-only trainee is made to give one, and a member outside the
-  Philippines cannot register at all. Not a bug — a product decision nobody has
-  taken. See [[04 - UX]] before changing it.
+- **Settings name/mobile on Staging.** The drawer shipped 2026-09-07 and is
+  proven with Supabase env empty; reading the real row and the duplicate-mobile
+  collision are proven by construction, not on `lifestyle.gutguard.ph` yet.
+- **The member chrome still says "Member".** The client session is a guest
+  session whenever Supabase is on, so the masthead, the avatar and the QR seed
+  are empty however good the row is — saving a name in Settings does not change
+  them. Wants a server-side read in `app/app/layout.tsx`. Own Change, owner's
+  call on whether it comes before the cutover. See [[Change 5 - Hub chrome]].
+- ~~**Registration asks for a PH mobile, and requires it.**~~ **Answered by the
+  owner, 2026-09-07: PH only, and it stays required.** The one thing that
+  changed is that `639171234567` is now accepted alongside `09171234567` and
+  `+639171234567` — three spellings of the same number. An Academy-only trainee
+  is still asked for a Philippine mobile, and someone outside the Philippines
+  still cannot register. That is the decision, not an oversight.
 
 ## Owner steps in only when
 
