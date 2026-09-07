@@ -19,7 +19,9 @@ Canonical folder on Najee’s machine:
 
 Copy this whole folder there (not inside Tech Stack, not inside Design System). Cloud agents read the product-repo copy at `docs/obsidian/One Account/`.
 
-**Current change:** [[Change 4b - Academy on Staging]]
+**Current change:** none. Changes 1 through 6b are done and proven on Staging
+at `gutguard.ph`, 2026-09-07. The next thing is a decision, not a Change — see
+*What is actually left* below.
 
 Change 1 is checked done — proven on Staging 2026-08-28, production Auth untouched.  
 Change 2 is checked done — Staging shared-login proof recorded 2026-09-03 (`TEST_MANCERA` + `demo.admin` email across Lifestyle, Academy, GEMA Preview; OneGrinders-unavailable safe failure on Academy Preview).
@@ -48,10 +50,42 @@ flowchart TB
 2. [[Change 2 - Shared login engine]] — **done** (Staging proof, 2026-09-03)
 3. [[Change 3 - Public profiles]] — **done** (Staging, 2026-09-04)
 4. [[Change 4 - Lazy product rows]] — **done** (Staging, 2026-09-04)
-4b. [[Change 4b - Academy on Staging]] — **current** (opened 2026-09-04 from a live failure)
-4c. [[Change 4c - One registration]] — planned (D13; split out of Change 5 on 2026-09-05)
-5. [[Change 5 - Hub chrome]] — chrome only, once 4c lands
-6. [[Change 6 - Shared domain SSO]]
+4b. [[Change 4b - Academy on Staging]] — **done** (Staging, 2026-09-05)
+4c. [[Change 4c - One registration]] — **done** (Staging, 2026-09-07) — logic and `returnTo`; the visible copy is still open, see that note
+5. [[Change 5 - Hub chrome]] — **done** (Staging, 2026-09-07) — cross-app links; Settings name/mobile still open
+6. [[Change 6 - Shared domain SSO]] — **done** (Staging, 2026-09-07)
+6b. [[Change 6b - Staging on the real domain]] — **done** (2026-09-07), opened from a failed Change 6 test that turned out to be environment scoping
+
+## Proven end to end, 2026-09-07
+
+On `lifestyle.gutguard.ph`, `gema.gutguard.ph` and `gentrep.gutguard.ph`, all
+three serving the `staging` branch against Staging Auth `fxdsnacuonfvutdquogb`:
+
+```text
+sign in on Lifestyle, open GEMA        already signed in
+sign in on Lifestyle, open Academy     already signed in
+sign out on Lifestyle                  signed out on both spokes
+register with ?returnTo=<academy>      lands on Academy
+register with ?returnTo=<look-alike>   lands on /card, silently
+sidebar Elsewhere                      Events and Academy, both cross over signed in
+Gutguard home on both spokes           back to the hub, signed in
+```
+
+Owner-verified in a browser, not by tests alone — which is what every
+*Done when* on these notes asks for.
+
+## What is actually left
+
+Three things, none of them blocked on each other:
+
+- **The production cutover.** The domains serve the `staging` branch today.
+  Moving them to Production means Lifestyle and Academy join production Auth
+  `rvwseybgimmewuoccecu` and its ~431 real accounts. Its own Change, and it
+  needs the owner. Nothing implies it.
+- **The visible half of [[Change 4c - One registration]]** — the sign-in prompt
+  on register and the two spoke links to it. Blocked on Design System component
+  notes the agent could not read.
+- **Settings name/mobile**, the last item on [[Change 5 - Hub chrome]].
 
 ## Owner steps in only when
 

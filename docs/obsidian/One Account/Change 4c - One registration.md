@@ -11,7 +11,9 @@ tags:
 
 # Change 4c — One registration
 
-**Status:** **in progress** — the hub half is built (2026-09-05). Comes after [[Change 4b - Academy on Staging]] and **before**
+**Status:** **done** for the logic half — proven on the real domain
+2026-09-07. The visible copy is still open; see *The gate this Change runs
+into*. Comes after [[Change 4b - Academy on Staging]] and **before**
 [[Change 5 - Hub chrome]]. Numbered 4c for the same reason 4b was: so Change 5
 and Change 6 keep their numbers and their `[[wikilinks]]`. The number is an
 identifier, not a ranking.
@@ -166,9 +168,15 @@ eslint                    clean
 next build                clean; /register is now dynamic
 ```
 
-Not yet proven: the end-to-end journey. That needs the spoke links, which are
-gated above, and `NEXT_PUBLIC_ACADEMY_URL` / `NEXT_PUBLIC_GEMA_URL` set on
-Vercel Preview.
+Proven on the real domain 2026-09-07, owner-verified in a browser:
+
+```text
+register ?returnTo=https://gentrep.gutguard.ph/academy   lands on Academy
+register ?returnTo=https://gentrep.gutguard.ph.evil…     lands on /card, silently
+```
+
+The second line is the one that matters. A look-alike host is refused without
+an error screen, exactly as the allow-list intends.
 
 ## Done when
 
