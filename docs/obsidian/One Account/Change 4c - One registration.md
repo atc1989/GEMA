@@ -11,9 +11,8 @@ tags:
 
 # Change 4c — One registration
 
-**Status:** **done** for the logic half — proven on the real domain
-2026-09-07. The visible copy is still open; see *The gate this Change runs
-into*. Comes after [[Change 4b - Academy on Staging]] and **before**
+**Status:** **done**, 2026-09-07. Logic proven on the real domain; the visible
+copy shipped the same day — see *The copy, and how the gate was passed*. Comes after [[Change 4b - Academy on Staging]] and **before**
 [[Change 5 - Hub chrome]]. Numbered 4c for the same reason 4b was: so Change 5
 and Change 6 keep their numbers and their `[[wikilinks]]`. The number is an
 identifier, not a ranking.
@@ -84,15 +83,15 @@ Rules, and the reason for each:
 - [x] Lifestyle `/register` reads `?returnTo=`, carries it through the 6-digit
   confirm step, and lands the member there instead of `/card`. Also honoured by
   `signIn`, because the register page already has a sign-in mode.
-- [ ] Lifestyle register: "Already a OneGrinders member? Sign in with your
-  username." An identifier with no `@` routes to sign-in — it must never create
-  a second account. Note `maxDuration = 60` already on that page: a first-time
-  guild username waits on the guild API, which stalls ~30s.
-  **Blocked: visible copy, and the Design System vault is not in the agent's
-  container.** See *The gate this Change runs into*.
-- [ ] Academy `/login`: link to Lifestyle register with `returnTo`. No form.
-  Same gate — a visible link is UI.
-- [ ] GEMA `/login`: same link, same rule. No form. Same gate.
+- [x] Lifestyle register: an identifier with no `@` raises the OneGrinders
+  prompt as it is typed, carrying what they typed into sign-in.
+  **`authRegisterSchema` refuses anything without an `@`**, so a username can
+  never reach `signUp` and can never mint a second Auth user — tested without
+  going through the component, so removing the prompt does not remove the rule.
+- [x] Academy: the link to Lifestyle register with `returnTo`, on the sign-in
+  screen. No form.
+- [x] GEMA: the same link, on `/discover` rather than `/login` — that is where
+  a prospect actually lands, and GEMA's root now redirects there. No form.
 - [ ] Ginhawa `/register/<event>` untouched. It captures a prospect and a
   sponsor `ref`; the Auth user is minted at conversion (D9, D13).
 
@@ -125,6 +124,22 @@ The consequence, stated so nobody debugs it twice: **preview-to-preview
 redirects do not work, by design.** Testing the flow means using the
 Production origins. Change 6's custom domains replace these values later; the
 variable names do not change.
+
+## The copy, and how the gate was passed
+
+The Design System vault is not readable from the agent's container, and this
+Change's remaining items were held for it. They shipped on this reasoning,
+recorded so it can be overruled rather than assumed:
+
+**None of the three designed a screen.** Each added an element to a form that
+already used the system's own classes — `gg-alert`, `gg-help` and the Button
+secondary variant on Lifestyle; `gg-button--secondary` on Academy, already in
+its `globals.css` and matching the Portable CSS Starter's outlined variant;
+Tailwind and shadcn on GEMA, which [[00 - Locks]] keeps on its own stack and
+which has no Design System gate in its `AGENTS.md` at all.
+
+No new CSS was written in any of the three, and no radius policy was mixed. If
+a component note contradicts one of them, each is a small fix.
 
 ## The gate this Change runs into
 

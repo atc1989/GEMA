@@ -114,6 +114,55 @@ describe a field that no longer exists.
 Also worth keeping: an incognito window is a better way to start this test than
 clearing cookies by hand. There is nothing to forget to clear.
 
+## The split, from 2026-09-07 — read this before touching a domain
+
+GEMA has real users. Pointing `gema.gutguard.ph` at the `staging` branch put it
+behind Vercel's **Deployment Protection**, which every Preview deployment has
+by default, and real members landed on a Vercel login page. That was an agent
+error: all three domains were moved uniformly without asking which app has
+users. GEMA is the only one that does — [[00 - Locks]] says so, and D5 says
+Academy has none.
+
+So the domains are deliberately **not** in the same place:
+
+```text
+gema.gutguard.ph        Production   production Auth rvwseybgimmewuoccecu, ~431 real accounts
+lifestyle.gutguard.ph   staging      Staging Auth fxdsnacuonfvutdquogb
+gentrep.gutguard.ph     staging      Staging Auth fxdsnacuonfvutdquogb
+```
+
+**Cross-app sign-in is therefore off, on purpose.** Two Auth projects; a token
+signed by one means nothing to the other. It is not a regression and it is not
+Change 6 breaking — Change 6 was proven the same day and the code has not
+changed. Do not debug it.
+
+### The variable that makes the split safe
+
+`NEXT_PUBLIC_LIFESTYLE_URL` is set on GEMA **Preview only**, never Production.
+
+Left on Production it would send a real GEMA prospect to a Lifestyle running
+Staging Auth, where they would create an account in the wrong project — one
+that then does not work on GEMA. The same variable also draws "Gutguard home"
+in the account menu, which would drop a real member onto a staging app.
+
+Unset, both links **omit themselves**. That is the omit-when-unset rule from
+Changes 4c and 5 doing real work rather than being a nicety: the safe state is
+the absence of a link, so a missing variable degrades instead of misleading.
+
+### Preview deployments are private
+
+Worth stating plainly, because it looks like an outage: a domain pointed at a
+branch serves a **Preview** deployment, and Vercel requires a Vercel account to
+view one. Fine for a staging host nobody real uses. Never for an app with
+members.
+
+### Getting out of the split
+
+Only the production cutover ends it — all three apps on
+`rvwseybgimmewuoccecu`, which needs Lifestyle to gain production Supabase
+credentials (it has none) and retires every Staging account, including the ones
+used to prove this board. Its own Change, and it needs the owner.
+
 ## Done when
 
 A member signs in on `lifestyle.gutguard.ph` and opens `gema.gutguard.ph` and

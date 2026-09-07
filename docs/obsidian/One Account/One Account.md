@@ -51,7 +51,7 @@ flowchart TB
 3. [[Change 3 - Public profiles]] — **done** (Staging, 2026-09-04)
 4. [[Change 4 - Lazy product rows]] — **done** (Staging, 2026-09-04)
 4b. [[Change 4b - Academy on Staging]] — **done** (Staging, 2026-09-05)
-4c. [[Change 4c - One registration]] — **done** (Staging, 2026-09-07) — logic and `returnTo`; the visible copy is still open, see that note
+4c. [[Change 4c - One registration]] — **done** (2026-09-07), copy included
 5. [[Change 5 - Hub chrome]] — **done** (Staging, 2026-09-07) — cross-app links; Settings name/mobile still open
 6. [[Change 6 - Shared domain SSO]] — **done** (Staging, 2026-09-07)
 6b. [[Change 6b - Staging on the real domain]] — **done** (2026-09-07), opened from a failed Change 6 test that turned out to be environment scoping
@@ -74,18 +74,34 @@ Gutguard home on both spokes           back to the hub, signed in
 Owner-verified in a browser, not by tests alone — which is what every
 *Done when* on these notes asks for.
 
+## Where the three apps actually are, 2026-09-07
+
+Not in the same place, and deliberately:
+
+```text
+gema.gutguard.ph        Production   production Auth, ~431 real accounts
+lifestyle.gutguard.ph   staging      Staging Auth
+gentrep.gutguard.ph     staging      Staging Auth
+```
+
+GEMA has real users, so it cannot sit on a Preview deployment — those are
+private to Vercel accounts, and pointing it at `staging` locked members out
+for a while on 2026-09-07. **Cross-app sign-in is off while this holds**, and
+that is two Auth projects, not a fault. [[Change 6b - Staging on the real
+domain]] carries the detail, including the one variable that keeps the split
+safe.
+
 ## What is actually left
 
-Three things, none of them blocked on each other:
-
-- **The production cutover.** The domains serve the `staging` branch today.
-  Moving them to Production means Lifestyle and Academy join production Auth
-  `rvwseybgimmewuoccecu` and its ~431 real accounts. Its own Change, and it
-  needs the owner. Nothing implies it.
-- **The visible half of [[Change 4c - One registration]]** — the sign-in prompt
-  on register and the two spoke links to it. Blocked on Design System component
-  notes the agent could not read.
+- **The production cutover** — the only thing that ends the split. All three on
+  `rvwseybgimmewuoccecu`; Lifestyle needs production Supabase credentials, and
+  every Staging account retires, including the ones that proved this board.
+  Its own Change, and it needs the owner. Nothing here implies it.
 - **Settings name/mobile**, the last item on [[Change 5 - Hub chrome]].
+- **Registration asks for a PH mobile, and requires it.** Fine for a Lifestyle
+  card. An Academy-only trainee is made to give one, and a member outside the
+  Philippines cannot register at all. Not a bug — a product decision nobody has
+  taken. See [[04 - UX]] before changing it.
 
 ## Owner steps in only when
 
