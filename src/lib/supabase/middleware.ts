@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 
+import { authCookieReport, logAuthRedirect } from "@/lib/auth/auth-diagnostics";
 import { sharedSessionCookieOptions } from "@/lib/one-account";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -45,7 +46,7 @@ export async function updateSession(request: NextRequest) {
   // getClaims() verifies the JWT locally when the project uses asymmetric
   // signing keys (no auth-server round trip); with a legacy symmetric secret it
   // falls back to a server check, matching getUser(). Refreshes expired sessions.
-  const { data } = await supabase.auth.getClaims();
+  const { data, error: claimsError } = await supabase.auth.getClaims();
   const user = data?.claims ? { id: data.claims.sub } : null;
 
   /**
@@ -78,6 +79,14 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirectTo", request.nextUrl.pathname);
+    // This is the redirect behind "if you click on events it goes back to
+    // /login?redirectTo=%2Fadmin%2Fevents". It fires whenever getClaims()
+    // returns nothing, and until now it did not say why.
+    logAuthRedirect("middleware: no claims on a protected path", {
+      path: request.nextUrl.pathname,
+      claimsError: claimsError?.message ?? null,
+      ...authCookieReport(request.headers.get("cookie")),
+    });
     return redirectWithSession(url);
   }
 
