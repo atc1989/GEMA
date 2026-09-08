@@ -20,6 +20,17 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   /**
+   * A session clear held back until the error that caused it is classified.
+   *
+   * @supabase/ssr clears the stored session on any refresh failure, and that
+   * arrives as a batch of empty values before `getClaims()` has returned — so
+   * setAll cannot yet tell a blip from a session that is genuinely gone. It
+   * parks the batch here and the decision is made below, once the error is in
+   * hand.
+   */
+  const pendingSessionClear: string[] = [];
+
+  /**
    * Prefetches do not get a session refresh.
    *
    * Next prefetches every <Link> in the viewport. Opening the admin sidebar
@@ -81,7 +92,10 @@ export async function updateSession(request: NextRequest) {
          * ships alongside the new value in the same batch, so the batch is not
          * all-empty and still applies in full.
          */
-        if (cookiesToSet.every(({ value }) => value === "")) return;
+        if (cookiesToSet.every(({ value }) => value === "")) {
+          pendingSessionClear.push(...cookiesToSet.map(({ name }) => name));
+          return;
+        }
 
         for (const { name, value } of cookiesToSet) {
           request.cookies.set(name, value);
@@ -99,6 +113,36 @@ export async function updateSession(request: NextRequest) {
   // falls back to a server check, matching getUser(). Refreshes expired sessions.
   const { data, error: claimsError } = await supabase.auth.getClaims();
   const user = data?.claims ? { id: data.claims.sub } : null;
+
+  const transient = isTransientAuthFailure(claimsError);
+
+  /**
+   * A session the auth server has declared gone must have its cookie removed.
+   *
+   * Holding on to it was the mistake left by the previous change. The dead
+   * cookie stays in the browser, the next sign-in adds a second cookie of the
+   * SAME name beside it, and the browser then sends both. Next's cookie map is
+   * keyed by name and keeps one — so the middleware can read the dead one and
+   * bounce the member to /login while the page, a request later, reads the live
+   * one and lets them in. One bounce, then everything works: exactly what was
+   * reported.
+   *
+   * Only on a definitive failure. A blip still keeps the session, which is the
+   * whole point of the guard above.
+   */
+  if (!transient && pendingSessionClear.length > 0) {
+    const sharedDomain = sharedSessionCookieOptions()?.domain;
+    for (const name of pendingSessionClear) {
+      // Both scopes. A delete carrying `Domain=.gutguard.ph` does not touch a
+      // cookie of the same name set host-only on `gema.gutguard.ph`, and that
+      // leftover is the duplicate doing the damage — so remove each name at the
+      // host and, when the shared domain is configured, at the parent too.
+      supabaseResponse.cookies.set(name, "", { path: "/", maxAge: 0 });
+      if (sharedDomain) {
+        supabaseResponse.cookies.set(name, "", { path: "/", maxAge: 0, domain: sharedDomain });
+      }
+    }
+  }
 
   /**
    * Redirect, carrying whatever cookies the refresh above just wrote.
@@ -146,7 +190,6 @@ export async function updateSession(request: NextRequest) {
   if (!user && request.nextUrl.pathname.startsWith("/admin")) {
     // This is the redirect behind "if you click on events it goes back to
     // /login?redirectTo=%2Fadmin%2Fevents". Until now it did not say why.
-    const transient = isTransientAuthFailure(claimsError);
     logAuthRedirect(
       !claimsError
         ? "middleware: no session on a protected path"
