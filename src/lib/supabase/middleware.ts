@@ -48,12 +48,37 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims ? { id: data.claims.sub } : null;
 
+  /**
+   * Redirect, carrying whatever cookies the refresh above just wrote.
+   *
+   * `setAll` puts the refreshed session on `supabaseResponse`. A bare
+   * `NextResponse.redirect()` is a *different* response, so those cookies never
+   * reach the browser — while Supabase has already rotated the refresh token
+   * server-side and invalidated the one the browser still holds. The member is
+   * signed out on their next request.
+   *
+   * That is how this surfaced: the redirects below are the ones that fire when
+   * a signed-in person opens an invite or register link for an event, so people
+   * were being signed out on the way into an event and could not then be
+   * checked in. `GutGuard-Life-Style/lib/supabase/middleware.ts` already does
+   * this; GEMA was the copy that did not.
+   *
+   * Every redirect out of this function must go through here.
+   */
+  const redirectWithSession = (url: URL) => {
+    const redirectResponse = NextResponse.redirect(url);
+    for (const cookie of supabaseResponse.cookies.getAll()) {
+      redirectResponse.cookies.set(cookie);
+    }
+    return redirectResponse;
+  };
+
   // Gate the admin workspace: unauthenticated users are sent to login.
   if (!user && request.nextUrl.pathname.startsWith("/admin")) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirectTo", request.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    return redirectWithSession(url);
   }
 
   // Redirect authenticated members/admins away from public invite/register pages.
@@ -73,7 +98,7 @@ export async function updateSession(request: NextRequest) {
         if (profile.is_admin || profile.role === "admin") {
           const url = request.nextUrl.clone();
           url.pathname = `/admin/events/${eventId}`;
-          return NextResponse.redirect(url);
+          return redirectWithSession(url);
         }
 
         const { data: member } = await supabase
@@ -85,11 +110,11 @@ export async function updateSession(request: NextRequest) {
         if (member) {
           const url = request.nextUrl.clone();
           url.pathname = `/member/events/${eventId}`;
-          return NextResponse.redirect(url);
+          return redirectWithSession(url);
         } else {
           const url = request.nextUrl.clone();
           url.pathname = "/onboarding";
-          return NextResponse.redirect(url);
+          return redirectWithSession(url);
         }
       }
     }
