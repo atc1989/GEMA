@@ -5,6 +5,7 @@ import {
   isTransientAuthFailure,
   logAuthRedirect,
 } from "@/lib/auth/auth-diagnostics";
+import { deadSessionCookieNames, parentCookieDomain } from "@/lib/auth/session-cookies";
 import { sharedSessionCookieOptions } from "@/lib/one-account";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -131,15 +132,21 @@ export async function updateSession(request: NextRequest) {
    * whole point of the guard above.
    */
   if (!transient && pendingSessionClear.length > 0) {
-    const sharedDomain = sharedSessionCookieOptions()?.domain;
-    for (const name of pendingSessionClear) {
-      // Both scopes. A delete carrying `Domain=.gutguard.ph` does not touch a
-      // cookie of the same name set host-only on `gema.gutguard.ph`, and that
-      // leftover is the duplicate doing the damage — so remove each name at the
-      // host and, when the shared domain is configured, at the parent too.
+    const present = request.cookies.getAll().map((c) => c.name);
+    for (const name of deadSessionCookieNames(present, supabaseUrl, pendingSessionClear)) {
+      // Host scope, then the parent domain. Both, always — not only when the
+      // shared domain is configured now.
+      //
+      // The cookies that caused this were written at `.gutguard.ph` while
+      // NEXT_PUBLIC_ONE_ACCOUNT_COOKIE_DOMAIN was set on Production. Removing
+      // that variable stops new ones being written; it does nothing about the
+      // ones already in 431 browsers, and a host-only delete cannot reach them.
+      // Reading the parent off the request host is what lets this clean up
+      // after a setting that is already gone.
       supabaseResponse.cookies.set(name, "", { path: "/", maxAge: 0 });
-      if (sharedDomain) {
-        supabaseResponse.cookies.set(name, "", { path: "/", maxAge: 0, domain: sharedDomain });
+      const parent = parentCookieDomain(request.nextUrl.hostname);
+      if (parent) {
+        supabaseResponse.cookies.set(name, "", { path: "/", maxAge: 0, domain: parent });
       }
     }
   }

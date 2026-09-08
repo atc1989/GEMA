@@ -80,7 +80,8 @@ test("a session the auth server declared gone has its cookie removed, at both sc
   // Host scope always, parent scope too when the shared domain is configured —
   // a Domain-scoped delete does not remove a host-only cookie of the same name.
   assert.match(source, /cookies\.set\(name, "", \{ path: "\/", maxAge: 0 \}\)/);
-  assert.match(source, /domain: sharedDomain/);
+  assert.match(source, /parentCookieDomain\(request\.nextUrl\.hostname\)/);
+  assert.match(source, /domain: parent/);
 
   // Only on a definitive failure — a blip must still keep the session.
   const clear = source.indexOf("pendingSessionClear.length > 0");
