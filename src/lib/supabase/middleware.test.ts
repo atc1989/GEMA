@@ -39,3 +39,34 @@ test("every redirect out of updateSession carries the refreshed session cookies"
   // three invite/register destinations.
   assert.equal([...source.matchAll(/return redirectWithSession\(url\)/g)].length, 4);
 });
+
+/**
+ * The production log, 2026-09-08: `AuthApiError: Invalid Refresh Token:
+ * Refresh Token Not Found` on every request, and ten requests inside two
+ * seconds every time the admin sidebar rendered. Two properties come out of
+ * that, and both live in this file.
+ */
+
+test("a prefetch does not refresh the session", () => {
+  // Ten prefetches of one sidebar, ten clients, one refresh token. Supabase
+  // rotates on refresh, so nine of them present a token that no longer exists.
+  assert.match(source, /next-router-prefetch/);
+  assert.match(source, /purpose.*prefetch|prefetch/);
+
+  // The early return has to come before the client is built, or it refreshes
+  // anyway and the guard is decoration.
+  const guard = source.indexOf("next-router-prefetch");
+  const client = source.indexOf("createServerClient(");
+  assert.ok(guard !== -1 && guard < client, "the prefetch guard must precede createServerClient");
+});
+
+test("a failed refresh cannot clear the session cookies", () => {
+  // @supabase/ssr clears the stored session when a refresh fails, and that
+  // reaches setAll as a batch of empty values. Writing it signs the member out.
+  assert.match(source, /cookiesToSet\.every\(\(\{ value \}\) => value === ""\)/);
+
+  // Before any write. A guard after the loop has already sent the deletions.
+  const guard = source.indexOf('every(({ value }) => value === ""');
+  const write = source.indexOf("request.cookies.set(name, value)");
+  assert.ok(guard !== -1 && guard < write, "the all-empty guard must precede the cookie writes");
+});

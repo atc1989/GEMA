@@ -15,6 +15,29 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
+  /**
+   * Prefetches do not get a session refresh.
+   *
+   * Next prefetches every <Link> in the viewport. Opening the admin sidebar
+   * fires ten requests inside two seconds, each running this middleware with
+   * its own Supabase client, each refreshing the SAME refresh token. Supabase
+   * rotates the token on refresh: the first request consumes it and the other
+   * nine present one that no longer exists, which is exactly the
+   * "Refresh Token Not Found" storm in the production log.
+   *
+   * A prefetch is speculative — nobody has navigated — so there is no session
+   * to keep fresh. The real navigation that follows refreshes normally. The
+   * gates below are skipped too, which is correct: a prefetch renders nothing
+   * the member sees, and the page guards (requireAdmin/requireMember) are the
+   * authoritative check either way.
+   */
+  if (
+    request.headers.get("next-router-prefetch") === "1" ||
+    request.headers.get("purpose") === "prefetch"
+  ) {
+    return supabaseResponse;
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -32,6 +55,30 @@ export async function updateSession(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
+        /**
+         * This middleware refreshes sessions. It must never END one.
+         *
+         * When a refresh fails — "Invalid Refresh Token: Refresh Token Not
+         * Found" — @supabase/ssr clears the stored session, and that arrives
+         * here as a batch where every value is empty. Writing those deletions
+         * onto the response tells the browser to drop cookies it is still
+         * holding: the failed refresh becomes the sign-out.
+         *
+         * That is how a member loses a session six seconds after signing in.
+         * The POST to /login runs this middleware first, with the stale cookie
+         * the browser arrived with; the refresh of that stale token fails, and
+         * the deletions race the fresh cookies the sign-in is setting.
+         *
+         * Signing out does not come through here — signOutAction() uses the
+         * server client — so in middleware an all-empty batch is never a real
+         * sign-out, and dropping it costs nothing.
+         *
+         * A successful write is not affected. Removing a surplus cookie chunk
+         * ships alongside the new value in the same batch, so the batch is not
+         * all-empty and still applies in full.
+         */
+        if (cookiesToSet.every(({ value }) => value === "")) return;
+
         for (const { name, value } of cookiesToSet) {
           request.cookies.set(name, value);
         }
