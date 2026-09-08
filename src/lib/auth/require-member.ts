@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 
+import { logAuthRedirect } from "@/lib/auth/auth-diagnostics";
 import { getCurrentProfile, type CurrentProfile } from "@/lib/auth/require-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { MemberStatus } from "@/lib/database/types";
@@ -33,7 +34,16 @@ export const getCurrentMember = cache(async (): Promise<CurrentMemberContext | n
     .eq("profile_id", profile.id)
     .maybeSingle();
 
-  if (error || !data) return null;
+  // Null here means /onboarding rather than /login, so it looks different to
+  // the member — but the two causes are just as indistinguishable without this.
+  if (error || !data) {
+    logAuthRedirect(error ? "members query failed" : "no members row for this profile", {
+      profileId: profile.id,
+      error: error?.message ?? null,
+      code: error?.code ?? null,
+    });
+    return null;
+  }
 
   return {
     profile,

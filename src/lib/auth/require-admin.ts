@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 
+import { logAuthRedirect } from "@/lib/auth/auth-diagnostics";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AppRole } from "@/lib/database/types";
 
@@ -23,18 +24,32 @@ export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> 
 
   // Local JWT verification (asymmetric keys) instead of an auth-server round
   // trip; falls back to a server check on legacy symmetric secrets.
-  const { data: claimsData } = await supabase.auth.getClaims();
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
   const userId = claimsData?.claims.sub;
 
-  if (!userId) return null;
+  if (!userId) {
+    logAuthRedirect("no session claims", { claimsError: claimsError?.message ?? null });
+    return null;
+  }
 
+  // gema.profiles — the server client pins `db: { schema: "gema" }`. Two tables
+  // are named profiles and this is the person one.
   const { data, error } = await supabase
     .from("profiles")
     .select("id, email, full_name, role, is_admin, can_publish_events")
     .eq("id", userId)
     .maybeSingle();
 
-  if (error || !data) return null;
+  // A failed query and a missing row both return null, and both end at the
+  // login page. Say which, or the next report is another screenshot.
+  if (error || !data) {
+    logAuthRedirect(error ? "profiles query failed" : "no profiles row for this user", {
+      userId,
+      error: error?.message ?? null,
+      code: error?.code ?? null,
+    });
+    return null;
+  }
 
   return {
     id: data.id,
