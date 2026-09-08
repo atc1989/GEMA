@@ -70,3 +70,20 @@ test("a failed refresh cannot clear the session cookies", () => {
   const write = source.indexOf("request.cookies.set(name, value)");
   assert.ok(guard !== -1 && guard < write, "the all-empty guard must precede the cookie writes");
 });
+
+test("a session the auth server declared gone has its cookie removed, at both scopes", () => {
+  // Keeping a dead cookie leaves a second cookie of the same name beside the
+  // next sign-in. The browser sends both, Next's map keeps one, and middleware
+  // and page can read different ones — one bounce to /login, then it works.
+  assert.match(source, /if \(!transient && pendingSessionClear\.length > 0\)/);
+
+  // Host scope always, parent scope too when the shared domain is configured —
+  // a Domain-scoped delete does not remove a host-only cookie of the same name.
+  assert.match(source, /cookies\.set\(name, "", \{ path: "\/", maxAge: 0 \}\)/);
+  assert.match(source, /domain: sharedDomain/);
+
+  // Only on a definitive failure — a blip must still keep the session.
+  const clear = source.indexOf("pendingSessionClear.length > 0");
+  const classified = source.indexOf("const transient = isTransientAuthFailure(");
+  assert.ok(classified !== -1 && classified < clear, "the clear must run after the error is classified");
+});
