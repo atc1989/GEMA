@@ -75,19 +75,43 @@ export async function updateSession(request: NextRequest) {
   };
 
   // Gate the admin workspace: unauthenticated users are sent to login.
+  //
+  // "No claims" has two very different causes and this gate used to treat them
+  // the same. Genuinely signed out is one. The other is getClaims() *failing* —
+  // it calls getSession(), and with asymmetric signing keys it also fetches the
+  // JWKS over the network on the way through. A refresh that could not be
+  // persisted, a slow or failed fetch from the edge, an auth-server blip: all
+  // land here with an error and an empty user, and all used to read as "signed
+  // out" and bounce a member who was holding a perfectly good session.
+  //
+  // Failing open on an *error* is safe, because this gate is not the one that
+  // decides anything. `(admin)/layout.tsx` calls requireAdmin() on every page
+  // under /admin, and RLS gates the data underneath — require-admin.ts calls
+  // this middleware check defence in depth itself. If the failure is real, the
+  // layout redirects a moment later on its own. If it was transient, the member
+  // keeps the session they should never have lost.
+  //
+  // A genuine no-session, with no error, still redirects exactly as before.
   if (!user && request.nextUrl.pathname.startsWith("/admin")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("redirectTo", request.nextUrl.pathname);
     // This is the redirect behind "if you click on events it goes back to
-    // /login?redirectTo=%2Fadmin%2Fevents". It fires whenever getClaims()
-    // returns nothing, and until now it did not say why.
-    logAuthRedirect("middleware: no claims on a protected path", {
-      path: request.nextUrl.pathname,
-      claimsError: claimsError?.message ?? null,
-      ...authCookieReport(request.headers.get("cookie")),
-    });
-    return redirectWithSession(url);
+    // /login?redirectTo=%2Fadmin%2Fevents". Until now it did not say why.
+    logAuthRedirect(
+      claimsError
+        ? "middleware: getClaims failed — passing through to the page guard"
+        : "middleware: no session on a protected path",
+      {
+        path: request.nextUrl.pathname,
+        claimsError: claimsError?.message ?? null,
+        ...authCookieReport(request.headers.get("cookie")),
+      },
+    );
+
+    if (!claimsError) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("redirectTo", request.nextUrl.pathname);
+      return redirectWithSession(url);
+    }
   }
 
   // Redirect authenticated members/admins away from public invite/register pages.
