@@ -1,6 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 
-import { authCookieReport, logAuthRedirect } from "@/lib/auth/auth-diagnostics";
+import {
+  authCookieReport,
+  isTransientAuthFailure,
+  logAuthRedirect,
+} from "@/lib/auth/auth-diagnostics";
 import { sharedSessionCookieOptions } from "@/lib/one-account";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -142,18 +146,25 @@ export async function updateSession(request: NextRequest) {
   if (!user && request.nextUrl.pathname.startsWith("/admin")) {
     // This is the redirect behind "if you click on events it goes back to
     // /login?redirectTo=%2Fadmin%2Fevents". Until now it did not say why.
+    const transient = isTransientAuthFailure(claimsError);
     logAuthRedirect(
-      claimsError
-        ? "middleware: getClaims failed — passing through to the page guard"
-        : "middleware: no session on a protected path",
+      !claimsError
+        ? "middleware: no session on a protected path"
+        : transient
+          ? "middleware: getClaims failed — passing through to the page guard"
+          : "middleware: auth server says this session is gone — sign in again",
       {
         path: request.nextUrl.pathname,
         claimsError: claimsError?.message ?? null,
+        transient,
         ...authCookieReport(request.headers.get("cookie")),
       },
     );
 
-    if (!claimsError) {
+    // Pass through only while the failure could still be transient. An auth
+    // server that has answered "this session is gone" is not something the page
+    // guard can improve on.
+    if (!transient) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       url.searchParams.set("redirectTo", request.nextUrl.pathname);

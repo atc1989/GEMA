@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 
-import { logAuthRedirect } from "@/lib/auth/auth-diagnostics";
+import { isTransientAuthFailure, logAuthRedirect } from "@/lib/auth/auth-diagnostics";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AppRole } from "@/lib/database/types";
 
@@ -43,10 +43,20 @@ export const getAuthState = cache(async (): Promise<AuthState> => {
   const userId = claimsData?.claims.sub;
 
   if (!userId) {
-    logAuthRedirect(claimsError ? "claims check failed" : "no session claims", {
-      claimsError: claimsError?.message ?? null,
-    });
-    return { profile: null, checkFailed: Boolean(claimsError) };
+    // A dead session is not a failed check. "Invalid Refresh Token: Refresh
+    // Token Not Found" is the auth server's verdict, not an outage, and the
+    // only thing that recovers it is signing in again — so it must reach
+    // /login, not the error boundary.
+    const transient = isTransientAuthFailure(claimsError);
+    logAuthRedirect(
+      claimsError
+        ? transient
+          ? "claims check failed — keeping the session"
+          : "auth server says this session is gone — sign in again"
+        : "no session claims",
+      { claimsError: claimsError?.message ?? null, transient },
+    );
+    return { profile: null, checkFailed: transient };
   }
 
   // gema.profiles — the server client pins `db: { schema: "gema" }`. Two tables

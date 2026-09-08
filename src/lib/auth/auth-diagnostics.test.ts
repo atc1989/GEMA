@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { authCookieReport } from "./auth-diagnostics.ts";
+import { AuthApiError, AuthRetryableFetchError } from "@supabase/supabase-js";
+
+import { authCookieReport, isTransientAuthFailure } from "./auth-diagnostics.ts";
 
 const GEMA = "sb-rvwseybgimmewuoccecu-auth-token";
 const LIFESTYLE = "sb-fxdsnacuonfvutdquogb-auth-token";
@@ -50,4 +52,36 @@ test("only sb- cookies are reported — nothing else is logged", () => {
   // name that is not ours is a small leak for no diagnostic gain.
   const report = authCookieReport(`_vercel_jwt=x; ${GEMA}=a; ph_session=y`);
   assert.deepEqual(report.authCookies, [GEMA]);
+});
+
+/**
+ * The classification that decides whether a member sees the login page or a
+ * 500. Getting it wrong in both directions has now happened in production:
+ * calling everything definitive signed people out on a network blip; calling
+ * everything transient threw a 500 on a session that was genuinely dead.
+ */
+test("a dead session is definitive — it must reach /login, not the error boundary", () => {
+  // The exact production error, 2026-09-08.
+  const dead = new AuthApiError(
+    "Invalid Refresh Token: Refresh Token Not Found",
+    400,
+    "refresh_token_not_found",
+  );
+  assert.equal(isTransientAuthFailure(dead), false);
+
+  for (const status of [401, 403]) {
+    assert.equal(isTransientAuthFailure(new AuthApiError("no", status, undefined)), false, String(status));
+  }
+});
+
+test("a failure to reach the auth server is transient — keep the session", () => {
+  assert.equal(isTransientAuthFailure(new AuthRetryableFetchError("network down", 0)), true);
+  // The auth server breaking is not a verdict on this session.
+  assert.equal(isTransientAuthFailure(new AuthApiError("upstream", 503, undefined)), true);
+});
+
+test("no error is not a failure, and an unknown error is never proof of a sign-out", () => {
+  assert.equal(isTransientAuthFailure(null), false);
+  assert.equal(isTransientAuthFailure(undefined), false);
+  assert.equal(isTransientAuthFailure(new Error("something else entirely")), true);
 });

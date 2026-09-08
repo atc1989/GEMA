@@ -1,3 +1,5 @@
+import { isAuthApiError, isAuthRetryableFetchError } from "@supabase/supabase-js";
+
 /**
  * Why a signed-in person was sent to `/login`.
  *
@@ -52,4 +54,31 @@ export function authCookieReport(cookieHeader: string | null | undefined) {
 
 export function logAuthRedirect(reason: string, detail: Record<string, unknown>) {
   console.warn("[auth] sending a request to /login", { reason, ...detail });
+}
+
+/**
+ * Could the check not be made, or did the auth server answer "this session is
+ * gone"?
+ *
+ * This distinction was missing and it cost a production outage. Treating every
+ * error as "could not ask" means a genuinely dead session — the refresh token
+ * is not in Supabase's store, and no retry will ever change that — throws
+ * instead of redirecting, and the member gets a 500 on every page. A 500 is
+ * worse than the login page it replaced: from /login they could at least sign
+ * in again, which is exactly what a dead session needs them to do.
+ *
+ * - A retryable fetch failure is "we could not ask". Keep the session.
+ * - An auth-server 5xx is the server breaking, not a verdict on the session.
+ *   Keep the session.
+ * - A 400/401/403 IS the verdict. `Invalid Refresh Token: Refresh Token Not
+ *   Found` is the auth server saying this session no longer exists. Send them
+ *   to sign in; nothing else recovers it.
+ * - Anything unrecognised: keep the session. An unknown error is not evidence
+ *   that someone is signed out.
+ */
+export function isTransientAuthFailure(error: unknown): boolean {
+  if (!error) return false;
+  if (isAuthRetryableFetchError(error)) return true;
+  if (isAuthApiError(error)) return (error.status ?? 0) >= 500;
+  return true;
 }
