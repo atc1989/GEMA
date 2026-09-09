@@ -9,6 +9,7 @@ import {
   type FieldErrors,
   type RegistrationSuccess,
 } from "@/lib/actions/registration";
+import { savePassQr } from "@/components/landing/save-pass-qr";
 
 import "./book-sheet.css";
 
@@ -38,6 +39,19 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
+ * Bring the page's pass panel into view.
+ *
+ * Next frame, always: whatever asked for this — the sheet, the top-bar nav —
+ * is releasing a body scroll lock in the same commit, and scrolling into a
+ * locked body goes nowhere.
+ */
+function scrollToPass(anchor: string) {
+  requestAnimationFrame(() => {
+    document.getElementById(anchor)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+}
+
+/**
  * Registration, in a bottom sheet, on the landing page itself.
  *
  * Mounted once per template. Guests never leave the landing: this posts to the
@@ -60,6 +74,10 @@ export function BookSheet({ eventId, refCode, giftPoints = 0, passAnchor, onRegi
   const [qr, setQr] = useState<string | null>(null);
   const sheet = useRef<HTMLDivElement>(null);
   const restoreFocus = useRef<HTMLElement | null>(null);
+  // Read by the delegated listener, which is bound once — state would be stale
+  // in that closure.
+  const booked = useRef(false);
+  const saved = useRef(false);
 
   // ponytail: one delegated listener instead of rewiring twelve anchors across
   // four templates — and it keeps Sizzle/Session as server components. Plain
@@ -71,11 +89,18 @@ export function BookSheet({ eventId, refCode, giftPoints = 0, passAnchor, onRegi
       const el = e.target instanceof Element ? e.target.closest(OPEN_SELECTOR) : null;
       if (!el) return;
       e.preventDefault();
+      // Already booked, and the page carries the pass: every "Book my seat" on
+      // the page becomes "show me my QR" instead of a second booking form.
+      if (booked.current && passAnchor) {
+        setOpen(false);
+        scrollToPass(passAnchor);
+        return;
+      }
       setOpen(true);
     };
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
-  }, []);
+  }, [passAnchor]);
 
   // Lock the page and trap Tab while the sheet is up.
   useEffect(() => {
@@ -92,6 +117,7 @@ export function BookSheet({ eventId, refCode, giftPoints = 0, passAnchor, onRegi
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setOpen(false);
+        if (passAnchor) scrollToPass(passAnchor);
         return;
       }
       if (e.key !== "Tab") return;
@@ -113,7 +139,7 @@ export function BookSheet({ eventId, refCode, giftPoints = 0, passAnchor, onRegi
       window.removeEventListener("keydown", onKey);
       restoreFocus.current?.focus();
     };
-  }, [open]);
+  }, [open, passAnchor]);
 
   // The pass QR is drawn from the signed token the action returns. Skipped when
   // the page shows its own panel, which draws the same token itself.
@@ -132,19 +158,24 @@ export function BookSheet({ eventId, refCode, giftPoints = 0, passAnchor, onRegi
     };
   }, [success, passAnchor]);
 
+  // Saved unprompted, once, exactly as /register does it. With a passAnchor the
+  // page's own PassQr panel owns the save, so this would be a second download.
+  useEffect(() => {
+    if (!success || passAnchor || saved.current) return;
+    saved.current = true;
+    // Best-effort: in-app browsers (Messenger) can swallow this silently, which
+    // is why the sheet still shows the QR and the lookup link.
+    void savePassQr(success.qrToken, success.passCode).catch(() => {});
+  }, [success, passAnchor]);
+
   const registerPath = refCode
     ? `/register/${eventId}?ref=${encodeURIComponent(refCode)}`
     : `/register/${eventId}`;
 
+  /** Close the sheet and, when the page carries the pass, land on the QR. */
   const finish = () => {
     setOpen(false);
-    if (!passAnchor) return;
-    // Next frame: the sheet's cleanup releases the body scroll lock first.
-    requestAnimationFrame(() => {
-      document
-        .getElementById(passAnchor)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
+    if (passAnchor) scrollToPass(passAnchor);
   };
 
   const ready =
@@ -177,6 +208,7 @@ export function BookSheet({ eventId, refCode, giftPoints = 0, passAnchor, onRegi
       return;
     }
     setSuccess(result.data);
+    booked.current = true;
     onRegistered?.(result.data);
     // Seats-left counters are server-rendered; pull the new count.
     router.refresh();
@@ -190,7 +222,7 @@ export function BookSheet({ eventId, refCode, giftPoints = 0, passAnchor, onRegi
       role="dialog"
       aria-modal="true"
       aria-labelledby="bs-title"
-      onClick={() => setOpen(false)}
+      onClick={finish}
     >
       <div className="bs-sheet" ref={sheet} onClick={(e) => e.stopPropagation()}>
         <div className="bs-grab" aria-hidden="true" />
@@ -220,7 +252,8 @@ export function BookSheet({ eventId, refCode, giftPoints = 0, passAnchor, onRegi
             )}
             <div className="bs-code">{success.passCode}</div>
             <p className="bs-fine">
-              {passAnchor ? "Download it there, or " : "Screenshot this, or "}
+              We saved the QR to your downloads. If it did not save,{" "}
+              {passAnchor ? "get it from your card, or " : "screenshot this, or "}
               <a
                 className="bs-link"
                 href={`/passes?q=${encodeURIComponent(email)}&name=${encodeURIComponent(success.attendeeName)}`}
