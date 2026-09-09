@@ -50,6 +50,9 @@ export default async function EditEventPage({
     mapUrl: event.mapUrl ?? undefined,
     onlineUrl: event.onlineUrl ?? undefined,
     capacity: event.capacity ?? undefined,
+    // Not on the mapped Event: scheduling lives on the row, and the form needs
+    // it back or every save would silently tear the grid down.
+    schedulingEnabled: data.scheduling_enabled === true,
     description: event.description ?? undefined,
     bannerUrl: event.bannerUrl ?? undefined,
     speakerName:

@@ -12,7 +12,14 @@ function IconX() {
   );
 }
 
-export function TopBar({ bookUrl }: { bookUrl?: string | null }) {
+export function TopBar({
+  bookUrl,
+  soldOut = false,
+}: {
+  bookUrl?: string | null;
+  /** Scheduled event with every arrival window gone. No walk-ins, so no CTA. */
+  soldOut?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const shop = shopEntryUrl();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -94,9 +101,15 @@ export function TopBar({ bookUrl }: { bookUrl?: string | null }) {
           </nav>
           <div className="topbar-actions">
             {bookUrl ? (
-              <a className="gg-button gg-button--primary topbar-book" href={bookUrl} rel="noopener noreferrer">
-                Book my seat
-              </a>
+              soldOut ? (
+                <span className="gg-button gg-button--bone topbar-book" role="status">
+                  Fully booked
+                </span>
+              ) : (
+                <a className="gg-button gg-button--primary topbar-book" href={bookUrl} rel="noopener noreferrer">
+                  Book my seat
+                </a>
+              )
             ) : null}
             <button
               className="topbar-menu"
@@ -137,7 +150,7 @@ export function TopBar({ bookUrl }: { bookUrl?: string | null }) {
               <span className="soon">Lifestyle <span className="soon-tag">soon</span></span>
               <span className="soon">Gentrep <span className="soon-tag">soon</span></span>
             </nav>
-            {bookUrl ? (
+            {bookUrl && !soldOut ? (
               <div className="sheet-nav-foot">
                 {/* Close the nav first: this CTA opens the BookSheet in place,
                     and leaving the nav up stacks two focus traps and two

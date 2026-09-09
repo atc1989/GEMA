@@ -6,6 +6,11 @@ import { BookSheet } from "@/components/landing/book-sheet";
 import { PassQr, usePassQr } from "@/components/landing/pass-qr";
 import { Confetti } from "@/components/landing/confetti";
 import { MediaCarousel } from "@/components/landing/media-carousel";
+import {
+  formatArrivalWindow,
+  isSoldOut,
+  nextSlotWithSeats,
+} from "@/lib/events/slots";
 import { shopEntryUrl } from "@/lib/ginhawa/ecosystem";
 import { MarkdownBody } from "@/lib/ginhawa/markdown";
 import type { Clinician, PublicLanding } from "@/lib/ginhawa/public-landing";
@@ -75,6 +80,21 @@ export function CheckupLanding({
   const showVenue = Boolean(landing.venueName || landing.venueAddress || landing.mapUrl);
   const showGift = landing.giftPoints > 0;
 
+  // Scheduled events have no walk-ins, so "sold out" is a real end state the
+  // page has to say out loud rather than letting the sheet reject at the door.
+  const scheduling = landing.scheduling;
+  const soldOut = scheduling ? isSoldOut(scheduling) : false;
+  const nextWindow = scheduling ? nextSlotWithSeats(scheduling) : null;
+  const seatsNote = scheduling
+    ? soldOut
+      ? "Fully booked"
+      : nextWindow
+        ? `Free · next arrival ${formatArrivalWindow(nextWindow, scheduling.timezone)}`
+        : "Free"
+    : left == null || seats == null
+      ? "Free"
+      : `Free · ${left} of ${seats} seats left`;
+
   const mapVisual = landing.mapEmbedSrc ? (
     <iframe
       src={landing.mapEmbedSrc}
@@ -140,9 +160,15 @@ export function CheckupLanding({
           {landing.heroWhat ? <p className="ck-hero-what">{landing.heroWhat}</p> : null}
 
           {landing.bookUrl ? (
-            <a className="ck-cta ck-cta--big" href={landing.bookUrl}>
-              Book my seat
-            </a>
+            soldOut ? (
+              <span className="ck-cta ck-cta--big ck-cta--done" role="status">
+                Fully booked
+              </span>
+            ) : (
+              <a className="ck-cta ck-cta--big" href={landing.bookUrl}>
+                Book my seat
+              </a>
+            )
           ) : null}
 
           {showGift ? (
@@ -152,9 +178,7 @@ export function CheckupLanding({
             </div>
           ) : null}
 
-          <p className="ck-hero-note">
-            {left == null || seats == null ? "Free" : `Free · ${left} of ${seats} seats left`}
-          </p>
+          <p className="ck-hero-note">{seatsNote}</p>
         </div>
       </header>
 
@@ -331,10 +355,16 @@ export function CheckupLanding({
                 <b>{left} seats left</b>
               </div>
             ) : null}
-            <h3>Book your seat</h3>
-            <a className="ck-cta ck-cta--wide" href={landing.bookUrl}>
-              Book my seat
-            </a>
+            <h3>{soldOut ? "Fully booked" : "Book your seat"}</h3>
+            {soldOut ? (
+              <p className="ck-fine" role="status">
+                Every arrival time has gone. Watch for the next check-up date.
+              </p>
+            ) : (
+              <a className="ck-cta ck-cta--wide" href={landing.bookUrl}>
+                Book my seat
+              </a>
+            )}
             <p className="ck-fine">Free. No payment at any point.</p>
             <p className="ck-fine">
               We will text you the details. Nobody will ring you to sell you anything.
@@ -400,9 +430,15 @@ export function CheckupLanding({
                 </>
               ) : null}
             </div>
-            <a className="ck-cta" href={landing.bookUrl}>
-              Book my seat
-            </a>
+            {soldOut ? (
+              <span className="ck-cta ck-cta--done" role="status">
+                Fully booked
+              </span>
+            ) : (
+              <a className="ck-cta" href={landing.bookUrl}>
+                Book my seat
+              </a>
+            )}
           </div>
         </div>
       ) : null}
@@ -411,6 +447,7 @@ export function CheckupLanding({
         eventId={landing.sourceEventId}
         refCode={refCode}
         giftPoints={landing.giftPoints}
+        scheduling={scheduling}
         passAnchor="pass"
         onRegistered={(booked) => {
           setHolder({

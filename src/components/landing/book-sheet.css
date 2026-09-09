@@ -217,3 +217,115 @@
   color: var(--bs-navy);
   margin-top: 12px;
 }
+
+/* ---- arrival windows ----
+   A slot IS the window: "9:00–9:10" means arrive inside it, not an appointment
+   at 9:00. Chips are 44px+ per the HCI lock, and every rule carries two classes
+   so `.gg-surface button` cannot blank them. */
+.bs-sheet .bs-slots {
+  margin-bottom: 4px;
+}
+.bs-sheet .bs-slot-group + .bs-slot-group {
+  margin-top: 14px;
+}
+.bs-sheet .bs-slot-hour {
+  font-family: var(--bs-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--bs-mute);
+  margin-bottom: 8px;
+}
+.bs-sheet .bs-slot-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.bs-sheet .bs-slot {
+  flex: 1 1 auto;
+  min-width: 104px;
+  min-height: 46px;
+  font-family: var(--bs-sans);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--bs-navy);
+  background: #fff;
+  border: 2px solid var(--bs-line);
+  border-radius: 13px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+.bs-sheet .bs-slot[aria-pressed="true"] {
+  border-color: var(--bs-navy);
+  background: #f4f7fc;
+}
+.bs-sheet .bs-slot:focus-visible {
+  outline: 3px solid var(--bs-gold);
+  outline-offset: 2px;
+}
+
+/* The window they already picked, with a way back to the grid. */
+.bs-sheet .bs-chosen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 46px;
+  margin-top: 12px;
+  padding: 0 14px;
+  font-family: var(--bs-sans);
+  font-size: 15px;
+  color: var(--bs-navy);
+  background: #f4f7fc;
+  border: 2px solid var(--bs-line);
+  border-radius: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+.bs-sheet .bs-chosen:focus-visible {
+  outline: 3px solid var(--bs-gold);
+  outline-offset: 2px;
+}
+.bs-sheet .bs-chosen-label {
+  font-family: var(--bs-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--bs-mute);
+}
+.bs-sheet .bs-chosen-change {
+  margin-left: auto;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1f5d99;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* On the pass: the one line they have to remember. */
+.bs-sheet .bs-window {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  background: #f4f7fc;
+  border-radius: 14px;
+}
+.bs-sheet .bs-window-label {
+  font-family: var(--bs-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--bs-mute);
+}
+.bs-sheet .bs-window b {
+  font-family: var(--bs-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--bs-navy);
+}

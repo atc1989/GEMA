@@ -510,6 +510,14 @@
   box-shadow: none;
   cursor: not-allowed;
 }
+/* Sold out. A scheduled event has no walk-ins, so this is an end state, not a
+   disabled control — it renders as a <span>, never as something to press. */
+.ck-surface .ck-cta--done {
+  background: #dfe5ec;
+  color: #64748b;
+  box-shadow: none;
+  cursor: default;
+}
 
 /* ---- where ---- */
 .ck-venue { background: var(--ck-card); border: 1px solid var(--ck-line); border-radius: 16px; padding: 18px; }

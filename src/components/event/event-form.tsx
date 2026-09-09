@@ -21,6 +21,7 @@ import {
 import { uploadEventPhoto } from "@/lib/storage/event-photos";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -91,6 +92,9 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
   });
 
   const selectedMode = watch("mode") ?? "in_person";
+  // Scheduling derives capacity from the grid, so the Capacity field stops
+  // being the host's to set the moment it goes on.
+  const scheduled = watch("schedulingEnabled") === true;
   const showVenue = selectedMode !== "online";
   const showOnline = selectedMode !== "in_person";
   const titleWatch = useWatch({ control, name: "title" });
@@ -324,12 +328,36 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
           </div>
 
           <Field
+            label="Arrival times"
+            htmlFor="schedulingEnabled"
+            error={errors.schedulingEnabled?.message}
+            hint="Ten-minute windows, one doctor and nurse at a time. Needs an end time. Guests pick a window when they book, capacity comes from the schedule, and there are no walk-ins."
+          >
+            <label className="flex items-start gap-3" htmlFor="schedulingEnabled">
+              <Checkbox id="schedulingEnabled" {...register("schedulingEnabled")} />
+              <span className="text-sm font-semibold leading-5">
+                Book by arrival time
+              </span>
+            </label>
+          </Field>
+          <Field
             label="Capacity"
             htmlFor="capacity"
             error={errors.capacity?.message}
-            hint="Leave blank for unlimited."
+            hint={
+              scheduled
+                ? "Set by the arrival-time schedule — one seat per ten-minute window."
+                : "Leave blank for unlimited."
+            }
           >
-            <Input id="capacity" type="number" min={1} step={1} {...register("capacity")} />
+            <Input
+              id="capacity"
+              type="number"
+              min={1}
+              step={1}
+              disabled={scheduled}
+              {...register("capacity")}
+            />
           </Field>
           <Field label="Description" htmlFor="description" error={errors.description?.message}>
             <Textarea id="description" rows={5} {...register("description")} />

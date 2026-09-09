@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, CalendarX } from "lucide-react";
 
 import { ProspectRegistrationForm } from "@/components/prospect/prospect-registration-form";
+import { loadEventScheduling } from "@/lib/actions/event-slots";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getPublishedLandingPath } from "@/lib/ginhawa/landing-path";
@@ -36,6 +37,10 @@ export default async function RegisterPage({
       />
     );
   }
+
+  // This page is what the landing sheet degrades to, so it has to offer the
+  // same arrival windows. Null on every unscheduled event.
+  const scheduling = await loadEventScheduling(eventId);
 
   // Keep ?ref= on every hop out of this page, or a returning member logs in
   // and comes back with the referral attribution stripped.
@@ -79,7 +84,7 @@ export default async function RegisterPage({
         </Link>
       </Card>
 
-      <ProspectRegistrationForm eventId={eventId} refCode={ref} />
+      <ProspectRegistrationForm eventId={eventId} refCode={ref} scheduling={scheduling} />
     </div>
   );
 }

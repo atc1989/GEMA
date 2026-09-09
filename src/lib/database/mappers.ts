@@ -21,6 +21,12 @@ export type EventRow = {
   map_url: string | null;
   online_url: string | null;
   capacity: number | null;
+  /**
+   * Ten-minute arrival windows. Optional on the type: rows read before the
+   * event_slot_scheduling migration lands do not carry it.
+   */
+  scheduling_enabled?: boolean | null;
+  slot_minutes?: number | null;
   description: string | null;
   banner_url: string | null;
   cancelled_at: string | null;

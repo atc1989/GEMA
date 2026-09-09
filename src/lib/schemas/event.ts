@@ -176,6 +176,15 @@ export const eventFormSchema = z
       .refine((v) => v === undefined || (Number.isInteger(v) && v > 0), {
         message: "Capacity must be a positive whole number.",
       }),
+    /**
+     * Ten-minute arrival windows, one team at a time. On means no walk-ins:
+     * the grid becomes the event's capacity, so the Capacity field is derived
+     * and stops being the host's to set.
+     */
+    schedulingEnabled: z
+      .union([z.boolean(), z.string()])
+      .optional()
+      .transform((v) => v === true || v === "true" || v === "on"),
     description: optionalText,
     bannerUrl: optionalLenientUrl,
     speakerName: optionalText,
@@ -193,6 +202,10 @@ export const eventFormSchema = z
     (data) => data.endsAt === undefined || Date.parse(data.endsAt) > Date.parse(data.startsAt),
     { message: "End time must be after the start time.", path: ["endsAt"] },
   )
+  .refine((data) => !data.schedulingEnabled || data.endsAt !== undefined, {
+    message: "Arrival times need an end time — that is what the windows step to.",
+    path: ["endsAt"],
+  })
   .refine((data) => data.mode === "online" || Boolean(data.venueName), {
     message: "Venue name is required for in-person and hybrid events.",
     path: ["venueName"],

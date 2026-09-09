@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireAdmin } from "@/lib/auth/require-admin";
+import { SLOT_MINUTES, TEAMS_PER_SLOT } from "@/lib/events/slots";
 import { mapEventRow, toEventRow, type EventRow } from "@/lib/database/mappers";
 import {
   cancelEventSchema,
@@ -73,6 +74,40 @@ async function syncPrimarySpeaker(
 }
 
 /** Creates a draft event owned by the current admin. */
+/**
+ * Builds or tears down the arrival-slot grid after the event row is saved.
+ *
+ * generate_event_slots also derives events.capacity from the grid, so it has to
+ * run after the row write — the host's Capacity value is overwritten on
+ * purpose. It refuses rather than stranding a booked window that the new times
+ * would drop, which is why the message is surfaced instead of swallowed.
+ */
+async function syncEventSlots(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  eventId: string,
+  enabled: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (enabled) {
+    const { error } = await supabase.rpc("generate_event_slots", {
+      p_event_id: eventId,
+      p_slot_minutes: SLOT_MINUTES,
+      p_seats_per_slot: TEAMS_PER_SLOT,
+    });
+    if (error) {
+      console.error("generate_event_slots failed:", error.code, error.message);
+      return { ok: false, error: friendlyDbError(error.message, "Could not build the arrival times.") };
+    }
+    return { ok: true };
+  }
+
+  const { error } = await supabase.rpc("disable_event_slots", { p_event_id: eventId });
+  if (error) {
+    console.error("disable_event_slots failed:", error.code, error.message);
+    return { ok: false, error: friendlyDbError(error.message, "Could not turn arrival times off.") };
+  }
+  return { ok: true };
+}
+
 export async function createEvent(
   input: EventFormInput,
 ): Promise<ActionResult<{ id: string }>> {
@@ -123,6 +158,11 @@ export async function createEvent(
     name: parsed.data.speakerName,
     photoUrl: parsed.data.speakerPhotoUrl,
   });
+
+  const slotSync = await syncEventSlots(supabase, data.id, parsed.data.schedulingEnabled);
+  if (!slotSync.ok) {
+    return { ok: false, error: `Event saved, but ${slotSync.error}` };
+  }
 
   const eventRow = toEventRow(parsed.data);
   const landingSync = await syncEventLandingFromForm(
@@ -213,6 +253,11 @@ export async function updateEvent(
     name: parsed.data.speakerName,
     photoUrl: parsed.data.speakerPhotoUrl,
   });
+
+  const slotSync = await syncEventSlots(supabase, eventId, parsed.data.schedulingEnabled);
+  if (!slotSync.ok) {
+    return { ok: false, error: `Event saved, but ${slotSync.error}` };
+  }
 
   const eventRow = toEventRow(parsed.data);
   const landingSync = await syncEventLandingFromForm(
