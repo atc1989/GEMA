@@ -99,16 +99,25 @@ with check (gema.can_manage_event(event_slots.event_id));
 -- ---------------------------------------------------------------------------
 -- 4) Grid generation
 --
--- Regenerates the whole grid for an event, then derives events.capacity from
--- it. Slots that already hold a booking are never deleted: their seats_total is
--- raised to the new value but never lowered below what is already taken, and a
--- booked slot left outside the new window aborts the call rather than
--- orphaning somebody's pass.
+-- Regenerates the grid for an event, then derives events.capacity from it.
+--
+-- Three things it is careful about:
+--   * A slot that already holds a booking is never deleted. Its seats_total is
+--     raised but never lowered below what is taken, and a booked slot left
+--     outside the new window aborts the call rather than orphaning a pass.
+--   * `closed` survives regeneration. Only slots that fall outside the new grid
+--     are dropped, so a window the admin shut for a staff meeting does not
+--     silently reopen the next time the host edits the event title.
+--   * The lunch break is applied to NEW slots only, for the same reason: an
+--     admin who deliberately reopened 12:20 keeps it open.
 -- ---------------------------------------------------------------------------
 create or replace function gema.generate_event_slots(
   p_event_id uuid,
   p_slot_minutes integer default 10,
-  p_seats_per_slot integer default 1
+  p_seats_per_slot integer default 1,
+  -- Wall-clock in the event's own timezone. Nobody works 9 to 5 straight.
+  p_break_start time default '12:00',
+  p_break_end time default '13:00'
 )
 returns jsonb
 language plpgsql
@@ -175,23 +184,40 @@ begin
       using errcode = 'check_violation';
   end if;
 
-  delete from gema.event_slots
-  where event_id = p_event_id and seats_taken = 0;
+  -- Drop only what the new grid no longer contains, and only if empty.
+  delete from gema.event_slots s
+  where s.event_id = p_event_id
+    and s.seats_taken = 0
+    and not exists (
+      select 1
+      from generate_series(v_event.starts_at, v_event.ends_at - v_step, v_step) as g
+      where g = s.starts_at
+    );
 
-  insert into gema.event_slots (event_id, starts_at, ends_at, seats_total)
+  insert into gema.event_slots (event_id, starts_at, ends_at, seats_total, closed)
   select
     p_event_id,
     g,
     g + v_step,
-    p_seats_per_slot
+    p_seats_per_slot,
+    -- Break windows are born closed. Compared as wall-clock in the event's
+    -- timezone, never UTC — 12:00 in Manila is 04:00 UTC.
+    p_break_start is not null
+      and p_break_end is not null
+      and (g at time zone v_event.timezone)::time >= p_break_start
+      and (g at time zone v_event.timezone)::time < p_break_end
   from generate_series(v_event.starts_at, v_event.ends_at - v_step, v_step) as g
   on conflict (event_id, starts_at) do update
     set ends_at = excluded.ends_at,
         -- Never below what is already booked; event_slots_fit would reject it.
         -- ON CONFLICT names the target unqualified.
         seats_total = greatest(excluded.seats_total, event_slots.seats_taken);
+        -- `closed` is deliberately absent: the admin owns it after creation.
 
-  select count(*)::integer, coalesce(sum(seats_total), 0)::integer
+  -- Closed windows are not for sale, so they are not capacity.
+  select
+    count(*) filter (where not closed)::integer,
+    coalesce(sum(seats_total) filter (where not closed), 0)::integer
     into v_slots, v_seats
   from gema.event_slots
   where event_id = p_event_id;
@@ -211,7 +237,7 @@ begin
 end;
 $$;
 
-grant execute on function gema.generate_event_slots(uuid, integer, integer)
+grant execute on function gema.generate_event_slots(uuid, integer, integer, time, time)
   to authenticated, service_role;
 
 -- Turning scheduling off: keep the rows (a booked pass still points at one),

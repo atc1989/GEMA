@@ -13,6 +13,8 @@ owner wants it tracked there, this file is the Change note ready to move.
 | | |
 |---|---|
 | Slot length | 10 minutes, fixed |
+| Working day | whatever the event's own start/end says. 9–5 gives 9–5 |
+| Lunch | 12:00–13:00, created closed. So a 9–5 clinic is 9–12 and 1–5 |
 | Capacity per slot | 1 doctor+nurse team = 1 guest |
 | Clinician choice | none — guests pick a time, the team is assigned at the door |
 | Walk-ins | none. The grid is the capacity |
@@ -20,8 +22,14 @@ owner wants it tracked there, this file is the Change note ready to move.
 | No-show release | **out of v1**. A booked window stays spent |
 | Templates | medical and check-up only. Sizzle and Session book as before |
 
-A four-hour clinic is 24 windows and therefore 24 seats. That is the ceiling,
-and with no walk-ins it is a hard one.
+The grid comes from `events.starts_at` / `ends_at` — nothing hard-codes a
+working day. A 9–5 event with the default break is 42 bookable windows: 18 in
+the morning, 24 in the afternoon, 6 shut for lunch. With no walk-ins that is the
+ceiling, and it is a hard one.
+
+The break is applied to **new** windows only, and `closed` survives
+regeneration. Reopen 12:20 for a day that works through lunch and editing the
+event title later will not shut it again.
 
 ## Why a window and not an appointment
 
@@ -87,6 +95,24 @@ double-count.
 | `src/components/prospect/prospect-registration-form.tsx` | `/register` fallback |
 | `src/components/event/event-form.tsx` | the host toggle |
 | `src/components/attendance/attendance-table.tsx` | the window at the door |
+| `src/app/(admin)/admin/events/[id]/schedule/page.tsx` | the clinic day, window by window |
+| `src/components/event/slot-schedule.tsx` | the grid, with the open/close toggle |
+
+### The admin schedule
+
+`/admin/events/[id]/schedule`, linked from the event page when scheduling is on.
+One row per window: the time, who is booked into it (name, pass code, and
+whether they have checked in), and a toggle to close or reopen it. A window
+holding a booking cannot be closed — the guest already has a pass for it — so
+the button is disabled and the action refuses it server-side too.
+
+It reads `event_slots` directly rather than through `get_event_slots`. That RPC
+is the public one: it hides past windows and carries no names, which is right
+for the picker and useless for running a door.
+
+"Now" is marked live and ticks every thirty seconds, computed after mount only —
+a server-rendered clock and a client-rendered one a second later are a hydration
+mismatch.
 
 ### Staleness
 
@@ -135,3 +161,9 @@ would go back a generation.
   not wrong, just no longer derived — nobody is locked out by it.
 - **Multiple teams.** `seats_total` is per-slot in the database and the host
   form hard-codes 1. Two teams is a form change, not a migration.
+- **The break is a constant**, not a per-event setting. `BREAK_START` /
+  `BREAK_END` in `src/lib/events/slots.ts`, passed to the RPC, which takes them
+  as parameters. An event that breaks at 11:30 needs the admin to reopen 12:00
+  and close 11:30 by hand.
+- **No host-side schedule page.** Admins have one; a non-admin host managing
+  their own event does not.

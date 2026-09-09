@@ -56,6 +56,8 @@ export function mapEventRow(row: EventRow): Event {
     mapUrl: row.map_url,
     onlineUrl: row.online_url,
     capacity: row.capacity,
+    schedulingEnabled: row.scheduling_enabled === true,
+    slotMinutes: row.slot_minutes ?? null,
     description: row.description,
     bannerUrl: row.banner_url,
     cancelledAt: row.cancelled_at,

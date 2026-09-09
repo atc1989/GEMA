@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { SLOT_MINUTES, TEAMS_PER_SLOT } from "@/lib/events/slots";
+import { BREAK_END, BREAK_START, SLOT_MINUTES, TEAMS_PER_SLOT } from "@/lib/events/slots";
 import { mapEventRow, toEventRow, type EventRow } from "@/lib/database/mappers";
 import {
   cancelEventSchema,
@@ -92,6 +92,8 @@ async function syncEventSlots(
       p_event_id: eventId,
       p_slot_minutes: SLOT_MINUTES,
       p_seats_per_slot: TEAMS_PER_SLOT,
+      p_break_start: BREAK_START,
+      p_break_end: BREAK_END,
     });
     if (error) {
       console.error("generate_event_slots failed:", error.code, error.message);

@@ -18,6 +18,14 @@ import { APP_TIMEZONE, formatLandingTime } from "@/lib/utils/format";
 export const SLOT_MINUTES = 10;
 export const TEAMS_PER_SLOT = 1;
 
+/**
+ * Lunch. Windows inside it are created closed, so a 9-5 clinic is 9-12 and 1-5.
+ * Wall-clock in the event's own timezone, not UTC. An admin can reopen any of
+ * them on the schedule page and regeneration will not shut them again.
+ */
+export const BREAK_START = "12:00";
+export const BREAK_END = "13:00";
+
 export type EventSlot = {
   id: string;
   startsAt: string;
@@ -165,15 +173,25 @@ export function formatSlotChip(slot: EventSlot, timezone?: string): string {
   return `${from.slice(0, -3)}–${to.slice(0, -3)}`;
 }
 
-export type SlotGroup = { key: string; label: string; slots: EventSlot[] };
+export type SlotGroup<T extends EventSlot = EventSlot> = {
+  key: string;
+  label: string;
+  slots: T[];
+};
 
 /**
  * Slots grouped by the hour they start in, so a four-hour clinic reads as four
  * short rows instead of twenty-four loose chips.
+ *
+ * Generic so the admin schedule can group its own richer rows (each carrying
+ * the guests booked into it) without casting them back down.
  */
-export function groupSlotsByHour(slots: EventSlot[], timezone?: string): SlotGroup[] {
+export function groupSlotsByHour<T extends EventSlot>(
+  slots: T[],
+  timezone?: string,
+): SlotGroup<T>[] {
   const tz = timezone || APP_TIMEZONE;
-  const groups = new Map<string, SlotGroup>();
+  const groups = new Map<string, SlotGroup<T>>();
   for (const slot of slots) {
     const label = new Intl.DateTimeFormat("en-US", {
       hour: "numeric",
