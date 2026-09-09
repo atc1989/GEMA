@@ -11,6 +11,10 @@ import {
   InviterLeaderboard,
   type InviterRow,
 } from "@/components/attendance/inviter-leaderboard";
+import {
+  EventWhenWhere,
+  type EventWhenWhere as EventWhenWhereRow,
+} from "@/components/event/event-when-where";
 import { ExportReportMenu } from "@/components/event/export-report-menu";
 import { buttonVariants } from "@/components/ui/button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -44,9 +48,11 @@ export default async function EventAttendancePage({
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, title, status")
+    .select(
+      "id, title, status, mode, starts_at, timezone, venue_name, venue_address, map_url, online_url",
+    )
     .eq("id", id)
-    .maybeSingle();
+    .maybeSingle<EventWhenWhereRow & { title: string }>();
   if (!event) notFound();
 
   const [{ data: regs }, { data: atts }, { data: sponsors }] = await Promise.all([
@@ -149,6 +155,7 @@ export default async function EventAttendancePage({
         <p className="mt-1 text-sm font-semibold text-muted-foreground">
           Attendance overview
         </p>
+        <EventWhenWhere event={event} />
       </div>
 
       <AttendanceStats
