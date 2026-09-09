@@ -73,7 +73,27 @@ async function syncPrimarySpeaker(
   }
 }
 
-/** Creates a draft event owned by the current admin. */
+/**
+ * The generator's own refusals are written for the host — "this change would
+ * strand 3 booked slot(s)" is exactly what someone shortening the window length
+ * on a half-booked event needs to read. friendlyDbError would flatten them to a
+ * shrug, so they pass straight through.
+ */
+function schedulingError(message: string): string {
+  const m = message.toLowerCase();
+  const passThrough = [
+    "would strand",
+    "shorter than one slot",
+    "set an end time",
+    "break",
+    "slot length",
+    "at least one team",
+  ];
+  // The RAISE text arrives whole, so it is shown whole.
+  if (passThrough.some((needle) => m.includes(needle))) return message.trim();
+  return friendlyDbError(message, "Could not build the arrival times.");
+}
+
 /**
  * Builds or tears down the arrival-slot grid after the event row is saved.
  *
@@ -88,11 +108,12 @@ async function syncEventSlots(
   enabled: boolean,
   breakStart?: string,
   breakEnd?: string,
+  slotMinutes?: number,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (enabled) {
     const { error } = await supabase.rpc("generate_event_slots", {
       p_event_id: eventId,
-      p_slot_minutes: SLOT_MINUTES,
+      p_slot_minutes: slotMinutes ?? SLOT_MINUTES,
       p_seats_per_slot: TEAMS_PER_SLOT,
       // Both null runs the day straight through. The schema already refuses a
       // half-set pair, and the RPC refuses it again.
@@ -101,7 +122,7 @@ async function syncEventSlots(
     });
     if (error) {
       console.error("generate_event_slots failed:", error.code, error.message);
-      return { ok: false, error: friendlyDbError(error.message, "Could not build the arrival times.") };
+      return { ok: false, error: schedulingError(error.message) };
     }
     return { ok: true };
   }
@@ -114,6 +135,7 @@ async function syncEventSlots(
   return { ok: true };
 }
 
+/** Creates a draft event owned by the current admin. */
 export async function createEvent(
   input: EventFormInput,
 ): Promise<ActionResult<{ id: string }>> {
@@ -171,6 +193,7 @@ export async function createEvent(
     parsed.data.schedulingEnabled,
     parsed.data.breakStart,
     parsed.data.breakEnd,
+    parsed.data.slotMinutes,
   );
   if (!slotSync.ok) {
     return { ok: false, error: `Event saved, but ${slotSync.error}` };
@@ -272,6 +295,7 @@ export async function updateEvent(
     parsed.data.schedulingEnabled,
     parsed.data.breakStart,
     parsed.data.breakEnd,
+    parsed.data.slotMinutes,
   );
   if (!slotSync.ok) {
     return { ok: false, error: `Event saved, but ${slotSync.error}` };

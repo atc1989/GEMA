@@ -209,6 +209,22 @@ export const eventFormSchema = z
      * runs the day straight through; a <input type="time"> that was never
      * touched arrives as "", which is why this is not a bare optional.
      */
+    /**
+     * Minutes per arrival window. Kept to the values the form offers so it can
+     * never violate the database's "5-120, in steps of 5" check.
+     */
+    slotMinutes: z
+      .union([z.string(), z.number()])
+      .optional()
+      .transform((v) => {
+        if (v === undefined || v === "") return undefined;
+        const n = typeof v === "number" ? v : Number(v);
+        return Number.isFinite(n) ? n : NaN;
+      })
+      .refine(
+        (v) => v === undefined || (Number.isInteger(v) && v >= 5 && v <= 120 && v % 5 === 0),
+        { message: "Pick a window length between 5 and 120 minutes." },
+      ),
     breakStart: clockTime,
     breakEnd: clockTime,
     description: optionalText,

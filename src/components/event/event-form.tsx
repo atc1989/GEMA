@@ -18,7 +18,12 @@ import {
   eventFormSchema,
   type EventFormInput,
 } from "@/lib/schemas/event";
-import { DEFAULT_BREAK_END, DEFAULT_BREAK_START, SLOT_MINUTES } from "@/lib/events/slots";
+import {
+  DEFAULT_BREAK_END,
+  DEFAULT_BREAK_START,
+  SLOT_MINUTE_CHOICES,
+  SLOT_MINUTES,
+} from "@/lib/events/slots";
 import { uploadEventPhoto } from "@/lib/storage/event-photos";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -87,6 +92,7 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
       visibility: "public",
       mode: "in_person",
       timezone: "Asia/Manila",
+      slotMinutes: SLOT_MINUTES,
       breakStart: DEFAULT_BREAK_START,
       breakEnd: DEFAULT_BREAK_END,
       ...defaultValues,
@@ -98,6 +104,7 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
   // Scheduling derives capacity from the grid, so the Capacity field stops
   // being the host's to set the moment it goes on.
   const scheduled = watch("schedulingEnabled") === true;
+  const slotLength = Number(watch("slotMinutes")) || SLOT_MINUTES;
   const showVenue = selectedMode !== "online";
   const showOnline = selectedMode !== "in_person";
   const titleWatch = useWatch({ control, name: "title" });
@@ -334,7 +341,7 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
             label="Arrival times"
             htmlFor="schedulingEnabled"
             error={errors.schedulingEnabled?.message}
-            hint={`${SLOT_MINUTES}-minute windows, one doctor and nurse at a time. Needs an end time. Guests pick a window when they book, capacity comes from the schedule, and there are no walk-ins.`}
+            hint="One doctor and nurse at a time. Needs an end time. Guests pick a window when they book, capacity comes from the schedule, and there are no walk-ins."
           >
             <label className="flex items-start gap-3" htmlFor="schedulingEnabled">
               <Checkbox id="schedulingEnabled" {...register("schedulingEnabled")} />
@@ -345,6 +352,20 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
           </Field>
           {scheduled ? (
             <div className="grid gap-4 min-[520px]:grid-cols-2">
+              <Field
+                label="Window length"
+                htmlFor="slotMinutes"
+                error={errors.slotMinutes?.message}
+                hint="How long one guest takes, start to finish."
+              >
+                <Select id="slotMinutes" {...register("slotMinutes")}>
+                  {SLOT_MINUTE_CHOICES.map((minutes) => (
+                    <option key={minutes} value={minutes}>
+                      {minutes} minutes
+                    </option>
+                  ))}
+                </Select>
+              </Field>
               <Field
                 label="Break starts"
                 htmlFor="breakStart"
@@ -369,7 +390,7 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
             error={errors.capacity?.message}
             hint={
               scheduled
-                ? `Set by the arrival-time schedule — one seat per ${SLOT_MINUTES}-minute window.`
+                ? `Set by the arrival-time schedule — one seat per ${slotLength}-minute window.`
                 : "Leave blank for unlimited."
             }
           >

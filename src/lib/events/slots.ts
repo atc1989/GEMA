@@ -12,15 +12,25 @@
 import { APP_TIMEZONE, formatLandingTime } from "@/lib/utils/format";
 
 /**
- * Thirty minutes per window, one doctor+nurse team. Both are parameters on the
- * database side, so widening either is a form change, not a migration.
+ * The window length a new event starts with. The real value lives on the event
+ * (`events.slot_minutes`) and the host picks it on the form; this is only the
+ * default, and the fallback when a row predates the column.
  *
- * The arithmetic is worth knowing: a 9-5 day with an hour's break is seven
- * working hours, so 14 windows and — at one team — 14 seats. There are no
- * walk-ins, so that is the whole day.
+ * The arithmetic is worth knowing: at 30 minutes, a 9-5 day with an hour's
+ * break is seven working hours, so 14 windows and — at one team — 14 seats.
+ * There are no walk-ins, so that is the whole day.
  */
 export const SLOT_MINUTES = 30;
+
+/** Teams working one window. Still app-wide; the database takes it per call. */
 export const TEAMS_PER_SLOT = 1;
+
+/**
+ * What the form offers. Every value divides an hour and satisfies the database's
+ * "5-120, in steps of 5" check, so the picker cannot produce a grid the RPC
+ * would reject.
+ */
+export const SLOT_MINUTE_CHOICES = [10, 15, 20, 30, 45, 60] as const;
 
 /**
  * What the form offers for a new event. The break itself is stored per event

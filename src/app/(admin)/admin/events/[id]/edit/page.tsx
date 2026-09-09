@@ -58,6 +58,7 @@ export default async function EditEventPage({
     schedulingEnabled: data.scheduling_enabled === true,
     ...(data.scheduling_enabled === true
       ? {
+          slotMinutes: data.slot_minutes ?? undefined,
           breakStart: toTimeInputValue(data.break_start),
           breakEnd: toTimeInputValue(data.break_end),
         }

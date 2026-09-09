@@ -12,7 +12,7 @@ owner wants it tracked there, this file is the Change note ready to move.
 
 | | |
 |---|---|
-| Slot length | 30 minutes, fixed in the app (`SLOT_MINUTES`) |
+| Slot length | per event, 30 minutes by default. 10/15/20/30/45/60 on the form |
 | Working day | whatever the event's own start/end says. 9–5 gives 9–5 |
 | Break | per event, 12:00–13:00 by default, blank for none |
 | Capacity per slot | 1 doctor+nurse team = 1 guest |
@@ -28,9 +28,18 @@ morning, 8 in the afternoon, 2 windows shut for lunch. With no walk-ins that is
 the whole day, and 30 minutes a head is what makes it small. Widening it is a
 matter of more teams per window (`TEAMS_PER_SLOT`), not more hours.
 
-The break lives on the event (`break_start` / `break_end`, wall-clock in the
-event's own timezone) and is set on the event form. Both blank runs the day
-straight through.
+Window length and the break both live on the event (`slot_minutes`,
+`break_start` / `break_end`, the last two wall-clock in the event's own
+timezone) and are set on the event form. The form offers 10, 15, 20, 30, 45 and
+60 minutes — every one divides an hour and satisfies the database's "5-120, in
+steps of 5" check, so the picker cannot build a grid the RPC would reject. Both
+break fields blank runs the day straight through.
+
+**Shortening the window on an event that already has bookings is refused**, not
+silently re-gridded: 30 → 20 moves the grid to :00/:20/:40 and a booked 9:30
+would be stranded, so the generator counts them and raises. That message is
+written for the host and passes through to the form intact rather than being
+flattened by `friendlyDbError`.
 
 It is applied to **new** windows only, and `closed` survives regeneration:
 reopen a break window by hand and editing the event title later will not shut it
@@ -169,9 +178,10 @@ would go back a generation.
   not wrong, just no longer derived — nobody is locked out by it.
 - **Multiple teams.** `seats_total` is per-slot in the database and the host
   form hard-codes 1. Two teams is a form change, not a migration.
-- **Slot length is still app-wide.** `SLOT_MINUTES` in
-  `src/lib/events/slots.ts`. The column and the RPC parameter are both per
-  event, so exposing it on the form is a form change, not a migration.
+- **Teams per window is still app-wide.** `TEAMS_PER_SLOT` in
+  `src/lib/events/slots.ts`, fixed at 1. The RPC takes it per call, so putting
+  it on the form is a form change, not a migration — and it is the only lever
+  that raises the seat count without shortening the window.
 - **Changing the break does not reopen the old break windows.** `closed`
   survives regeneration on purpose, so a moved break needs the old windows
   reopened by hand on the schedule page.
