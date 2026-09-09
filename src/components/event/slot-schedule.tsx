@@ -68,13 +68,15 @@ export function SlotSchedule({
 
   const groups = groupSlotsByHour(slots, timezone);
   const open = slots.filter((s) => !s.closed);
-  const booked = open.filter((s) => s.seatsTaken > 0);
+  // Seats, not windows: with two teams a window holds two guests, and "3 booked"
+  // meaning three windows would understate the room.
+  const seatsBooked = open.reduce((sum, s) => sum + s.seatsTaken, 0);
   const seatsFree = open.reduce((sum, s) => sum + Math.max(s.seatsTotal - s.seatsTaken, 0), 0);
 
   return (
     <div className="grid gap-4">
       <Card className="grid grid-cols-3 gap-3 p-4 text-center">
-        <Summary label="Booked" value={`${booked.length}`} />
+        <Summary label="Booked" value={`${seatsBooked}`} />
         <Summary label="Seats free" value={`${seatsFree}`} />
         <Summary label="Closed" value={`${slots.length - open.length}`} />
       </Card>
@@ -133,7 +135,9 @@ export function SlotSchedule({
                         Closed
                       </p>
                     ) : s.guests.length === 0 ? (
-                      <p className="text-sm font-semibold text-muted-foreground">Open</p>
+                      <p className="text-sm font-semibold text-muted-foreground">
+                        Open{s.seatsTotal > 1 ? ` · ${s.seatsTotal} seats` : ""}
+                      </p>
                     ) : (
                       <ul className="grid gap-1">
                         {s.guests.map((guest) => (

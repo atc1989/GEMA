@@ -225,6 +225,21 @@ export const eventFormSchema = z
         (v) => v === undefined || (Number.isInteger(v) && v >= 5 && v <= 120 && v % 5 === 0),
         { message: "Pick a window length between 5 and 120 minutes." },
       ),
+    /**
+     * Doctor+nurse teams working one window, one guest each. The only lever
+     * that raises the seat count without shortening the window.
+     */
+    teamsPerSlot: z
+      .union([z.string(), z.number()])
+      .optional()
+      .transform((v) => {
+        if (v === undefined || v === "") return undefined;
+        const n = typeof v === "number" ? v : Number(v);
+        return Number.isFinite(n) ? n : NaN;
+      })
+      .refine((v) => v === undefined || (Number.isInteger(v) && v >= 1 && v <= 20), {
+        message: "Between 1 and 20 teams.",
+      }),
     breakStart: clockTime,
     breakEnd: clockTime,
     description: optionalText,

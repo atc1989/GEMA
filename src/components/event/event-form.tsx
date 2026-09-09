@@ -23,6 +23,8 @@ import {
   DEFAULT_BREAK_START,
   SLOT_MINUTE_CHOICES,
   SLOT_MINUTES,
+  TEAM_CHOICES,
+  TEAMS_PER_SLOT,
 } from "@/lib/events/slots";
 import { uploadEventPhoto } from "@/lib/storage/event-photos";
 import { Button } from "@/components/ui/button";
@@ -93,6 +95,7 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
       mode: "in_person",
       timezone: "Asia/Manila",
       slotMinutes: SLOT_MINUTES,
+      teamsPerSlot: TEAMS_PER_SLOT,
       breakStart: DEFAULT_BREAK_START,
       breakEnd: DEFAULT_BREAK_END,
       ...defaultValues,
@@ -105,6 +108,7 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
   // being the host's to set the moment it goes on.
   const scheduled = watch("schedulingEnabled") === true;
   const slotLength = Number(watch("slotMinutes")) || SLOT_MINUTES;
+  const teams = Number(watch("teamsPerSlot")) || TEAMS_PER_SLOT;
   const showVenue = selectedMode !== "online";
   const showOnline = selectedMode !== "in_person";
   const titleWatch = useWatch({ control, name: "title" });
@@ -367,6 +371,20 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
                 </Select>
               </Field>
               <Field
+                label="Teams per window"
+                htmlFor="teamsPerSlot"
+                error={errors.teamsPerSlot?.message}
+                hint="A doctor and nurse working together. Two teams sees two guests at once."
+              >
+                <Select id="teamsPerSlot" {...register("teamsPerSlot")}>
+                  {TEAM_CHOICES.map((n) => (
+                    <option key={n} value={n}>
+                      {n} {n === 1 ? "team" : "teams"}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field
                 label="Break starts"
                 htmlFor="breakStart"
                 error={errors.breakStart?.message}
@@ -390,7 +408,7 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
             error={errors.capacity?.message}
             hint={
               scheduled
-                ? `Set by the arrival-time schedule — one seat per ${slotLength}-minute window.`
+                ? `Set by the arrival-time schedule — ${teams} per ${slotLength}-minute window.`
                 : "Leave blank for unlimited."
             }
           >

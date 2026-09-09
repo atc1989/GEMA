@@ -22,8 +22,14 @@ import { APP_TIMEZONE, formatLandingTime } from "@/lib/utils/format";
  */
 export const SLOT_MINUTES = 30;
 
-/** Teams working one window. Still app-wide; the database takes it per call. */
+/**
+ * Teams working one window, one guest each. The default for a new event; the
+ * real value lives on the event (`events.teams_per_slot`).
+ */
 export const TEAMS_PER_SLOT = 1;
+
+/** What the form offers. The database allows 1-20. */
+export const TEAM_CHOICES = [1, 2, 3, 4, 5, 6] as const;
 
 /**
  * What the form offers. Every value divides an hour and satisfies the database's

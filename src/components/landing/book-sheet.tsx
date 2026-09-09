@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 
 import { loadEventScheduling } from "@/lib/actions/event-slots";
+import { rememberBookedPass } from "@/lib/events/booked-pass";
 import {
   registerProspectForEvent,
   type FieldErrors,
@@ -248,6 +249,15 @@ export function BookSheet({
       return;
     }
     setSuccess(result.data);
+    // So the landing can point them back at their QR tomorrow. The token is
+    // deliberately not stored — /passes re-issues it after checking name plus
+    // contact.
+    rememberBookedPass(eventId, {
+      passCode: result.data.passCode,
+      name: result.data.attendeeName,
+      contact: email,
+      bookedAt: new Date().toISOString(),
+    });
     onRegistered?.(result.data);
     // Seats-left counters are server-rendered; pull the new count.
     router.refresh();
@@ -369,6 +379,11 @@ export function BookSheet({
                             }}
                           >
                             {formatSlotChip(slot, scheduling?.timezone)}
+                            {slot.seatsTotal > 1 ? (
+                              <em className="bs-slot-left">
+                                {slot.seatsTotal - slot.seatsTaken} left
+                              </em>
+                            ) : null}
                           </button>
                         ))}
                       </div>

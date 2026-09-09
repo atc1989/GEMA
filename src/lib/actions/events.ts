@@ -109,12 +109,13 @@ async function syncEventSlots(
   breakStart?: string,
   breakEnd?: string,
   slotMinutes?: number,
+  teamsPerSlot?: number,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (enabled) {
     const { error } = await supabase.rpc("generate_event_slots", {
       p_event_id: eventId,
       p_slot_minutes: slotMinutes ?? SLOT_MINUTES,
-      p_seats_per_slot: TEAMS_PER_SLOT,
+      p_seats_per_slot: teamsPerSlot ?? TEAMS_PER_SLOT,
       // Both null runs the day straight through. The schema already refuses a
       // half-set pair, and the RPC refuses it again.
       p_break_start: breakStart ?? null,
@@ -194,6 +195,7 @@ export async function createEvent(
     parsed.data.breakStart,
     parsed.data.breakEnd,
     parsed.data.slotMinutes,
+    parsed.data.teamsPerSlot,
   );
   if (!slotSync.ok) {
     return { ok: false, error: `Event saved, but ${slotSync.error}` };
@@ -296,6 +298,7 @@ export async function updateEvent(
     parsed.data.breakStart,
     parsed.data.breakEnd,
     parsed.data.slotMinutes,
+    parsed.data.teamsPerSlot,
   );
   if (!slotSync.ok) {
     return { ok: false, error: `Event saved, but ${slotSync.error}` };

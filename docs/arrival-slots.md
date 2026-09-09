@@ -15,7 +15,7 @@ owner wants it tracked there, this file is the Change note ready to move.
 | Slot length | per event, 30 minutes by default. 10/15/20/30/45/60 on the form |
 | Working day | whatever the event's own start/end says. 9–5 gives 9–5 |
 | Break | per event, 12:00–13:00 by default, blank for none |
-| Capacity per slot | 1 doctor+nurse team = 1 guest |
+| Teams per window | per event, 1 by default, 1-6 on the form. One guest each |
 | Clinician choice | none — guests pick a time, the team is assigned at the door |
 | Walk-ins | none. The grid is the capacity |
 | Copy | arrival window, never "appointment" |
@@ -25,8 +25,9 @@ owner wants it tracked there, this file is the Change note ready to move.
 The grid comes from `events.starts_at` / `ends_at` — nothing hard-codes a
 working day. **A 9–5 event with the default hour's break is 14 seats**: 6 in the
 morning, 8 in the afternoon, 2 windows shut for lunch. With no walk-ins that is
-the whole day, and 30 minutes a head is what makes it small. Widening it is a
-matter of more teams per window (`TEAMS_PER_SLOT`), not more hours.
+the whole day at one team. Two teams is 28, three is 42 — teams per window is
+the only lever that raises the seat count without shortening the window, and it
+is on the event form.
 
 Window length and the break both live on the event (`slot_minutes`,
 `break_start` / `break_end`, the last two wall-clock in the event's own
@@ -62,13 +63,14 @@ event start.
 gema.events
   scheduling_enabled  bool, default false
   slot_minutes        int, null unless scheduled
+  teams_per_slot      int, 1-20, null unless scheduled
   break_start         time, null for a day with no break
   break_end           time, both-or-neither, end after start
   capacity            DERIVED when scheduled — sum(seats_total) of OPEN slots
 
 gema.event_slots
   event_id, starts_at, ends_at
-  seats_total   teams working that window (1 in v1)
+  seats_total   teams working that window, one guest each
   seats_taken
   closed        lunch, a break
   unique (event_id, starts_at)
@@ -114,6 +116,8 @@ double-count.
 | `src/components/attendance/attendance-table.tsx` | the window at the door |
 | `src/app/(admin)/admin/events/[id]/schedule/page.tsx` | the clinic day, window by window |
 | `src/components/event/slot-schedule.tsx` | the grid, with the open/close toggle |
+| `src/components/landing/pass-recall.tsx` | the way back to a booked pass |
+| `src/lib/events/booked-pass.ts` | the local breadcrumb, no QR token in it |
 
 ### The admin schedule
 
@@ -130,6 +134,21 @@ for the picker and useless for running a door.
 "Now" is marked live and ticks every thirty seconds, computed after mount only —
 a server-rendered clock and a client-rendered one a second later are a hydration
 mismatch.
+
+### Getting back to a pass
+
+`/passes` could always find a pass from a name plus the email or mobile used to
+book, but nothing on the landing said so — the QR lived inside the booking
+sheet, and dismissing it was the end of it.
+
+`PassRecall` sits on both check-up templates. On a device that booked, it names
+the pass code and deep-links the lookup with the details filled in; otherwise it
+is a plain "find my pass" link, which still works from any device.
+
+What it stores is the pass code, name and contact — **never the QR token**. That
+token is what gets someone through the door; `/passes` re-issues it server-side
+after checking name plus contact, which is the same gate that stops an email
+alone from leaking somebody else's pass.
 
 ### Staleness
 
@@ -178,10 +197,6 @@ would go back a generation.
   not wrong, just no longer derived — nobody is locked out by it.
 - **Multiple teams.** `seats_total` is per-slot in the database and the host
   form hard-codes 1. Two teams is a form change, not a migration.
-- **Teams per window is still app-wide.** `TEAMS_PER_SLOT` in
-  `src/lib/events/slots.ts`, fixed at 1. The RPC takes it per call, so putting
-  it on the form is a form change, not a migration — and it is the only lever
-  that raises the seat count without shortening the window.
 - **Changing the break does not reopen the old break windows.** `closed`
   survives regeneration on purpose, so a moved break needs the old windows
   reopened by hand on the schedule page.

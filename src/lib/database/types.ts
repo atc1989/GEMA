@@ -141,6 +141,7 @@ export interface Event {
   /** Arrival-window scheduling. False on every event that never turned it on. */
   schedulingEnabled: boolean;
   slotMinutes: number | null;
+  teamsPerSlot: number | null;
   /** Mid-day break, wall-clock in the event's timezone. Null means none. */
   breakStart: string | null;
   breakEnd: string | null;

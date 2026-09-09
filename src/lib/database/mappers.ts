@@ -27,6 +27,7 @@ export type EventRow = {
    */
   scheduling_enabled?: boolean | null;
   slot_minutes?: number | null;
+  teams_per_slot?: number | null;
   /** Wall-clock "HH:MM:SS" in the event's timezone, or null for no break. */
   break_start?: string | null;
   break_end?: string | null;
@@ -61,6 +62,7 @@ export function mapEventRow(row: EventRow): Event {
     capacity: row.capacity,
     schedulingEnabled: row.scheduling_enabled === true,
     slotMinutes: row.slot_minutes ?? null,
+    teamsPerSlot: row.teams_per_slot ?? null,
     breakStart: row.break_start ?? null,
     breakEnd: row.break_end ?? null,
     description: row.description,

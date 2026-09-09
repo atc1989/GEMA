@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { BookSheet } from "@/components/landing/book-sheet";
 import { PassQr, usePassQr } from "@/components/landing/pass-qr";
+import { PassRecall } from "@/components/landing/pass-recall";
 import { MediaCarousel } from "@/components/landing/media-carousel";
 import { TopBar } from "@/components/landing/top-bar";
 import {
@@ -381,6 +382,8 @@ export function GinhawaLanding({
             </div>
           </div>
         </section>
+
+        <PassRecall eventId={landing.sourceEventId} />
 
         <section className="logistics">
           <h3 className="sec"><span className="sec-num">03</span> Before you come</h3>

@@ -329,3 +329,13 @@
   font-weight: 700;
   color: var(--bs-navy);
 }
+
+/* Seats left, shown only when a window holds more than one team. */
+.bs-sheet .bs-slot-left {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--bs-mute);
+}

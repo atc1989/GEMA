@@ -18,8 +18,8 @@
 --   * A slot IS the arrival window. "Arrive 9:00-9:30", not "appointment 9:00".
 --   * Slot length and the mid-day break are per event. The app ships 30 minutes
 --     and a 12:00-13:00 break as the defaults it sends.
---   * seats_total is the number of doctor+nurse teams working that window.
---     v1 ships one team, so seats_total = 1 and a slot holds one guest.
+--   * seats_total is the number of doctor+nurse teams working that window, one
+--     guest each. Per event, on the form, default 1.
 --   * No walk-ins: when scheduling is on, events.capacity is DERIVED from the
 --     grid, never typed by the host.
 --   * No no-show release in v1. A booked slot stays spent.
@@ -30,6 +30,8 @@
 alter table gema.events
   add column if not exists scheduling_enabled boolean not null default false,
   add column if not exists slot_minutes integer,
+  -- Doctor+nurse teams working one window. One guest per team.
+  add column if not exists teams_per_slot integer,
   -- The mid-day break, wall-clock in the event's own timezone. Both null means
   -- the day runs straight through.
   add column if not exists break_start time,
@@ -42,6 +44,11 @@ alter table gema.events
     (break_start is null and break_end is null)
     or (break_start is not null and break_end is not null and break_end > break_start)
   );
+
+alter table gema.events drop constraint if exists events_teams_per_slot_check;
+alter table gema.events
+  add constraint events_teams_per_slot_check
+  check (teams_per_slot is null or teams_per_slot between 1 and 20);
 
 alter table gema.events drop constraint if exists events_slot_minutes_check;
 alter table gema.events
@@ -156,8 +163,8 @@ begin
       using errcode = 'check_violation';
   end if;
 
-  if p_seats_per_slot is null or p_seats_per_slot < 1 then
-    raise exception 'A slot needs at least one team' using errcode = 'check_violation';
+  if p_seats_per_slot is null or p_seats_per_slot < 1 or p_seats_per_slot > 20 then
+    raise exception 'A window needs between 1 and 20 teams' using errcode = 'check_violation';
   end if;
 
   if (p_break_start is null) <> (p_break_end is null) then
@@ -249,6 +256,7 @@ begin
   update gema.events
   set scheduling_enabled = true,
       slot_minutes = p_slot_minutes,
+      teams_per_slot = p_seats_per_slot,
       break_start = p_break_start,
       break_end = p_break_end,
       capacity = v_seats

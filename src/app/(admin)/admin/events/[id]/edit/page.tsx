@@ -59,6 +59,7 @@ export default async function EditEventPage({
     ...(data.scheduling_enabled === true
       ? {
           slotMinutes: data.slot_minutes ?? undefined,
+          teamsPerSlot: data.teams_per_slot ?? undefined,
           breakStart: toTimeInputValue(data.break_start),
           breakEnd: toTimeInputValue(data.break_end),
         }

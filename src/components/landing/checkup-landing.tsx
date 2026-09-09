@@ -4,6 +4,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 
 import { BookSheet } from "@/components/landing/book-sheet";
 import { PassQr, usePassQr } from "@/components/landing/pass-qr";
+import { PassRecall } from "@/components/landing/pass-recall";
 import { Confetti } from "@/components/landing/confetti";
 import { MediaCarousel } from "@/components/landing/media-carousel";
 import {
@@ -366,6 +367,7 @@ export function CheckupLanding({
               </a>
             )}
             <p className="ck-fine">Free. No payment at any point.</p>
+            <PassRecall eventId={landing.sourceEventId} />
             <p className="ck-fine">
               We will text you the details. Nobody will ring you to sell you anything.
             </p>
