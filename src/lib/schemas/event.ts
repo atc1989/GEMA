@@ -32,6 +32,25 @@ export type EventVisibility = z.infer<typeof eventVisibilitySchema>;
 export type EventMode = z.infer<typeof eventModeSchema>;
 
 // Optional text field that normalizes "" -> undefined so empty inputs become NULL.
+/**
+ * A wall-clock "HH:MM" from <input type="time">. Untouched inputs arrive as "",
+ * and a value read back from Postgres `time` arrives as "12:00:00", so both are
+ * normalised here rather than at every call site.
+ */
+const clockTime = z
+  .string()
+  .trim()
+  .nullish()
+  .transform((v) => {
+    if (!v) return undefined;
+    const match = /^(\d{1,2}):(\d{2})/.exec(v);
+    if (!match) return v;
+    return `${match[1].padStart(2, "0")}:${match[2]}`;
+  })
+  .refine((v) => v === undefined || /^([01]\d|2[0-3]):[0-5]\d$/.test(v), {
+    message: "Enter a time like 12:00.",
+  });
+
 const optionalText = z
   .string()
   .trim()
@@ -177,7 +196,7 @@ export const eventFormSchema = z
         message: "Capacity must be a positive whole number.",
       }),
     /**
-     * Ten-minute arrival windows, one team at a time. On means no walk-ins:
+     * Arrival windows, one team at a time. On means no walk-ins:
      * the grid becomes the event's capacity, so the Capacity field is derived
      * and stops being the host's to set.
      */
@@ -185,6 +204,13 @@ export const eventFormSchema = z
       .union([z.boolean(), z.string()])
       .optional()
       .transform((v) => v === true || v === "true" || v === "on"),
+    /**
+     * Mid-day break, wall-clock in the event's timezone ("12:00"). Both blank
+     * runs the day straight through; a <input type="time"> that was never
+     * touched arrives as "", which is why this is not a bare optional.
+     */
+    breakStart: clockTime,
+    breakEnd: clockTime,
     description: optionalText,
     bannerUrl: optionalLenientUrl,
     speakerName: optionalText,
@@ -206,6 +232,17 @@ export const eventFormSchema = z
     message: "Arrival times need an end time — that is what the windows step to.",
     path: ["endsAt"],
   })
+  .refine((data) => (data.breakStart === undefined) === (data.breakEnd === undefined), {
+    message: "A break needs both a start and an end. Clear both for no break.",
+    path: ["breakEnd"],
+  })
+  .refine(
+    (data) =>
+      data.breakStart === undefined ||
+      data.breakEnd === undefined ||
+      data.breakEnd > data.breakStart,
+    { message: "The break must end after it starts.", path: ["breakEnd"] },
+  )
   .refine((data) => data.mode === "online" || Boolean(data.venueName), {
     message: "Venue name is required for in-person and hybrid events.",
     path: ["venueName"],

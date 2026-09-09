@@ -1,4 +1,4 @@
--- Ten-minute arrival slots for medical / check-up landings.
+-- Arrival slots for medical / check-up landings.
 --
 -- Apply to STAGING (fxdsnacuonfvutdquogb, schema gema) first.
 -- Re-runnable later on Lifestyle (rvwseybgimmewuoccecu): the same file is the
@@ -15,7 +15,9 @@
 -- window short.
 --
 -- Model:
---   * A slot IS the arrival window. "Arrive 9:00-9:10", not "appointment 9:00".
+--   * A slot IS the arrival window. "Arrive 9:00-9:30", not "appointment 9:00".
+--   * Slot length and the mid-day break are per event. The app ships 30 minutes
+--     and a 12:00-13:00 break as the defaults it sends.
 --   * seats_total is the number of doctor+nurse teams working that window.
 --     v1 ships one team, so seats_total = 1 and a slot holds one guest.
 --   * No walk-ins: when scheduling is on, events.capacity is DERIVED from the
@@ -27,7 +29,19 @@
 -- ---------------------------------------------------------------------------
 alter table gema.events
   add column if not exists scheduling_enabled boolean not null default false,
-  add column if not exists slot_minutes integer;
+  add column if not exists slot_minutes integer,
+  -- The mid-day break, wall-clock in the event's own timezone. Both null means
+  -- the day runs straight through.
+  add column if not exists break_start time,
+  add column if not exists break_end time;
+
+alter table gema.events drop constraint if exists events_break_window;
+alter table gema.events
+  add constraint events_break_window
+  check (
+    (break_start is null and break_end is null)
+    or (break_start is not null and break_end is not null and break_end > break_start)
+  );
 
 alter table gema.events drop constraint if exists events_slot_minutes_check;
 alter table gema.events
@@ -108,16 +122,17 @@ with check (gema.can_manage_event(event_slots.event_id));
 --   * `closed` survives regeneration. Only slots that fall outside the new grid
 --     are dropped, so a window the admin shut for a staff meeting does not
 --     silently reopen the next time the host edits the event title.
---   * The lunch break is applied to NEW slots only, for the same reason: an
---     admin who deliberately reopened 12:20 keeps it open.
+--   * The break is applied to NEW slots only, for the same reason: an admin who
+--     deliberately reopened a break window keeps it open.
 -- ---------------------------------------------------------------------------
 create or replace function gema.generate_event_slots(
   p_event_id uuid,
-  p_slot_minutes integer default 10,
+  p_slot_minutes integer default 30,
   p_seats_per_slot integer default 1,
-  -- Wall-clock in the event's own timezone. Nobody works 9 to 5 straight.
-  p_break_start time default '12:00',
-  p_break_end time default '13:00'
+  -- Wall-clock in the event's own timezone, per event. Null/null runs the day
+  -- straight through.
+  p_break_start time default null,
+  p_break_end time default null
 )
 returns jsonb
 language plpgsql
@@ -143,6 +158,14 @@ begin
 
   if p_seats_per_slot is null or p_seats_per_slot < 1 then
     raise exception 'A slot needs at least one team' using errcode = 'check_violation';
+  end if;
+
+  if (p_break_start is null) <> (p_break_end is null) then
+    raise exception 'A break needs both a start and an end' using errcode = 'check_violation';
+  end if;
+
+  if p_break_start is not null and p_break_end <= p_break_start then
+    raise exception 'The break must end after it starts' using errcode = 'check_violation';
   end if;
 
   select * into v_event from gema.events where id = p_event_id;
@@ -226,6 +249,8 @@ begin
   update gema.events
   set scheduling_enabled = true,
       slot_minutes = p_slot_minutes,
+      break_start = p_break_start,
+      break_end = p_break_end,
       capacity = v_seats
   where id = p_event_id;
 

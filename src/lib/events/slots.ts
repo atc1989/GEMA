@@ -1,9 +1,9 @@
 /**
  * Arrival slots for scheduled events (medical / check-up landings).
  *
- * A slot IS the arrival window — "arrive 9:00–9:10", not "appointment at 9:00".
+ * A slot IS the arrival window — "arrive 9:00–9:30", not "appointment at 9:00".
  * The guest is seen in queue order once they are in the room, which is what
- * survives a clinic running ten minutes behind by mid-morning.
+ * survives a clinic running behind by mid-morning.
  *
  * `seatsTotal` is the number of doctor+nurse teams working that window. v1
  * ships one team, so a slot holds one guest, but nothing here assumes that.
@@ -12,19 +12,40 @@
 import { APP_TIMEZONE, formatLandingTime } from "@/lib/utils/format";
 
 /**
- * v1 is fixed: ten minutes per window, one doctor+nurse team. The database
- * takes both as parameters, so widening this is a form change, not a migration.
+ * Thirty minutes per window, one doctor+nurse team. Both are parameters on the
+ * database side, so widening either is a form change, not a migration.
+ *
+ * The arithmetic is worth knowing: a 9-5 day with an hour's break is seven
+ * working hours, so 14 windows and — at one team — 14 seats. There are no
+ * walk-ins, so that is the whole day.
  */
-export const SLOT_MINUTES = 10;
+export const SLOT_MINUTES = 30;
 export const TEAMS_PER_SLOT = 1;
 
 /**
- * Lunch. Windows inside it are created closed, so a 9-5 clinic is 9-12 and 1-5.
- * Wall-clock in the event's own timezone, not UTC. An admin can reopen any of
- * them on the schedule page and regeneration will not shut them again.
+ * What the form offers for a new event. The break itself is stored per event
+ * (`events.break_start` / `break_end`); these are only the defaults, and an
+ * event with no break at all is valid — both fields blank.
  */
-export const BREAK_START = "12:00";
-export const BREAK_END = "13:00";
+export const DEFAULT_BREAK_START = "12:00";
+export const DEFAULT_BREAK_END = "13:00";
+
+/** "12:00:00" from Postgres `time`, "12:00" for <input type="time">. */
+export function toTimeInputValue(value: string | null | undefined): string {
+  if (!value) return "";
+  const match = /^(\d{2}):(\d{2})/.exec(value.trim());
+  return match ? `${match[1]}:${match[2]}` : "";
+}
+
+/** "9:00 AM" from a "HH:MM" wall-clock string, for hints and summaries. */
+export function formatClockLabel(value: string | null | undefined): string {
+  const hhmm = toTimeInputValue(value);
+  if (!hhmm) return "";
+  const [h, m] = hhmm.split(":").map(Number);
+  const meridiem = h < 12 ? "AM" : "PM";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${meridiem}`;
+}
 
 export type EventSlot = {
   id: string;
@@ -83,7 +104,7 @@ export function parseEventScheduling(raw: unknown): EventScheduling | null {
   return {
     eventId,
     timezone: str(row.timezone) || APP_TIMEZONE,
-    slotMinutes: int(row.slot_minutes, 10),
+    slotMinutes: int(row.slot_minutes, SLOT_MINUTES),
     slots,
   };
 }
@@ -143,8 +164,8 @@ export function findSlot(scheduling: EventScheduling, slotId: string | null): Ev
 }
 
 /**
- * "9:00–9:10 AM" — one meridiem when both ends share it, two when they don't
- * ("11:50 AM–12:00 PM").
+ * "9:00–9:30 AM" — one meridiem when both ends share it, two when they don't
+ * ("11:30 AM–12:00 PM").
  */
 export function formatWindowRange(
   startsAt: string,
@@ -165,7 +186,7 @@ export function formatArrivalWindow(slot: EventSlot, timezone?: string): string 
   return formatWindowRange(slot.startsAt, slot.endsAt, timezone);
 }
 
-/** Short label for a slot chip: "9:00–9:10". */
+/** Short label for a slot chip: "9:00–9:30". */
 export function formatSlotChip(slot: EventSlot, timezone?: string): string {
   const tz = timezone || APP_TIMEZONE;
   const from = formatLandingTime(slot.startsAt, tz);
@@ -180,8 +201,8 @@ export type SlotGroup<T extends EventSlot = EventSlot> = {
 };
 
 /**
- * Slots grouped by the hour they start in, so a four-hour clinic reads as four
- * short rows instead of twenty-four loose chips.
+ * Slots grouped by the hour they start in, so a whole clinic day reads as a
+ * handful of short rows instead of one long run of chips.
  *
  * Generic so the admin schedule can group its own richer rows (each carrying
  * the guests booked into it) without casting them back down.

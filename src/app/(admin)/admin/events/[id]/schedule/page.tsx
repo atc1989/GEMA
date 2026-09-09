@@ -13,6 +13,7 @@ import {
 } from "@/components/event/slot-schedule";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { formatClockLabel, SLOT_MINUTES } from "@/lib/events/slots";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -53,10 +54,19 @@ export default async function EventSchedulePage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, title, status, mode, starts_at, timezone, venue_name, venue_address, map_url, online_url, scheduling_enabled",
+      "id, title, status, mode, starts_at, timezone, venue_name, venue_address, map_url, online_url, scheduling_enabled, slot_minutes, break_start, break_end",
     )
     .eq("id", id)
-    .maybeSingle<EventWhenWhereRow & { title: string; status: string; scheduling_enabled: boolean | null }>();
+    .maybeSingle<
+      EventWhenWhereRow & {
+        title: string;
+        status: string;
+        scheduling_enabled: boolean | null;
+        slot_minutes: number | null;
+        break_start: string | null;
+        break_end: string | null;
+      }
+    >();
   if (!event) notFound();
 
   const [{ data: slotRows }, { data: bookings }, { data: atts }] = await Promise.all([
@@ -130,7 +140,10 @@ export default async function EventSchedulePage({
       <div>
         <h2 className="text-lg font-black tracking-tight">{event.title}</h2>
         <p className="mt-1 text-sm font-semibold text-muted-foreground">
-          Arrival schedule · ten-minute windows
+          Arrival schedule · {event.slot_minutes ?? SLOT_MINUTES}-minute windows
+          {event.break_start && event.break_end
+            ? ` · break ${formatClockLabel(event.break_start)}–${formatClockLabel(event.break_end)}`
+            : " · no break"}
         </p>
         <EventWhenWhere event={event} />
       </div>

@@ -138,9 +138,12 @@ export interface Event {
   mapUrl: string | null;
   onlineUrl: string | null;
   capacity: number | null;
-  /** Ten-minute arrival windows. False on every event that never turned them on. */
+  /** Arrival-window scheduling. False on every event that never turned it on. */
   schedulingEnabled: boolean;
   slotMinutes: number | null;
+  /** Mid-day break, wall-clock in the event's timezone. Null means none. */
+  breakStart: string | null;
+  breakEnd: string | null;
   description: string | null;
   bannerUrl: string | null;
   cancelledAt: string | null;

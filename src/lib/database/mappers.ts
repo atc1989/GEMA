@@ -22,11 +22,14 @@ export type EventRow = {
   online_url: string | null;
   capacity: number | null;
   /**
-   * Ten-minute arrival windows. Optional on the type: rows read before the
+   * Arrival-window scheduling. Optional on the type: rows read before the
    * event_slot_scheduling migration lands do not carry it.
    */
   scheduling_enabled?: boolean | null;
   slot_minutes?: number | null;
+  /** Wall-clock "HH:MM:SS" in the event's timezone, or null for no break. */
+  break_start?: string | null;
+  break_end?: string | null;
   description: string | null;
   banner_url: string | null;
   cancelled_at: string | null;
@@ -58,6 +61,8 @@ export function mapEventRow(row: EventRow): Event {
     capacity: row.capacity,
     schedulingEnabled: row.scheduling_enabled === true,
     slotMinutes: row.slot_minutes ?? null,
+    breakStart: row.break_start ?? null,
+    breakEnd: row.break_end ?? null,
     description: row.description,
     bannerUrl: row.banner_url,
     cancelledAt: row.cancelled_at,

@@ -18,6 +18,7 @@ import {
   eventFormSchema,
   type EventFormInput,
 } from "@/lib/schemas/event";
+import { DEFAULT_BREAK_END, DEFAULT_BREAK_START, SLOT_MINUTES } from "@/lib/events/slots";
 import { uploadEventPhoto } from "@/lib/storage/event-photos";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -86,6 +87,8 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
       visibility: "public",
       mode: "in_person",
       timezone: "Asia/Manila",
+      breakStart: DEFAULT_BREAK_START,
+      breakEnd: DEFAULT_BREAK_END,
       ...defaultValues,
       landing: defaultEventLandingFields(defaultValues?.landing),
     },
@@ -331,7 +334,7 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
             label="Arrival times"
             htmlFor="schedulingEnabled"
             error={errors.schedulingEnabled?.message}
-            hint="Ten-minute windows, one doctor and nurse at a time. Needs an end time. Guests pick a window when they book, capacity comes from the schedule, and there are no walk-ins."
+            hint={`${SLOT_MINUTES}-minute windows, one doctor and nurse at a time. Needs an end time. Guests pick a window when they book, capacity comes from the schedule, and there are no walk-ins.`}
           >
             <label className="flex items-start gap-3" htmlFor="schedulingEnabled">
               <Checkbox id="schedulingEnabled" {...register("schedulingEnabled")} />
@@ -340,13 +343,33 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
               </span>
             </label>
           </Field>
+          {scheduled ? (
+            <div className="grid gap-4 min-[520px]:grid-cols-2">
+              <Field
+                label="Break starts"
+                htmlFor="breakStart"
+                error={errors.breakStart?.message}
+                hint="Windows inside the break are created closed."
+              >
+                <Input id="breakStart" type="time" step={300} {...register("breakStart")} />
+              </Field>
+              <Field
+                label="Break ends"
+                htmlFor="breakEnd"
+                error={errors.breakEnd?.message}
+                hint="Clear both to run the day straight through."
+              >
+                <Input id="breakEnd" type="time" step={300} {...register("breakEnd")} />
+              </Field>
+            </div>
+          ) : null}
           <Field
             label="Capacity"
             htmlFor="capacity"
             error={errors.capacity?.message}
             hint={
               scheduled
-                ? "Set by the arrival-time schedule — one seat per ten-minute window."
+                ? `Set by the arrival-time schedule — one seat per ${SLOT_MINUTES}-minute window.`
                 : "Leave blank for unlimited."
             }
           >

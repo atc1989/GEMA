@@ -22,7 +22,7 @@ export type ScheduleSlot = EventSlot & {
 };
 
 /**
- * The clinic day, one row per ten-minute window.
+ * The clinic day, one row per arrival window.
  *
  * Two jobs, and they want different things: setting up before the event (close
  * the windows nobody is working) and running the door on the day (who is due
@@ -47,8 +47,8 @@ export function SlotSchedule({
   const [, startTransition] = useTransition();
   const [now, setNow] = useState<number | null>(null);
 
-  // Post-mount only, then every half-minute — a ten-minute window does not need
-  // a second hand.
+  // Post-mount only, then every half-minute — an arrival window does not need a
+  // second hand.
   useEffect(() => {
     setNow(Date.now());
     const tick = setInterval(() => setNow(Date.now()), 30_000);

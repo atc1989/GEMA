@@ -1,7 +1,7 @@
 # Arrival slots — medical and check-up landings
 
-Ten-minute arrival windows on the two check-up templates. Guests pick a window
-before they give their name; the window is the whole capacity.
+Arrival windows on the two check-up templates. Guests pick a window before they
+give their name; the window is the whole capacity.
 
 Not on the One Account board. That board is the identity spine and its
 **Current change** is *none*; this is event and booking work, so it is kept here
@@ -12,9 +12,9 @@ owner wants it tracked there, this file is the Change note ready to move.
 
 | | |
 |---|---|
-| Slot length | 10 minutes, fixed |
+| Slot length | 30 minutes, fixed in the app (`SLOT_MINUTES`) |
 | Working day | whatever the event's own start/end says. 9–5 gives 9–5 |
-| Lunch | 12:00–13:00, created closed. So a 9–5 clinic is 9–12 and 1–5 |
+| Break | per event, 12:00–13:00 by default, blank for none |
 | Capacity per slot | 1 doctor+nurse team = 1 guest |
 | Clinician choice | none — guests pick a time, the team is assigned at the door |
 | Walk-ins | none. The grid is the capacity |
@@ -23,20 +23,26 @@ owner wants it tracked there, this file is the Change note ready to move.
 | Templates | medical and check-up only. Sizzle and Session book as before |
 
 The grid comes from `events.starts_at` / `ends_at` — nothing hard-codes a
-working day. A 9–5 event with the default break is 42 bookable windows: 18 in
-the morning, 24 in the afternoon, 6 shut for lunch. With no walk-ins that is the
-ceiling, and it is a hard one.
+working day. **A 9–5 event with the default hour's break is 14 seats**: 6 in the
+morning, 8 in the afternoon, 2 windows shut for lunch. With no walk-ins that is
+the whole day, and 30 minutes a head is what makes it small. Widening it is a
+matter of more teams per window (`TEAMS_PER_SLOT`), not more hours.
 
-The break is applied to **new** windows only, and `closed` survives
-regeneration. Reopen 12:20 for a day that works through lunch and editing the
-event title later will not shut it again.
+The break lives on the event (`break_start` / `break_end`, wall-clock in the
+event's own timezone) and is set on the event form. Both blank runs the day
+straight through.
+
+It is applied to **new** windows only, and `closed` survives regeneration:
+reopen a break window by hand and editing the event title later will not shut it
+again. Moving the break in the form therefore opens the new windows but leaves
+the old ones closed until someone reopens them on the schedule page — the
+alternative was overruling a deliberate close, which is worse.
 
 ## Why a window and not an appointment
 
-A 10-minute grid at a free community check-up holds for about forty minutes and
-then runs late. "Your slot: 9:20" turns that into a complaint; "arrive
-9:00–9:10, you are seen in the order people arrive" absorbs it. The allocation
-underneath is identical.
+A fixed grid at a free community check-up runs late by mid-morning. "Your slot:
+9:30" turns that into a complaint; "arrive 9:00–9:30, you are seen in the order
+people arrive" absorbs it. The allocation underneath is identical.
 
 So a slot row **is** the arrival window. No offset, no phantom slot before the
 event start.
@@ -47,7 +53,9 @@ event start.
 gema.events
   scheduling_enabled  bool, default false
   slot_minutes        int, null unless scheduled
-  capacity            DERIVED when scheduled — sum(event_slots.seats_total)
+  break_start         time, null for a day with no break
+  break_end           time, both-or-neither, end after start
+  capacity            DERIVED when scheduled — sum(seats_total) of OPEN slots
 
 gema.event_slots
   event_id, starts_at, ends_at
@@ -161,9 +169,11 @@ would go back a generation.
   not wrong, just no longer derived — nobody is locked out by it.
 - **Multiple teams.** `seats_total` is per-slot in the database and the host
   form hard-codes 1. Two teams is a form change, not a migration.
-- **The break is a constant**, not a per-event setting. `BREAK_START` /
-  `BREAK_END` in `src/lib/events/slots.ts`, passed to the RPC, which takes them
-  as parameters. An event that breaks at 11:30 needs the admin to reopen 12:00
-  and close 11:30 by hand.
+- **Slot length is still app-wide.** `SLOT_MINUTES` in
+  `src/lib/events/slots.ts`. The column and the RPC parameter are both per
+  event, so exposing it on the form is a form change, not a migration.
+- **Changing the break does not reopen the old break windows.** `closed`
+  survives regeneration on purpose, so a moved break needs the old windows
+  reopened by hand on the schedule page.
 - **No host-side schedule page.** Admins have one; a non-admin host managing
   their own event does not.

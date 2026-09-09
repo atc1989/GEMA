@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { BREAK_END, BREAK_START, SLOT_MINUTES, TEAMS_PER_SLOT } from "@/lib/events/slots";
+import { SLOT_MINUTES, TEAMS_PER_SLOT } from "@/lib/events/slots";
 import { mapEventRow, toEventRow, type EventRow } from "@/lib/database/mappers";
 import {
   cancelEventSchema,
@@ -86,14 +86,18 @@ async function syncEventSlots(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   eventId: string,
   enabled: boolean,
+  breakStart?: string,
+  breakEnd?: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (enabled) {
     const { error } = await supabase.rpc("generate_event_slots", {
       p_event_id: eventId,
       p_slot_minutes: SLOT_MINUTES,
       p_seats_per_slot: TEAMS_PER_SLOT,
-      p_break_start: BREAK_START,
-      p_break_end: BREAK_END,
+      // Both null runs the day straight through. The schema already refuses a
+      // half-set pair, and the RPC refuses it again.
+      p_break_start: breakStart ?? null,
+      p_break_end: breakEnd ?? null,
     });
     if (error) {
       console.error("generate_event_slots failed:", error.code, error.message);
@@ -161,7 +165,13 @@ export async function createEvent(
     photoUrl: parsed.data.speakerPhotoUrl,
   });
 
-  const slotSync = await syncEventSlots(supabase, data.id, parsed.data.schedulingEnabled);
+  const slotSync = await syncEventSlots(
+    supabase,
+    data.id,
+    parsed.data.schedulingEnabled,
+    parsed.data.breakStart,
+    parsed.data.breakEnd,
+  );
   if (!slotSync.ok) {
     return { ok: false, error: `Event saved, but ${slotSync.error}` };
   }
@@ -256,7 +266,13 @@ export async function updateEvent(
     photoUrl: parsed.data.speakerPhotoUrl,
   });
 
-  const slotSync = await syncEventSlots(supabase, eventId, parsed.data.schedulingEnabled);
+  const slotSync = await syncEventSlots(
+    supabase,
+    eventId,
+    parsed.data.schedulingEnabled,
+    parsed.data.breakStart,
+    parsed.data.breakEnd,
+  );
   if (!slotSync.ok) {
     return { ok: false, error: `Event saved, but ${slotSync.error}` };
   }
