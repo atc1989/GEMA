@@ -18,9 +18,19 @@ import {
   eventFormSchema,
   type EventFormInput,
 } from "@/lib/schemas/event";
+import {
+  DEFAULT_BREAK_END,
+  DEFAULT_BREAK_START,
+  SLOT_MINUTE_CHOICES,
+  SLOT_MINUTES,
+  TEAM_CHOICES,
+  TEAMS_PER_SLOT,
+  WEEKDAYS,
+} from "@/lib/events/slots";
 import { uploadEventPhoto } from "@/lib/storage/event-photos";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -85,12 +95,24 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
       visibility: "public",
       mode: "in_person",
       timezone: "Asia/Manila",
+      slotMinutes: SLOT_MINUTES,
+      teamsPerSlot: TEAMS_PER_SLOT,
+      dayStart: "",
+      dayEnd: "",
+      weekdays: [],
+      breakStart: DEFAULT_BREAK_START,
+      breakEnd: DEFAULT_BREAK_END,
       ...defaultValues,
       landing: defaultEventLandingFields(defaultValues?.landing),
     },
   });
 
   const selectedMode = watch("mode") ?? "in_person";
+  // Scheduling derives capacity from the grid, so the Capacity field stops
+  // being the host's to set the moment it goes on.
+  const scheduled = watch("schedulingEnabled") === true;
+  const slotLength = Number(watch("slotMinutes")) || SLOT_MINUTES;
+  const teams = Number(watch("teamsPerSlot")) || TEAMS_PER_SLOT;
   const showVenue = selectedMode !== "online";
   const showOnline = selectedMode !== "in_person";
   const titleWatch = useWatch({ control, name: "title" });
@@ -324,12 +346,125 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
           </div>
 
           <Field
+            label="Arrival times"
+            htmlFor="schedulingEnabled"
+            error={errors.schedulingEnabled?.message}
+            hint="One doctor and nurse at a time. Needs an end time. Guests pick a window when they book, capacity comes from the schedule, and there are no walk-ins."
+          >
+            <label className="flex items-start gap-3" htmlFor="schedulingEnabled">
+              <Checkbox id="schedulingEnabled" {...register("schedulingEnabled")} />
+              <span className="text-sm font-semibold leading-5">
+                Book by arrival time
+              </span>
+            </label>
+          </Field>
+          {scheduled ? (
+            <div className="grid gap-4 min-[520px]:grid-cols-2">
+              <Field
+                label="Window length"
+                htmlFor="slotMinutes"
+                error={errors.slotMinutes?.message}
+                hint="How long one guest takes, start to finish."
+              >
+                <Select id="slotMinutes" {...register("slotMinutes")}>
+                  {SLOT_MINUTE_CHOICES.map((minutes) => (
+                    <option key={minutes} value={minutes}>
+                      {minutes} minutes
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field
+                label="Teams per window"
+                htmlFor="teamsPerSlot"
+                error={errors.teamsPerSlot?.message}
+                hint="A doctor and nurse working together. Two teams sees two guests at once."
+              >
+                <Select id="teamsPerSlot" {...register("teamsPerSlot")}>
+                  {TEAM_CHOICES.map((n) => (
+                    <option key={n} value={n}>
+                      {n} {n === 1 ? "team" : "teams"}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field
+                label="Break starts"
+                htmlFor="breakStart"
+                error={errors.breakStart?.message}
+                hint="Windows inside the break are created closed."
+              >
+                <Input id="breakStart" type="time" step={300} {...register("breakStart")} />
+              </Field>
+              <Field
+                label="Break ends"
+                htmlFor="breakEnd"
+                error={errors.breakEnd?.message}
+                hint="Clear both to run the day straight through."
+              >
+                <Input id="breakEnd" type="time" step={300} {...register("breakEnd")} />
+              </Field>
+              <Field
+                label="Day starts"
+                htmlFor="dayStart"
+                error={errors.dayStart?.message}
+                hint="Working hours on each day of the run."
+              >
+                <Input id="dayStart" type="time" step={300} {...register("dayStart")} />
+              </Field>
+              <Field
+                label="Day ends"
+                htmlFor="dayEnd"
+                error={errors.dayEnd?.message}
+                hint="Clear both to use the event's own start and end times."
+              >
+                <Input id="dayEnd" type="time" step={300} {...register("dayEnd")} />
+              </Field>
+            </div>
+          ) : null}
+          {scheduled ? (
+            <Field
+              label="Days that run"
+              htmlFor="weekdays"
+              error={errors.weekdays?.message}
+              hint="A repeating clinic stays one event, so the URL never changes: the start and end dates above are the whole run, and these are the days inside it. Leave all unticked for every day."
+            >
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {WEEKDAYS.map((day) => (
+                  <label
+                    key={day.value}
+                    className="flex items-center gap-2"
+                    htmlFor={`weekday-${day.value}`}
+                  >
+                    <Checkbox
+                      id={`weekday-${day.value}`}
+                      value={day.value}
+                      {...register("weekdays")}
+                    />
+                    <span className="text-sm font-semibold">{day.short}</span>
+                  </label>
+                ))}
+              </div>
+            </Field>
+          ) : null}
+          <Field
             label="Capacity"
             htmlFor="capacity"
             error={errors.capacity?.message}
-            hint="Leave blank for unlimited."
+            hint={
+              scheduled
+                ? `Set by the arrival-time schedule — ${teams} per ${slotLength}-minute window.`
+                : "Leave blank for unlimited."
+            }
           >
-            <Input id="capacity" type="number" min={1} step={1} {...register("capacity")} />
+            <Input
+              id="capacity"
+              type="number"
+              min={1}
+              step={1}
+              disabled={scheduled}
+              {...register("capacity")}
+            />
           </Field>
           <Field label="Description" htmlFor="description" error={errors.description?.message}>
             <Textarea id="description" rows={5} {...register("description")} />

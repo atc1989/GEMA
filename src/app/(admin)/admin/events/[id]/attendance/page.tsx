@@ -17,6 +17,8 @@ import {
 } from "@/components/event/event-when-where";
 import { ExportReportMenu } from "@/components/event/export-report-menu";
 import { buttonVariants } from "@/components/ui/button";
+import { AttendanceDayTabs, type AttendanceDay } from "@/components/attendance/attendance-day-tabs";
+import { formatDayLabel, formatWindowRange, zonedDayKey } from "@/lib/events/slots";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import type { RegistrationKind } from "@/lib/database/types";
@@ -28,6 +30,9 @@ type RegRow = {
   attendee_phone: string | null;
   registered_at: string;
   registration_kind: RegistrationKind;
+  slot_id: string | null;
+  // Embedded through the slot_id FK; Supabase returns an object, or null.
+  event_slots: { starts_at: string; ends_at: string } | null;
   admin_note: string | null;
 };
 
@@ -39,10 +44,14 @@ type SponsorRow = {
 
 export default async function EventAttendancePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  /** ?day=YYYY-MM-DD narrows a repeating clinic to one of its days. */
+  searchParams: Promise<{ day?: string }>;
 }) {
   const { id } = await params;
+  const { day: dayParam } = await searchParams;
 
   const supabase = await createSupabaseServerClient();
 
@@ -58,7 +67,7 @@ export default async function EventAttendancePage({
   const [{ data: regs }, { data: atts }, { data: sponsors }] = await Promise.all([
     supabase
       .from("event_registrations")
-      .select("id, attendee_name, attendee_email, attendee_phone, registered_at, registration_kind, admin_note")
+      .select("id, attendee_name, attendee_email, attendee_phone, registered_at, registration_kind, admin_note, slot_id, event_slots(starts_at, ends_at)")
       .eq("event_id", id)
       .neq("status", "cancelled")
       .order("registered_at", { ascending: true })
@@ -71,7 +80,37 @@ export default async function EventAttendancePage({
     supabase.rpc("get_event_attendee_sponsors", { p_event_id: id }),
   ]);
 
-  const registrations = regs ?? [];
+  const allRegistrations = regs ?? [];
+
+  // The day a guest is COMING, from their arrival window — not the day they
+  // registered. A repeating clinic is one event so the URL survives, and this
+  // is the axis that pulls each day's list back apart.
+  // Keeps one real timestamp per day: rebuilding an instant from the date key
+  // alone would need a zone offset and gets the label wrong either side of UTC.
+  const dayCounts = new Map<string, { count: number; sample: string }>();
+  for (const r of allRegistrations) {
+    if (!r.event_slots) continue;
+    const key = zonedDayKey(r.event_slots.starts_at, event.timezone);
+    const entry = dayCounts.get(key);
+    if (entry) entry.count += 1;
+    else dayCounts.set(key, { count: 1, sample: r.event_slots.starts_at });
+  }
+  const days: AttendanceDay[] = [...dayCounts.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([key, { count, sample }]) => ({
+      key,
+      label: formatDayLabel(sample, event.timezone),
+      count,
+    }));
+
+  const activeDay = dayParam && dayCounts.has(dayParam) ? dayParam : null;
+  const registrations = activeDay
+    ? allRegistrations.filter(
+        (r) =>
+          r.event_slots &&
+          zonedDayKey(r.event_slots.starts_at, event.timezone) === activeDay,
+      )
+    : allRegistrations;
   const checkedInAtById = new Map(
     (atts ?? []).map((a) => [a.registration_id, a.checked_in_at]),
   );
@@ -89,6 +128,9 @@ export default async function EventAttendancePage({
     refCode: sponsorById.get(r.id)?.ref_code ?? null,
     registeredAt: r.registered_at,
     checkedInAt: checkedInAtById.get(r.id) ?? null,
+    arrivalWindow: r.event_slots
+      ? formatWindowRange(r.event_slots.starts_at, r.event_slots.ends_at, event.timezone)
+      : null,
     adminNote: r.admin_note,
   });
 
@@ -157,6 +199,13 @@ export default async function EventAttendancePage({
         </p>
         <EventWhenWhere event={event} />
       </div>
+
+      <AttendanceDayTabs
+        basePath={`/admin/events/${id}/attendance`}
+        days={days}
+        activeDay={activeDay}
+        total={allRegistrations.length}
+      />
 
       <AttendanceStats
         totalRegistrations={registrations.length}

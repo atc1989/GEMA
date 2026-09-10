@@ -20,6 +20,11 @@ export type AttendanceRow = {
   refCode: string | null;
   registeredAt: string | null;
   checkedInAt: string | null;
+  /**
+   * Booked arrival window on a scheduled event. Door staff work the list by
+   * this, not by when someone registered.
+   */
+  arrivalWindow: string | null;
   adminNote?: string | null;
 };
 
@@ -85,6 +90,11 @@ export function AttendanceTable({
                 <p className="truncate text-xs font-semibold text-muted-foreground">
                   {[row.email, row.phone].filter(Boolean).join(" · ") || "—"}
                 </p>
+                {row.arrivalWindow ? (
+                  <p className="truncate text-[11px] font-black uppercase tracking-wide text-foreground">
+                    Arrive {row.arrivalWindow}
+                  </p>
+                ) : null}
                 {row.invitedBy ? (
                   <p className="truncate text-[11px] font-semibold text-brand">
                     Invited by {row.invitedBy}

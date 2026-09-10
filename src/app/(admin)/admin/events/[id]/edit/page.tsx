@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { EventForm } from "@/components/event/event-form";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
+import { toTimeInputValue } from "@/lib/events/slots";
 import { loadEventLandingDefaults } from "@/lib/ginhawa/load-event-landing";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { toDateTimeLocalValue } from "@/lib/utils/format";
@@ -50,6 +51,22 @@ export default async function EditEventPage({
     mapUrl: event.mapUrl ?? undefined,
     onlineUrl: event.onlineUrl ?? undefined,
     capacity: event.capacity ?? undefined,
+    // The form needs these back or every save would silently tear the grid down
+    // and reset the break to the default. Only sent when scheduling is on: the
+    // keys are absent otherwise so the form's own defaults apply, and a spread
+    // of `undefined` would blank them.
+    schedulingEnabled: data.scheduling_enabled === true,
+    ...(data.scheduling_enabled === true
+      ? {
+          slotMinutes: data.slot_minutes ?? undefined,
+          teamsPerSlot: data.teams_per_slot ?? undefined,
+          breakStart: toTimeInputValue(data.break_start),
+          breakEnd: toTimeInputValue(data.break_end),
+          dayStart: toTimeInputValue(data.day_start),
+          dayEnd: toTimeInputValue(data.day_end),
+          weekdays: data.weekdays ?? [],
+        }
+      : {}),
     description: event.description ?? undefined,
     bannerUrl: event.bannerUrl ?? undefined,
     speakerName:

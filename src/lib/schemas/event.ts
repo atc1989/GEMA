@@ -32,6 +32,25 @@ export type EventVisibility = z.infer<typeof eventVisibilitySchema>;
 export type EventMode = z.infer<typeof eventModeSchema>;
 
 // Optional text field that normalizes "" -> undefined so empty inputs become NULL.
+/**
+ * A wall-clock "HH:MM" from <input type="time">. Untouched inputs arrive as "",
+ * and a value read back from Postgres `time` arrives as "12:00:00", so both are
+ * normalised here rather than at every call site.
+ */
+const clockTime = z
+  .string()
+  .trim()
+  .nullish()
+  .transform((v) => {
+    if (!v) return undefined;
+    const match = /^(\d{1,2}):(\d{2})/.exec(v);
+    if (!match) return v;
+    return `${match[1].padStart(2, "0")}:${match[2]}`;
+  })
+  .refine((v) => v === undefined || /^([01]\d|2[0-3]):[0-5]\d$/.test(v), {
+    message: "Enter a time like 12:00.",
+  });
+
 const optionalText = z
   .string()
   .trim()
@@ -176,6 +195,75 @@ export const eventFormSchema = z
       .refine((v) => v === undefined || (Number.isInteger(v) && v > 0), {
         message: "Capacity must be a positive whole number.",
       }),
+    /**
+     * Arrival windows, one team at a time. On means no walk-ins:
+     * the grid becomes the event's capacity, so the Capacity field is derived
+     * and stops being the host's to set.
+     */
+    schedulingEnabled: z
+      .union([z.boolean(), z.string()])
+      .optional()
+      .transform((v) => v === true || v === "true" || v === "on"),
+    /**
+     * Mid-day break, wall-clock in the event's timezone ("12:00"). Both blank
+     * runs the day straight through; a <input type="time"> that was never
+     * touched arrives as "", which is why this is not a bare optional.
+     */
+    /**
+     * Minutes per arrival window. Kept to the values the form offers so it can
+     * never violate the database's "5-120, in steps of 5" check.
+     */
+    slotMinutes: z
+      .union([z.string(), z.number()])
+      .optional()
+      .transform((v) => {
+        if (v === undefined || v === "") return undefined;
+        const n = typeof v === "number" ? v : Number(v);
+        return Number.isFinite(n) ? n : NaN;
+      })
+      .refine(
+        (v) => v === undefined || (Number.isInteger(v) && v >= 5 && v <= 120 && v % 5 === 0),
+        { message: "Pick a window length between 5 and 120 minutes." },
+      ),
+    /**
+     * Doctor+nurse teams working one window, one guest each. The only lever
+     * that raises the seat count without shortening the window.
+     */
+    teamsPerSlot: z
+      .union([z.string(), z.number()])
+      .optional()
+      .transform((v) => {
+        if (v === undefined || v === "") return undefined;
+        const n = typeof v === "number" ? v : Number(v);
+        return Number.isFinite(n) ? n : NaN;
+      })
+      .refine((v) => v === undefined || (Number.isInteger(v) && v >= 1 && v <= 20), {
+        message: "Between 1 and 20 teams.",
+      }),
+    breakStart: clockTime,
+    breakEnd: clockTime,
+    /**
+     * The working day, wall-clock in the event's timezone. A repeating clinic
+     * is ONE event: starts_at..ends_at is the run, these are the hours worked
+     * on each day of it. Blank both falls back to the event's own times.
+     */
+    dayStart: clockTime,
+    dayEnd: clockTime,
+    /**
+     * Days of the week that run, 0 = Sunday. Empty means every date in the run.
+     * Checkboxes post strings, and a single checked box posts a bare string
+     * rather than an array.
+     */
+    weekdays: z
+      .union([z.array(z.union([z.string(), z.number()])), z.string(), z.number()])
+      .optional()
+      .transform((v) => {
+        if (v === undefined || v === "") return [] as number[];
+        const list = Array.isArray(v) ? v : [v];
+        return list
+          .map((item) => (typeof item === "number" ? item : Number(item)))
+          .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
+      }),
     description: optionalText,
     bannerUrl: optionalLenientUrl,
     speakerName: optionalText,
@@ -192,6 +280,30 @@ export const eventFormSchema = z
   .refine(
     (data) => data.endsAt === undefined || Date.parse(data.endsAt) > Date.parse(data.startsAt),
     { message: "End time must be after the start time.", path: ["endsAt"] },
+  )
+  .refine((data) => !data.schedulingEnabled || data.endsAt !== undefined, {
+    message: "Arrival times need an end time — that is what the windows step to.",
+    path: ["endsAt"],
+  })
+  .refine((data) => (data.breakStart === undefined) === (data.breakEnd === undefined), {
+    message: "A break needs both a start and an end. Clear both for no break.",
+    path: ["breakEnd"],
+  })
+  .refine((data) => (data.dayStart === undefined) === (data.dayEnd === undefined), {
+    message: "A working day needs both a start and an end. Clear both to use the event times.",
+    path: ["dayEnd"],
+  })
+  .refine(
+    (data) =>
+      data.dayStart === undefined || data.dayEnd === undefined || data.dayEnd > data.dayStart,
+    { message: "The working day must end after it starts.", path: ["dayEnd"] },
+  )
+  .refine(
+    (data) =>
+      data.breakStart === undefined ||
+      data.breakEnd === undefined ||
+      data.breakEnd > data.breakStart,
+    { message: "The break must end after it starts.", path: ["breakEnd"] },
   )
   .refine((data) => data.mode === "online" || Boolean(data.venueName), {
     message: "Venue name is required for in-person and hybrid events.",

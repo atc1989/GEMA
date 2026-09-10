@@ -16,7 +16,14 @@ export type FieldErrors = Record<string, string[] | undefined>;
 
 export type ActionResult<T> =
   | { ok: true; data: T }
-  | { ok: false; error: string; fieldErrors?: FieldErrors };
+  | { ok: false; error: string; fieldErrors?: FieldErrors; code?: FailureCode };
+
+/**
+ * "slot_taken" is the one failure the caller can recover from: the window went
+ * while the guest was typing, so the sheet refreshes the grid and sends them
+ * back to the picker with everything they typed still in place.
+ */
+export type FailureCode = "slot_taken";
 
 export type RegistrationSuccess = {
   passCode: string;
@@ -25,6 +32,9 @@ export type RegistrationSuccess = {
   eventTitle: string;
   startsAt: string;
   timezone: string;
+  /** Arrival window, on scheduled events. Null when the event has no slots. */
+  slotStartsAt: string | null;
+  slotEndsAt: string | null;
 };
 
 export type MemberRsvpSuccess = {
@@ -89,7 +99,7 @@ export async function registerProspectForEvent(
       kind: "prospect",
     });
 
-    const { error } = await supabase.rpc("register_prospect_for_event", {
+    const { data, error } = await supabase.rpc("register_prospect_for_event", {
       p_event_id: values.eventId,
       p_full_name: values.fullName,
       p_phone: values.phone,
@@ -101,9 +111,14 @@ export async function registerProspectForEvent(
       p_pass_code: passCode,
       p_qr_payload: qrToken,
       p_ref_code: values.refCode ?? null,
+      p_slot_id: values.slotId ?? null,
     });
 
     if (!error) {
+      const claimed = (data ?? null) as {
+        slot_starts_at?: string | null;
+        slot_ends_at?: string | null;
+      } | null;
       return {
         ok: true,
         data: {
@@ -113,6 +128,8 @@ export async function registerProspectForEvent(
           eventTitle: event.title,
           startsAt: event.starts_at,
           timezone: event.timezone,
+          slotStartsAt: claimed?.slot_starts_at ?? null,
+          slotEndsAt: claimed?.slot_ends_at ?? null,
         },
       };
     }
@@ -122,6 +139,15 @@ export async function registerProspectForEvent(
     console.error("register_prospect_for_event failed:", error.code, error.message);
     // Retry once only on a pass-code/qr collision; otherwise surface a message.
     const message = error.message.toLowerCase();
+    // The window went while they were filling the form. Recoverable — say so
+    // with a code so the sheet can reopen the picker instead of dead-ending.
+    if (message.includes("arrival time has just been taken")) {
+      return {
+        ok: false,
+        error: "That arrival time has just been taken. Please pick another.",
+        code: "slot_taken",
+      };
+    }
     if (message.includes("uniq_event_registration_attendee")) {
       return {
         ok: false,
@@ -224,6 +250,8 @@ function friendlyDbError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("consent")) return "You must agree to the privacy terms to register.";
   if (m.includes("capacity")) return "Sorry, this event is fully booked.";
+  if (m.includes("pick an arrival time")) return "Please pick an arrival time.";
+  if (m.includes("arrival time")) return "That arrival time is no longer available.";
   if (m.includes("not open") || m.includes("not found")) {
     return "This event is not open for registration.";
   }

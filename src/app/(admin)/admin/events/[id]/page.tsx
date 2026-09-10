@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
+  CalendarClock,
   CalendarDays,
   Clock,
   MapPin,
@@ -101,13 +102,24 @@ export default async function EventDetailPage({
             <span className="capitalize">{event.mode.replace("_", " ")}</span>
           </p>
         </div>
-        <Link
-          href={`/admin/events/${event.id}/attendance`}
-          className={cn(buttonVariants({ variant: "outline" }))}
-        >
-          <ScanLine aria-hidden="true" />
-          Attendance
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          {event.schedulingEnabled ? (
+            <Link
+              href={`/admin/events/${event.id}/schedule`}
+              className={cn(buttonVariants({ variant: "outline" }))}
+            >
+              <CalendarClock aria-hidden="true" />
+              Schedule
+            </Link>
+          ) : null}
+          <Link
+            href={`/admin/events/${event.id}/attendance`}
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
+            <ScanLine aria-hidden="true" />
+            Attendance
+          </Link>
+        </div>
       </div>
 
       <EventActions eventId={event.id} status={event.status} />

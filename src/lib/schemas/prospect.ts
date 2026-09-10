@@ -28,6 +28,20 @@ export const prospectRegistrationSchema = z.object({
     .max(64)
     .optional()
     .transform((v) => (v ? v : undefined)),
+  /**
+   * Arrival window, on scheduled events only. Reaches the parser as "" from the
+   * no-JS <select> and as null from an unscheduled booking, so it cannot be a
+   * bare .uuid().optional(). The RPC is the real gate: it rejects a missing
+   * slot on a scheduled event and a supplied one on an unscheduled event.
+   */
+  slotId: z
+    .string()
+    .trim()
+    .nullish()
+    .transform((v) => (v ? v : undefined))
+    .refine((v) => v === undefined || z.string().uuid().safeParse(v).success, {
+      message: "Pick an arrival time.",
+    }),
 });
 
 export type ProspectRegistrationInput = z.input<typeof prospectRegistrationSchema>;

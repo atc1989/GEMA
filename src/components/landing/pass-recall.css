@@ -1,0 +1,65 @@
+/* Pass recall strip. Sits on both check-up templates, whose surfaces reset bare
+   elements at (0,1,1) — so every rule carries two classes. Never !important. */
+.pr-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px auto 0;
+  max-width: 640px;
+  padding: 14px 16px;
+  border: 2px solid #e9edf3;
+  border-radius: 16px;
+  background: #fff;
+  text-align: left;
+  font-family: var(--font-sans), "Inter", system-ui, sans-serif;
+}
+.pr-strip.pr-strip--known {
+  border-color: #cfd9e8;
+  background: #f4f7fc;
+}
+.pr-strip .pr-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.pr-strip .pr-eyebrow {
+  font-family: var(--font-sora), "Sora", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.pr-strip .pr-copy b {
+  font-family: var(--font-sora), "Sora", system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #0e2249;
+}
+.pr-strip .pr-copy em {
+  font-style: normal;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #64748b;
+}
+.pr-strip .pr-link {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  border: 2px solid #0e2249;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0e2249;
+  text-decoration: none;
+}
+.pr-strip .pr-link:focus-visible {
+  outline: 3px solid #f5b716;
+  outline-offset: 2px;
+}

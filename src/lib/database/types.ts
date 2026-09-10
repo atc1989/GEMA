@@ -138,6 +138,18 @@ export interface Event {
   mapUrl: string | null;
   onlineUrl: string | null;
   capacity: number | null;
+  /** Arrival-window scheduling. False on every event that never turned it on. */
+  schedulingEnabled: boolean;
+  slotMinutes: number | null;
+  teamsPerSlot: number | null;
+  /** Mid-day break, wall-clock in the event's timezone. Null means none. */
+  breakStart: string | null;
+  breakEnd: string | null;
+  /** Working day within a multi-day run, wall-clock in the event's timezone. */
+  dayStart: string | null;
+  dayEnd: string | null;
+  /** Days of the week the run happens on, 0 = Sunday. Null means every day. */
+  weekdays: number[] | null;
   description: string | null;
   bannerUrl: string | null;
   cancelledAt: string | null;
