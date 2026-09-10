@@ -3,9 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Archive, ArchiveRestore, CheckCircle2, Pencil, XCircle } from "lucide-react";
+import { Archive, ArchiveRestore, CheckCircle2, Copy, Pencil, XCircle } from "lucide-react";
 
-import { cancelEvent, publishEvent, setEventArchived } from "@/lib/actions/events";
+import {
+  cancelEvent,
+  duplicateEvent,
+  publishEvent,
+  setEventArchived,
+} from "@/lib/actions/events";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +34,22 @@ export function EventActions({
   const canEdit = status !== "cancelled" && !isArchived;
   const canPublish = status === "draft";
   const canCancel = status === "draft" || status === "published";
+
+  // A repeating clinic is a new event each time, which is what keeps each
+  // date's registrations apart. That only works if the setup is one click.
+  const onDuplicate = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await duplicateEvent(eventId);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      // Straight into the copy's edit form: it lands a week on as a draft and
+      // the date is the thing that always needs changing.
+      router.push(`/admin/events/${result.data.id}/edit`);
+    });
+  };
 
   const onToggleArchive = () => {
     setError(null);
@@ -98,6 +119,11 @@ export function EventActions({
             Cancel event
           </Button>
         ) : null}
+
+        <Button variant="outline" onClick={onDuplicate} disabled={pending}>
+          <Copy aria-hidden="true" />
+          Duplicate
+        </Button>
 
         <Button variant="outline" onClick={onToggleArchive} disabled={pending}>
           {isArchived ? (

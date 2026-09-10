@@ -19,6 +19,7 @@ import {
 } from "@/lib/ginhawa/sync-landing";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureUniqueEventSlug } from "@/lib/utils/slug";
+import { formatLandingDate, formatLandingTime } from "@/lib/utils/format";
 import type { Event } from "@/lib/database/types";
 import { asPosterTemplateId } from "@/components/event/posters/types";
 import { asPhotoFocus } from "@/components/event/posters/shared";
@@ -27,6 +28,9 @@ import { type ActionResult, type FieldErrors } from "@/lib/actions/types";
 export type { ActionResult, FieldErrors };
 
 const EVENTS_PATH = "/admin/events";
+
+/** A duplicate lands a week on by default — the common case for a repeat. */
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Maps raw database errors to messages safe to show users; logs the original. */
 function friendlyDbError(message: string, fallback = "Something went wrong. Please try again."): string {
@@ -350,6 +354,206 @@ export async function updateEvent(
   revalidatePath(`${EVENTS_PATH}/${eventId}`);
   if (existing.slug) revalidatePath(`/e/${existing.slug}`);
   return { ok: true, data: { id: eventId } };
+}
+
+/**
+ * Copies an event into a fresh draft: the event row, its speakers, its landing
+ * page, and its arrival-slot settings.
+ *
+ * A clinic that repeats is now a new event per occurrence, which keeps each
+ * date's registrations and attendance separate by construction. That trade only
+ * works if setting up the next one is a button — otherwise it is retyping four
+ * clinicians, their licence numbers and a carousel twice a week, and a mistyped
+ * licence number on a medical page is not a small mistake.
+ *
+ * What is deliberately NOT copied: status (always a draft), publication, the
+ * pin, cancellation and completion marks, and every registration, slot and
+ * attendance record. The copy starts empty.
+ */
+export async function duplicateEvent(
+  eventId: string,
+): Promise<ActionResult<{ id: string; slug: string }>> {
+  const admin = await requireAdmin();
+
+  const parsedId = z.string().uuid().safeParse(eventId);
+  if (!parsedId.success) return { ok: false, error: "Unknown event." };
+
+  const supabase = await createSupabaseServerClient();
+
+  const { data: source, error: loadError } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", parsedId.data)
+    .maybeSingle<EventRow>();
+
+  if (loadError) return { ok: false, error: friendlyDbError(loadError.message) };
+  if (!source) return { ok: false, error: "Event not found." };
+
+  let slug: string;
+  try {
+    slug = await ensureUniqueEventSlug(supabase, source.title);
+  } catch {
+    return { ok: false, error: "Could not generate a unique link. Try again." };
+  }
+
+  // A week on, same time of day. Any repeat needs new dates anyway, and for a
+  // weekly clinic this is the answer; the host edits it before publishing.
+  const shift = (iso: string | null): string | null =>
+    iso ? new Date(new Date(iso).getTime() + WEEK_MS).toISOString() : null;
+  const startsAt = shift(source.starts_at) as string;
+  const endsAt = shift(source.ends_at);
+
+  const { data: created, error: insertError } = await supabase
+    .from("events")
+    .insert({
+      title: source.title,
+      slug,
+      event_type: source.event_type,
+      visibility: source.visibility,
+      mode: source.mode,
+      status: "draft",
+      starts_at: startsAt,
+      ends_at: endsAt,
+      timezone: source.timezone,
+      venue_name: source.venue_name,
+      venue_address: source.venue_address,
+      map_url: source.map_url,
+      online_url: source.online_url,
+      capacity: source.capacity,
+      description: source.description,
+      banner_url: source.banner_url,
+      created_by_profile_id: admin.id,
+      // Kept: it is the sponsor fallback for a lead who arrives without a
+      // referral code, so dropping it would silently reassign those leads.
+      host_member_id: source.host_member_id,
+      metadata: source.metadata ?? {},
+      // Slot settings ride along; the grid itself is rebuilt below.
+      scheduling_enabled: source.scheduling_enabled ?? false,
+      slot_minutes: source.slot_minutes ?? null,
+      teams_per_slot: source.teams_per_slot ?? null,
+      break_start: source.break_start ?? null,
+      break_end: source.break_end ?? null,
+      day_start: source.day_start ?? null,
+      day_end: source.day_end ?? null,
+      weekdays: source.weekdays ?? null,
+    })
+    .select("id, slug")
+    .single<{ id: string; slug: string }>();
+
+  if (insertError || !created) {
+    return {
+      ok: false,
+      error: insertError
+        ? friendlyDbError(insertError.message, "Could not duplicate the event.")
+        : "Could not duplicate the event.",
+    };
+  }
+
+  const { data: speakers } = await supabase
+    .from("event_speakers")
+    .select("name, role_title, photo_url, sort_order, profile_id")
+    .eq("event_id", parsedId.data)
+    .order("sort_order", { ascending: true });
+
+  if (speakers && speakers.length > 0) {
+    await supabase
+      .from("event_speakers")
+      .insert(speakers.map((row) => ({ ...row, event_id: created.id })));
+  }
+
+  const landingCopied = await duplicateEventLanding(
+    supabase,
+    parsedId.data,
+    created.id,
+    { startsAt, timezone: source.timezone, adminId: admin.id },
+  );
+
+  if (source.scheduling_enabled) {
+    const slotSync = await syncEventSlots(
+      supabase,
+      created.id,
+      true,
+      source.break_start ?? undefined,
+      source.break_end ?? undefined,
+      source.slot_minutes ?? undefined,
+      source.teams_per_slot ?? undefined,
+      source.day_start ?? undefined,
+      source.day_end ?? undefined,
+      source.weekdays ?? undefined,
+    );
+    if (!slotSync.ok) {
+      // The copy exists and is editable; say what did not come across rather
+      // than leaving a half-built draft behind with no explanation.
+      revalidatePath(EVENTS_PATH);
+      return {
+        ok: false,
+        error: `Copied the event, but ${slotSync.error} Open the copy and check its arrival times.`,
+      };
+    }
+  }
+
+  revalidatePath(EVENTS_PATH);
+  return landingCopied
+    ? { ok: true, data: created }
+    : {
+        ok: false,
+        error: "Copied the event, but its landing page did not come across. Open the copy and check.",
+      };
+}
+
+/**
+ * Clones the ginhawa_landing row onto the new event.
+ *
+ * The date and time labels are display strings tied to the old date, so they
+ * are regenerated rather than copied — a duplicate that still advertises last
+ * Friday is worse than one with no date at all. The copy is never published:
+ * the host reviews it and publishes with the event.
+ */
+async function duplicateEventLanding(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  sourceEventId: string,
+  newEventId: string,
+  meta: { startsAt: string; timezone: string; adminId: string },
+): Promise<boolean> {
+  const { data: landing } = await supabase
+    .from("ginhawa_landing")
+    .select("*")
+    .eq("source_event_id", sourceEventId)
+    .maybeSingle<Record<string, unknown>>();
+
+  if (!landing) return true; // Nothing to copy is not a failure.
+
+  // Copy everything, then drop what belongs to the original. Deliberately not
+  // an allowlist: a landing field added later should ride along by default,
+  // and silently dropping one is the worse failure.
+  const rest: Record<string, unknown> = { ...landing };
+  for (const key of [
+    "id",
+    "source_event_id",
+    "published",
+    "published_at",
+    "created_at",
+    "updated_at",
+    "updated_by",
+  ]) {
+    delete rest[key];
+  }
+
+  const { error } = await supabase.from("ginhawa_landing").insert({
+    ...rest,
+    source_event_id: newEventId,
+    date_label: formatLandingDate(meta.startsAt, meta.timezone),
+    time_label: formatLandingTime(meta.startsAt, meta.timezone),
+    published: false,
+    published_at: null,
+    updated_by: meta.adminId,
+  });
+
+  if (error) {
+    console.error("duplicate landing failed:", error.code, error.message);
+    return false;
+  }
+  return true;
 }
 
 /** Publishes a draft event after a stricter readiness check. */

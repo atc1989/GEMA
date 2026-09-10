@@ -13,7 +13,7 @@ owner wants it tracked there, this file is the Change note ready to move.
 | | |
 |---|---|
 | Slot length | per event, 30 minutes by default. 10/15/20/30/45/60 on the form |
-| The run | `starts_at`..`ends_at` — weeks, not one sitting. One event, one URL |
+| Occurrences | one event per date, new link each time. **Duplicate** does the setup |
 | Working day | per event, `day_start`/`day_end`. Blank falls back to the event times |
 | Days that run | per event weekday set. Blank means every date in the run |
 | Break | per event, 12:00–13:00 by default, blank for none |
@@ -50,11 +50,32 @@ again. Moving the break in the form therefore opens the new windows but leaves
 the old ones closed until someone reopens them on the schedule page — the
 alternative was overruling a deliberate close, which is worse.
 
-## A repeating clinic is ONE event
+## A repeating clinic is a new event each time
 
-A Friday-and-Saturday check-up that runs every week is a single `events` row, so
-`/e/free-medical-check-up` never changes and the poster stays valid. What
-repeats is inside the event, not around it:
+**Decided 2026-09-10:** each occurrence is its own event with its own link.
+Registrations, capacity and attendance separate by construction — no filters, no
+shared list to pull apart later.
+
+That only works because setting the next one up is a button. **Duplicate** on
+the event page copies the event row, its speakers, its landing (copy,
+clinicians, media, venue, gift points) and its arrival-slot settings into a
+fresh draft a week on, then opens its edit form. Deliberately not copied:
+status, publication, the pin, cancellation marks, and every registration, slot
+and attendance record — the copy starts empty.
+
+The landing's date and time labels are regenerated rather than copied. A
+duplicate still advertising last Friday is worse than one with no date.
+
+### Multi-day events still work
+
+The working-day fields below stay, and stay optional. Blank `day_start`/
+`day_end` falls back to the event's own times, so a one-day event behaves as it
+always did; day tabs and the attendance day filter only appear when a run spans
+more than one day.
+
+They are not decoration. **An event spanning Friday 9am to Saturday 5pm without
+them sells Friday 11:30pm** — the grid steps continuously from `starts_at` to
+`ends_at`. So a weekend kept as one event still needs them:
 
 ```
 starts_at .. ends_at     the run — extend the end date to add more weeks
@@ -66,8 +87,6 @@ break_start .. break_end 12:00-13:00, closed on each of those days
 The grid is therefore **one block per working day**, not one continuous span.
 That distinction is not cosmetic: without it the generator stepped straight
 from Friday 9am to Saturday 5pm and put Friday 11:30pm on sale.
-
-Adding more weeks is editing the end date. It is one field, not a new event.
 
 ### Which day is a guest coming?
 
@@ -153,6 +172,7 @@ double-count.
 | `src/components/event/event-form.tsx` | the host toggle |
 | `src/components/attendance/attendance-table.tsx` | the window at the door |
 | `src/components/attendance/attendance-day-tabs.tsx` | one day of a run at a time |
+| `duplicateEvent` in `src/lib/actions/events.ts` | the copy button behind a repeat |
 | `src/app/(admin)/admin/events/[id]/schedule/page.tsx` | the clinic day, window by window |
 | `src/components/event/slot-schedule.tsx` | the grid, with the open/close toggle |
 | `src/components/landing/pass-recall.tsx` | the way back to a booked pass |
