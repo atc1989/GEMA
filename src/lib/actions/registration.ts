@@ -99,7 +99,16 @@ export async function registerProspectForEvent(
       kind: "prospect",
     });
 
-    const { data, error } = await supabase.rpc("register_prospect_for_event", {
+    // p_slot_id is sent ONLY when a window was picked, and that is a deploy
+    // concern, not a style one. The slots migration replaces this function's
+    // 11-argument signature with a 12-argument one, and on a database with real
+    // guests booking there is no safe instant to swap both at once. Omitting
+    // the argument when there is no slot means this build satisfies BOTH
+    // signatures — 11 args resolve against the old function, 12 against the new
+    // — so the app can ship before the SQL and nobody's booking breaks in
+    // between. Sending `p_slot_id: null` unconditionally would have made the
+    // app hard-fail against the old function.
+    const rpcArgs: Record<string, unknown> = {
       p_event_id: values.eventId,
       p_full_name: values.fullName,
       p_phone: values.phone,
@@ -111,8 +120,10 @@ export async function registerProspectForEvent(
       p_pass_code: passCode,
       p_qr_payload: qrToken,
       p_ref_code: values.refCode ?? null,
-      p_slot_id: values.slotId ?? null,
-    });
+    };
+    if (values.slotId) rpcArgs.p_slot_id = values.slotId;
+
+    const { data, error } = await supabase.rpc("register_prospect_for_event", rpcArgs);
 
     if (!error) {
       const claimed = (data ?? null) as {
