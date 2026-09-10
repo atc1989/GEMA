@@ -201,13 +201,22 @@ book, but nothing on the landing said so — the QR lived inside the booking
 sheet, and dismissing it was the end of it.
 
 `PassRecall` sits on both check-up templates. On a device that booked, it names
-the pass code and deep-links the lookup with the details filled in; otherwise it
-is a plain "find my pass" link, which still works from any device.
+the pass code and downloads the QR in one tap; otherwise it is a plain "find my
+pass" link, which still works from any device.
 
 What it stores is the pass code, name and contact — **never the QR token**. That
-token is what gets someone through the door; `/passes` re-issues it server-side
-after checking name plus contact, which is the same gate that stops an email
-alone from leaking somebody else's pass.
+token is what gets someone through the door, and a shared phone or a
+computer-shop machine would otherwise hand the next person the previous guest's
+pass. So the download calls `issuePassQrToken`, which re-issues it server-side
+behind the same gate `/passes` uses: name AND the email or mobile, because an
+email alone is shared across group sign-ups and reused numbers. **Not you?**
+clears the breadcrumb outright.
+
+The booking sheet also saves the PNG the moment the pass exists, and keeps a
+**Download my QR** button next to it. Both are best-effort: in-app browsers —
+Messenger, where most of this traffic comes from — swallow a download silently,
+which is exactly why the recall strip is the dependable path and the auto-save
+is the convenience.
 
 ### Staleness
 

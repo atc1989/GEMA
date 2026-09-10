@@ -380,3 +380,15 @@
   font-weight: 600;
   color: var(--bs-mute);
 }
+
+/* Secondary action in the pass panel. The gold button is "Done"; saving the QR
+   should not compete with it. */
+.bs-sheet .bs-btn--ghost {
+  background: #fff;
+  color: var(--bs-navy);
+  border: 2px solid var(--bs-line);
+  box-shadow: none;
+  min-height: 50px;
+  font-size: 15.5px;
+  margin-top: 14px;
+}
