@@ -64,6 +64,22 @@ const FOCUSABLE =
  * sponsor resolution, the capacity check, the consent gate and the duplicate
  * index all behave identically. /register stays live as the no-JS fallback.
  */
+/** Print-size PNG. Blob, not the data: URL — iOS Safari ignores `download` on data:. */
+async function savePassPng(token: string, passCode: string) {
+  try {
+    const png = await QRCode.toDataURL(token, { width: 1024, margin: 2 });
+    const href = URL.createObjectURL(await (await fetch(png)).blob());
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = `Ginhawa-pass-${passCode.replace(/\s+/g, "")}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(href), 1000);
+  } catch {
+    // Swallowed by in-app browsers. The Download button and the recall strip
+    // on the landing are the ways through.
+  }
+}
+
 export function BookSheet({
   eventId,
   refCode,
@@ -98,6 +114,7 @@ export function BookSheet({
   const [qr, setQr] = useState<string | null>(null);
   const sheet = useRef<HTMLDivElement>(null);
   const restoreFocus = useRef<HTMLElement | null>(null);
+  const autoSaved = useRef(false);
 
   // ponytail: one delegated listener instead of rewiring twelve anchors across
   // four templates — and it keeps Sizzle/Session as server components. Plain
@@ -195,6 +212,17 @@ export function BookSheet({
       alive = false;
     };
   }, [success, passAnchor]);
+
+  // Save the pass to their photos the moment it exists, wherever the QR ends up
+  // — this sheet or the card below it. Best-effort by nature: in-app browsers
+  // (Messenger, which is where most of this traffic comes from) swallow a
+  // download silently, which is why the button and the recall strip both stay.
+  // Ref-guarded, not state: Strict Mode re-runs effects and would save twice.
+  useEffect(() => {
+    if (!success || autoSaved.current) return;
+    autoSaved.current = true;
+    void savePassPng(success.qrToken, success.passCode);
+  }, [success]);
 
   const registerPath = refCode
     ? `/register/${eventId}?ref=${encodeURIComponent(refCode)}`
@@ -324,8 +352,18 @@ export function BookSheet({
               <div className="bs-qr bs-qr--wait" aria-hidden="true" />
             )}
             <div className="bs-code">{success.passCode}</div>
+            <button
+              type="button"
+              className="bs-btn bs-btn--wide bs-btn--ghost"
+              onClick={() => void savePassPng(success.qrToken, success.passCode)}
+            >
+              Download my QR
+            </button>
             <p className="bs-fine">
-              {passAnchor ? "Download it there, or " : "Screenshot this, or "}
+              {passAnchor
+                ? "Saved to your downloads, and it is on your Lifestyle Card below. "
+                : "Saved to your downloads. "}
+              If it did not save,{" "}
               <a
                 className="bs-link"
                 href={`/passes?q=${encodeURIComponent(email)}&name=${encodeURIComponent(success.attendeeName)}`}
