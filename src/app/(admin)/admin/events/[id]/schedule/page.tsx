@@ -13,7 +13,7 @@ import {
 } from "@/components/event/slot-schedule";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { formatClockLabel, SLOT_MINUTES } from "@/lib/events/slots";
+import { formatClockLabel, formatWeekdays, SLOT_MINUTES } from "@/lib/events/slots";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -54,7 +54,7 @@ export default async function EventSchedulePage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, title, status, mode, starts_at, timezone, venue_name, venue_address, map_url, online_url, scheduling_enabled, slot_minutes, break_start, break_end",
+      "id, title, status, mode, starts_at, timezone, venue_name, venue_address, map_url, online_url, scheduling_enabled, slot_minutes, break_start, break_end, day_start, day_end, weekdays",
     )
     .eq("id", id)
     .maybeSingle<
@@ -65,6 +65,9 @@ export default async function EventSchedulePage({
         slot_minutes: number | null;
         break_start: string | null;
         break_end: string | null;
+        day_start: string | null;
+        day_end: string | null;
+        weekdays: number[] | null;
       }
     >();
   if (!event) notFound();
@@ -145,6 +148,12 @@ export default async function EventSchedulePage({
             ? ` · break ${formatClockLabel(event.break_start)}–${formatClockLabel(event.break_end)}`
             : " · no break"}
         </p>
+        {event.day_start && event.day_end ? (
+          <p className="text-sm font-semibold text-muted-foreground">
+            {formatWeekdays(event.weekdays)} · {formatClockLabel(event.day_start)}–
+            {formatClockLabel(event.day_end)} each day
+          </p>
+        ) : null}
         <EventWhenWhere event={event} />
       </div>
 

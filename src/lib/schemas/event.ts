@@ -242,6 +242,28 @@ export const eventFormSchema = z
       }),
     breakStart: clockTime,
     breakEnd: clockTime,
+    /**
+     * The working day, wall-clock in the event's timezone. A repeating clinic
+     * is ONE event: starts_at..ends_at is the run, these are the hours worked
+     * on each day of it. Blank both falls back to the event's own times.
+     */
+    dayStart: clockTime,
+    dayEnd: clockTime,
+    /**
+     * Days of the week that run, 0 = Sunday. Empty means every date in the run.
+     * Checkboxes post strings, and a single checked box posts a bare string
+     * rather than an array.
+     */
+    weekdays: z
+      .union([z.array(z.union([z.string(), z.number()])), z.string(), z.number()])
+      .optional()
+      .transform((v) => {
+        if (v === undefined || v === "") return [] as number[];
+        const list = Array.isArray(v) ? v : [v];
+        return list
+          .map((item) => (typeof item === "number" ? item : Number(item)))
+          .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
+      }),
     description: optionalText,
     bannerUrl: optionalLenientUrl,
     speakerName: optionalText,
@@ -267,6 +289,15 @@ export const eventFormSchema = z
     message: "A break needs both a start and an end. Clear both for no break.",
     path: ["breakEnd"],
   })
+  .refine((data) => (data.dayStart === undefined) === (data.dayEnd === undefined), {
+    message: "A working day needs both a start and an end. Clear both to use the event times.",
+    path: ["dayEnd"],
+  })
+  .refine(
+    (data) =>
+      data.dayStart === undefined || data.dayEnd === undefined || data.dayEnd > data.dayStart,
+    { message: "The working day must end after it starts.", path: ["dayEnd"] },
+  )
   .refine(
     (data) =>
       data.breakStart === undefined ||

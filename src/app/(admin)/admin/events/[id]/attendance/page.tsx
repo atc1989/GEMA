@@ -17,7 +17,8 @@ import {
 } from "@/components/event/event-when-where";
 import { ExportReportMenu } from "@/components/event/export-report-menu";
 import { buttonVariants } from "@/components/ui/button";
-import { formatWindowRange } from "@/lib/events/slots";
+import { AttendanceDayTabs, type AttendanceDay } from "@/components/attendance/attendance-day-tabs";
+import { formatDayLabel, formatWindowRange, zonedDayKey } from "@/lib/events/slots";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import type { RegistrationKind } from "@/lib/database/types";
@@ -43,10 +44,14 @@ type SponsorRow = {
 
 export default async function EventAttendancePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  /** ?day=YYYY-MM-DD narrows a repeating clinic to one of its days. */
+  searchParams: Promise<{ day?: string }>;
 }) {
   const { id } = await params;
+  const { day: dayParam } = await searchParams;
 
   const supabase = await createSupabaseServerClient();
 
@@ -75,7 +80,37 @@ export default async function EventAttendancePage({
     supabase.rpc("get_event_attendee_sponsors", { p_event_id: id }),
   ]);
 
-  const registrations = regs ?? [];
+  const allRegistrations = regs ?? [];
+
+  // The day a guest is COMING, from their arrival window — not the day they
+  // registered. A repeating clinic is one event so the URL survives, and this
+  // is the axis that pulls each day's list back apart.
+  // Keeps one real timestamp per day: rebuilding an instant from the date key
+  // alone would need a zone offset and gets the label wrong either side of UTC.
+  const dayCounts = new Map<string, { count: number; sample: string }>();
+  for (const r of allRegistrations) {
+    if (!r.event_slots) continue;
+    const key = zonedDayKey(r.event_slots.starts_at, event.timezone);
+    const entry = dayCounts.get(key);
+    if (entry) entry.count += 1;
+    else dayCounts.set(key, { count: 1, sample: r.event_slots.starts_at });
+  }
+  const days: AttendanceDay[] = [...dayCounts.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([key, { count, sample }]) => ({
+      key,
+      label: formatDayLabel(sample, event.timezone),
+      count,
+    }));
+
+  const activeDay = dayParam && dayCounts.has(dayParam) ? dayParam : null;
+  const registrations = activeDay
+    ? allRegistrations.filter(
+        (r) =>
+          r.event_slots &&
+          zonedDayKey(r.event_slots.starts_at, event.timezone) === activeDay,
+      )
+    : allRegistrations;
   const checkedInAtById = new Map(
     (atts ?? []).map((a) => [a.registration_id, a.checked_in_at]),
   );
@@ -164,6 +199,13 @@ export default async function EventAttendancePage({
         </p>
         <EventWhenWhere event={event} />
       </div>
+
+      <AttendanceDayTabs
+        basePath={`/admin/events/${id}/attendance`}
+        days={days}
+        activeDay={activeDay}
+        total={allRegistrations.length}
+      />
 
       <AttendanceStats
         totalRegistrations={registrations.length}

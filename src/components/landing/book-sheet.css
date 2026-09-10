@@ -339,3 +339,44 @@
   font-weight: 600;
   color: var(--bs-mute);
 }
+
+/* Day tabs. A Friday-Saturday clinic kept as one event carries weeks of
+   windows; without these the picker is one unusable list. */
+.bs-sheet .bs-days {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+  scrollbar-width: thin;
+}
+.bs-sheet .bs-day {
+  flex: 0 0 auto;
+  min-height: 46px;
+  padding: 6px 14px;
+  font-family: var(--bs-sans);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--bs-navy);
+  background: #fff;
+  border: 2px solid var(--bs-line);
+  border-radius: 13px;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+.bs-sheet .bs-day[aria-pressed="true"] {
+  border-color: var(--bs-navy);
+  background: #f4f7fc;
+}
+.bs-sheet .bs-day:focus-visible {
+  outline: 3px solid var(--bs-gold);
+  outline-offset: 2px;
+}
+.bs-sheet .bs-day em {
+  display: block;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--bs-mute);
+}

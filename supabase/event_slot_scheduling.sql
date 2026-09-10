@@ -35,7 +35,15 @@ alter table gema.events
   -- The mid-day break, wall-clock in the event's own timezone. Both null means
   -- the day runs straight through.
   add column if not exists break_start time,
-  add column if not exists break_end time;
+  add column if not exists break_end time,
+  -- The working day, wall-clock in the event's timezone. A repeating clinic is
+  -- ONE event whose starts_at..ends_at is the run, not one long sitting: without
+  -- these the grid steps straight through the night and sells 11:30pm.
+  add column if not exists day_start time,
+  add column if not exists day_end time,
+  -- ISO-ish day numbers, 0 = Sunday .. 6 = Saturday. Null means every day in
+  -- the run; {5,6} is a Friday-Saturday clinic.
+  add column if not exists weekdays smallint[];
 
 alter table gema.events drop constraint if exists events_break_window;
 alter table gema.events
@@ -43,6 +51,25 @@ alter table gema.events
   check (
     (break_start is null and break_end is null)
     or (break_start is not null and break_end is not null and break_end > break_start)
+  );
+
+alter table gema.events drop constraint if exists events_day_window;
+alter table gema.events
+  add constraint events_day_window
+  check (
+    (day_start is null and day_end is null)
+    or (day_start is not null and day_end is not null and day_end > day_start)
+  );
+
+alter table gema.events drop constraint if exists events_weekdays_range;
+alter table gema.events
+  add constraint events_weekdays_range
+  check (
+    weekdays is null
+    or (
+      array_length(weekdays, 1) between 1 and 7
+      and weekdays <@ array[0,1,2,3,4,5,6]::smallint[]
+    )
   );
 
 alter table gema.events drop constraint if exists events_teams_per_slot_check;
@@ -131,6 +158,10 @@ with check (gema.can_manage_event(event_slots.event_id));
 --     silently reopen the next time the host edits the event title.
 --   * The break is applied to NEW slots only, for the same reason: an admin who
 --     deliberately reopened a break window keeps it open.
+--
+-- The grid is one row per working day across the run, NOT one continuous span.
+-- A repeating clinic is a single event so its landing URL never changes; the
+-- run lives in starts_at..ends_at and the working day in day_start/day_end.
 -- ---------------------------------------------------------------------------
 create or replace function gema.generate_event_slots(
   p_event_id uuid,
@@ -139,7 +170,13 @@ create or replace function gema.generate_event_slots(
   -- Wall-clock in the event's own timezone, per event. Null/null runs the day
   -- straight through.
   p_break_start time default null,
-  p_break_end time default null
+  p_break_end time default null,
+  -- The working day. Null/null falls back to the event's own start and end
+  -- times on a single day, which is what a one-off clinic wants.
+  p_day_start time default null,
+  p_day_end time default null,
+  -- Which days of the week run. Null means every date in the range.
+  p_weekdays smallint[] default null
 )
 returns jsonb
 language plpgsql
@@ -185,6 +222,20 @@ begin
       using errcode = 'check_violation';
   end if;
 
+  if (p_day_start is null) <> (p_day_end is null) then
+    raise exception 'A working day needs both a start and an end'
+      using errcode = 'check_violation';
+  end if;
+
+  if p_day_start is not null and p_day_end <= p_day_start then
+    raise exception 'The working day must end after it starts'
+      using errcode = 'check_violation';
+  end if;
+
+  if p_weekdays is not null and array_length(p_weekdays, 1) is null then
+    raise exception 'Pick at least one day of the week' using errcode = 'check_violation';
+  end if;
+
   v_step := make_interval(mins => p_slot_minutes);
 
   if v_event.starts_at + v_step > v_event.ends_at then
@@ -192,21 +243,70 @@ begin
       using errcode = 'check_violation';
   end if;
 
-  -- A booked slot outside the new grid would strand a pass. Refuse, and let the
-  -- host move the booking or widen the window first.
+  -- The grid, built once and used three times: to spot bookings it would
+  -- strand, to decide what to delete, and to insert.
+  --
+  -- One row per working day in the run, not one long span. A Friday-Saturday
+  -- clinic is a single event whose starts_at..ends_at covers weeks; without the
+  -- per-day window the old grid stepped through the night and put 11:30pm on
+  -- sale. Dates are walked in the event's own timezone, so "Friday" means
+  -- Friday in Manila.
+  -- Belt and braces: two calls inside one transaction would collide on the name.
+  drop table if exists tmp_grid;
+
+  create temporary table tmp_grid on commit drop as
+  with days as (
+    select d::date as day
+    from generate_series(
+      (v_event.starts_at at time zone v_event.timezone)::date,
+      (v_event.ends_at at time zone v_event.timezone)::date,
+      interval '1 day'
+    ) as d
+    where p_weekdays is null
+       or extract(dow from d)::smallint = any (p_weekdays)
+  ),
+  bounds as (
+    select
+      day,
+      -- No working day set: fall back to the event's own times, which is what a
+      -- one-off clinic has always meant.
+      ((day + coalesce(p_day_start, (v_event.starts_at at time zone v_event.timezone)::time))
+        at time zone v_event.timezone) as day_from,
+      ((day + coalesce(p_day_end, (v_event.ends_at at time zone v_event.timezone)::time))
+        at time zone v_event.timezone) as day_to
+    from days
+  )
+  select
+    g as starts_at,
+    g + v_step as ends_at,
+    -- Break windows are born closed. Wall-clock in the event's timezone, never
+    -- UTC — 12:00 in Manila is 04:00 UTC.
+    (
+      p_break_start is not null
+      and p_break_end is not null
+      and (g at time zone v_event.timezone)::time >= p_break_start
+      and (g at time zone v_event.timezone)::time < p_break_end
+    ) as in_break
+  from bounds
+  cross join lateral generate_series(bounds.day_from, bounds.day_to - v_step, v_step) as g
+  -- The run can start mid-morning and end mid-afternoon; never sell outside it.
+  where g >= v_event.starts_at
+    and g + v_step <= v_event.ends_at;
+
+  create unique index on tmp_grid (starts_at);
+
+  if not exists (select 1 from tmp_grid) then
+    raise exception 'Those days and times produce no arrival windows'
+      using errcode = 'check_violation';
+  end if;
+
+  -- A booked slot the new grid does not contain would strand a pass. Refuse,
+  -- and let the host move the booking or widen the run first.
   select count(*) into v_orphans
   from gema.event_slots s
   where s.event_id = p_event_id
     and s.seats_taken > 0
-    and (
-      s.starts_at < v_event.starts_at
-      or s.starts_at + v_step > v_event.ends_at
-      -- Off-grid: interval has no modulo operator, so compare in seconds.
-      or mod(
-           extract(epoch from (s.starts_at - v_event.starts_at))::bigint,
-           (p_slot_minutes * 60)::bigint
-         ) <> 0
-    );
+    and not exists (select 1 from tmp_grid g where g.starts_at = s.starts_at);
 
   if v_orphans > 0 then
     raise exception
@@ -218,25 +318,11 @@ begin
   delete from gema.event_slots s
   where s.event_id = p_event_id
     and s.seats_taken = 0
-    and not exists (
-      select 1
-      from generate_series(v_event.starts_at, v_event.ends_at - v_step, v_step) as g
-      where g = s.starts_at
-    );
+    and not exists (select 1 from tmp_grid g where g.starts_at = s.starts_at);
 
   insert into gema.event_slots (event_id, starts_at, ends_at, seats_total, closed)
-  select
-    p_event_id,
-    g,
-    g + v_step,
-    p_seats_per_slot,
-    -- Break windows are born closed. Compared as wall-clock in the event's
-    -- timezone, never UTC — 12:00 in Manila is 04:00 UTC.
-    p_break_start is not null
-      and p_break_end is not null
-      and (g at time zone v_event.timezone)::time >= p_break_start
-      and (g at time zone v_event.timezone)::time < p_break_end
-  from generate_series(v_event.starts_at, v_event.ends_at - v_step, v_step) as g
+  select p_event_id, g.starts_at, g.ends_at, p_seats_per_slot, g.in_break
+  from tmp_grid g
   on conflict (event_id, starts_at) do update
     set ends_at = excluded.ends_at,
         -- Never below what is already booked; event_slots_fit would reject it.
@@ -259,6 +345,9 @@ begin
       teams_per_slot = p_seats_per_slot,
       break_start = p_break_start,
       break_end = p_break_end,
+      day_start = p_day_start,
+      day_end = p_day_end,
+      weekdays = p_weekdays,
       capacity = v_seats
   where id = p_event_id;
 
@@ -270,8 +359,9 @@ begin
 end;
 $$;
 
-grant execute on function gema.generate_event_slots(uuid, integer, integer, time, time)
-  to authenticated, service_role;
+grant execute on function gema.generate_event_slots(
+  uuid, integer, integer, time, time, time, time, smallint[]
+) to authenticated, service_role;
 
 -- Turning scheduling off: keep the rows (a booked pass still points at one),
 -- stop enforcing, and hand capacity back to the host.

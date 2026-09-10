@@ -62,6 +62,9 @@ export default async function EditEventPage({
           teamsPerSlot: data.teams_per_slot ?? undefined,
           breakStart: toTimeInputValue(data.break_start),
           breakEnd: toTimeInputValue(data.break_end),
+          dayStart: toTimeInputValue(data.day_start),
+          dayEnd: toTimeInputValue(data.day_end),
+          weekdays: data.weekdays ?? [],
         }
       : {}),
     description: event.description ?? undefined,

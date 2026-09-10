@@ -25,6 +25,7 @@ import {
   SLOT_MINUTES,
   TEAM_CHOICES,
   TEAMS_PER_SLOT,
+  WEEKDAYS,
 } from "@/lib/events/slots";
 import { uploadEventPhoto } from "@/lib/storage/event-photos";
 import { Button } from "@/components/ui/button";
@@ -96,6 +97,9 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
       timezone: "Asia/Manila",
       slotMinutes: SLOT_MINUTES,
       teamsPerSlot: TEAMS_PER_SLOT,
+      dayStart: "",
+      dayEnd: "",
+      weekdays: [],
       breakStart: DEFAULT_BREAK_START,
       breakEnd: DEFAULT_BREAK_END,
       ...defaultValues,
@@ -400,7 +404,48 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
               >
                 <Input id="breakEnd" type="time" step={300} {...register("breakEnd")} />
               </Field>
+              <Field
+                label="Day starts"
+                htmlFor="dayStart"
+                error={errors.dayStart?.message}
+                hint="Working hours on each day of the run."
+              >
+                <Input id="dayStart" type="time" step={300} {...register("dayStart")} />
+              </Field>
+              <Field
+                label="Day ends"
+                htmlFor="dayEnd"
+                error={errors.dayEnd?.message}
+                hint="Clear both to use the event's own start and end times."
+              >
+                <Input id="dayEnd" type="time" step={300} {...register("dayEnd")} />
+              </Field>
             </div>
+          ) : null}
+          {scheduled ? (
+            <Field
+              label="Days that run"
+              htmlFor="weekdays"
+              error={errors.weekdays?.message}
+              hint="A repeating clinic stays one event, so the URL never changes: the start and end dates above are the whole run, and these are the days inside it. Leave all unticked for every day."
+            >
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {WEEKDAYS.map((day) => (
+                  <label
+                    key={day.value}
+                    className="flex items-center gap-2"
+                    htmlFor={`weekday-${day.value}`}
+                  >
+                    <Checkbox
+                      id={`weekday-${day.value}`}
+                      value={day.value}
+                      {...register("weekdays")}
+                    />
+                    <span className="text-sm font-semibold">{day.short}</span>
+                  </label>
+                ))}
+              </div>
+            </Field>
           ) : null}
           <Field
             label="Capacity"

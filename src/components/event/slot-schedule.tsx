@@ -6,7 +6,12 @@ import { CircleSlash, Clock, Lock, LockOpen, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { setEventSlotClosed } from "@/lib/actions/event-slots";
-import { formatWindowRange, groupSlotsByHour, type EventSlot } from "@/lib/events/slots";
+import {
+  formatWindowRange,
+  groupSlotsByDay,
+  groupSlotsByHour,
+  type EventSlot,
+} from "@/lib/events/slots";
 import { cn } from "@/lib/utils";
 
 export type ScheduleGuest = {
@@ -46,6 +51,9 @@ export function SlotSchedule({
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const [now, setNow] = useState<number | null>(null);
+  // A repeating clinic is one event, so the grid can be weeks long. One day at
+  // a time is the only way this reads.
+  const [day, setDay] = useState<string | null>(null);
 
   // Post-mount only, then every half-minute — an arrival window does not need a
   // second hand.
@@ -66,20 +74,53 @@ export function SlotSchedule({
     });
   };
 
-  const groups = groupSlotsByHour(slots, timezone);
-  const open = slots.filter((s) => !s.closed);
+  const days = groupSlotsByDay(slots, timezone);
+  const activeDay = days.find((d) => d.key === day) ?? days[0] ?? null;
+  const shown = days.length > 1 ? (activeDay?.slots ?? []) : slots;
+  const groups = groupSlotsByHour(shown, timezone);
+  // Counters follow the day on screen: "14 seats free" across three weeks is
+  // not a number anyone can act on.
+  const open = shown.filter((s) => !s.closed);
   // Seats, not windows: with two teams a window holds two guests, and "3 booked"
   // meaning three windows would understate the room.
   const seatsBooked = open.reduce((sum, s) => sum + s.seatsTaken, 0);
   const seatsFree = open.reduce((sum, s) => sum + Math.max(s.seatsTotal - s.seatsTaken, 0), 0);
+  const closedCount = shown.length - open.length;
 
   return (
     <div className="grid gap-4">
       <Card className="grid grid-cols-3 gap-3 p-4 text-center">
         <Summary label="Booked" value={`${seatsBooked}`} />
         <Summary label="Seats free" value={`${seatsFree}`} />
-        <Summary label="Closed" value={`${slots.length - open.length}`} />
+        <Summary label="Closed" value={`${closedCount}`} />
       </Card>
+
+      {days.length > 1 ? (
+        <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Days">
+          {days.map((d) => {
+            const dayBooked = d.slots.reduce((sum, x) => sum + x.seatsTaken, 0);
+            return (
+              <button
+                key={d.key}
+                type="button"
+                aria-pressed={d.key === activeDay?.key}
+                onClick={() => setDay(d.key)}
+                className={cn(
+                  "shrink-0 rounded-xl border-2 px-3 py-2 text-left",
+                  d.key === activeDay?.key
+                    ? "border-foreground bg-secondary/60"
+                    : "border-border bg-background",
+                )}
+              >
+                <span className="block text-sm font-black">{d.label}</span>
+                <span className="block text-[11px] font-semibold text-muted-foreground">
+                  {dayBooked} booked
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       {error ? (
         <p className="text-sm font-semibold text-destructive" role="alert">

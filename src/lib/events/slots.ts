@@ -9,7 +9,7 @@
  * ships one team, so a slot holds one guest, but nothing here assumes that.
  */
 
-import { APP_TIMEZONE, formatLandingTime } from "@/lib/utils/format";
+import { APP_TIMEZONE, formatLandingTime, zonedDateKey } from "@/lib/utils/format";
 
 /**
  * The window length a new event starts with. The real value lives on the event
@@ -30,6 +30,25 @@ export const TEAMS_PER_SLOT = 1;
 
 /** What the form offers. The database allows 1-20. */
 export const TEAM_CHOICES = [1, 2, 3, 4, 5, 6] as const;
+
+/** 0 = Sunday, matching Postgres `extract(dow)` and JS `getDay()`. */
+export const WEEKDAYS: { value: number; short: string; label: string }[] = [
+  { value: 1, short: "Mon", label: "Monday" },
+  { value: 2, short: "Tue", label: "Tuesday" },
+  { value: 3, short: "Wed", label: "Wednesday" },
+  { value: 4, short: "Thu", label: "Thursday" },
+  { value: 5, short: "Fri", label: "Friday" },
+  { value: 6, short: "Sat", label: "Saturday" },
+  { value: 0, short: "Sun", label: "Sunday" },
+];
+
+/** A run of days reads better as "Fri, Sat" than as a set of numbers. */
+export function formatWeekdays(days: number[] | null | undefined): string {
+  if (!days || days.length === 0) return "Every day";
+  const picked = WEEKDAYS.filter((d) => days.includes(d.value));
+  if (picked.length === 7) return "Every day";
+  return picked.map((d) => d.short).join(", ");
+}
 
 /**
  * What the form offers. Every value divides an hour and satisfies the database's
@@ -208,6 +227,62 @@ export function formatSlotChip(slot: EventSlot, timezone?: string): string {
   const from = formatLandingTime(slot.startsAt, tz);
   const to = formatLandingTime(slot.endsAt, tz);
   return `${from.slice(0, -3)}–${to.slice(0, -3)}`;
+}
+
+/**
+ * Calendar day a window falls on, in the event's timezone — "2026-09-11".
+ *
+ * This is the axis a repeating clinic needs everywhere: which day someone is
+ * coming. It is NOT the day they registered, which is what a naive date filter
+ * on the attendance list would have given.
+ */
+export function zonedDayKey(iso: string, timezone?: string): string {
+  return zonedDateKey(iso, timezone || APP_TIMEZONE);
+}
+
+export function slotDayKey(slot: EventSlot, timezone?: string): string {
+  return zonedDayKey(slot.startsAt, timezone);
+}
+
+/** "Fri, 11 Sep" — the label above a day's windows. */
+export function formatDayLabel(iso: string, timezone?: string): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone || APP_TIMEZONE,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).formatToParts(new Date(iso));
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("weekday")}, ${get("day")} ${get("month")}`;
+}
+
+export type SlotDay<T extends EventSlot = EventSlot> = {
+  /** "2026-09-11" in the event's timezone. */
+  key: string;
+  label: string;
+  slots: T[];
+};
+
+/** Windows split by the day they fall on, earliest first. */
+export function groupSlotsByDay<T extends EventSlot>(
+  slots: T[],
+  timezone?: string,
+): SlotDay<T>[] {
+  const days = new Map<string, SlotDay<T>>();
+  for (const slot of slots) {
+    const key = slotDayKey(slot, timezone);
+    const existing = days.get(key);
+    if (existing) {
+      existing.slots.push(slot);
+    } else {
+      days.set(key, {
+        key,
+        label: formatDayLabel(slot.startsAt, timezone),
+        slots: [slot],
+      });
+    }
+  }
+  return [...days.values()].sort((a, b) => a.key.localeCompare(b.key));
 }
 
 export type SlotGroup<T extends EventSlot = EventSlot> = {

@@ -31,6 +31,9 @@ export type EventRow = {
   /** Wall-clock "HH:MM:SS" in the event's timezone, or null for no break. */
   break_start?: string | null;
   break_end?: string | null;
+  day_start?: string | null;
+  day_end?: string | null;
+  weekdays?: number[] | null;
   description: string | null;
   banner_url: string | null;
   cancelled_at: string | null;
@@ -65,6 +68,9 @@ export function mapEventRow(row: EventRow): Event {
     teamsPerSlot: row.teams_per_slot ?? null,
     breakStart: row.break_start ?? null,
     breakEnd: row.break_end ?? null,
+    dayStart: row.day_start ?? null,
+    dayEnd: row.day_end ?? null,
+    weekdays: row.weekdays ?? null,
     description: row.description,
     bannerUrl: row.banner_url,
     cancelledAt: row.cancelled_at,

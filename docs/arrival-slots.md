@@ -13,7 +13,9 @@ owner wants it tracked there, this file is the Change note ready to move.
 | | |
 |---|---|
 | Slot length | per event, 30 minutes by default. 10/15/20/30/45/60 on the form |
-| Working day | whatever the event's own start/end says. 9–5 gives 9–5 |
+| The run | `starts_at`..`ends_at` — weeks, not one sitting. One event, one URL |
+| Working day | per event, `day_start`/`day_end`. Blank falls back to the event times |
+| Days that run | per event weekday set. Blank means every date in the run |
 | Break | per event, 12:00–13:00 by default, blank for none |
 | Teams per window | per event, 1 by default, 1-6 on the form. One guest each |
 | Clinician choice | none — guests pick a time, the team is assigned at the door |
@@ -48,6 +50,39 @@ again. Moving the break in the form therefore opens the new windows but leaves
 the old ones closed until someone reopens them on the schedule page — the
 alternative was overruling a deliberate close, which is worse.
 
+## A repeating clinic is ONE event
+
+A Friday-and-Saturday check-up that runs every week is a single `events` row, so
+`/e/free-medical-check-up` never changes and the poster stays valid. What
+repeats is inside the event, not around it:
+
+```
+starts_at .. ends_at     the run — extend the end date to add more weeks
+weekdays                 {5,6} for Friday and Saturday
+day_start .. day_end     09:00-17:00, worked on each of those days
+break_start .. break_end 12:00-13:00, closed on each of those days
+```
+
+The grid is therefore **one block per working day**, not one continuous span.
+That distinction is not cosmetic: without it the generator stepped straight
+from Friday 9am to Saturday 5pm and put Friday 11:30pm on sale.
+
+Adding more weeks is editing the end date. It is one field, not a new event.
+
+### Which day is a guest coming?
+
+`event_registrations.slot_id -> event_slots.starts_at`. That is the day they are
+**coming**, which is the only axis that separates a repeating clinic's
+registrations.
+
+It is emphatically *not* `registered_at`. A plain date filter on the attendance
+list would have used that and put a Monday sign-up for Saturday's clinic into
+Monday's bucket.
+
+Everything follows from it: the booking sheet shows day tabs and defaults to the
+first day with room, the admin schedule shows one day at a time with per-day
+counters, and both attendance pages take `?day=YYYY-MM-DD`.
+
 ## Why a window and not an appointment
 
 A fixed grid at a free community check-up runs late by mid-morning. "Your slot:
@@ -66,6 +101,9 @@ gema.events
   teams_per_slot      int, 1-20, null unless scheduled
   break_start         time, null for a day with no break
   break_end           time, both-or-neither, end after start
+  day_start           time, the working day within a multi-day run
+  day_end             time, both-or-neither, end after start
+  weekdays            smallint[], 0=Sun..6=Sat, null means every day
   capacity            DERIVED when scheduled — sum(seats_total) of OPEN slots
 
 gema.event_slots
@@ -114,6 +152,7 @@ double-count.
 | `src/components/prospect/prospect-registration-form.tsx` | `/register` fallback |
 | `src/components/event/event-form.tsx` | the host toggle |
 | `src/components/attendance/attendance-table.tsx` | the window at the door |
+| `src/components/attendance/attendance-day-tabs.tsx` | one day of a run at a time |
 | `src/app/(admin)/admin/events/[id]/schedule/page.tsx` | the clinic day, window by window |
 | `src/components/event/slot-schedule.tsx` | the grid, with the open/close toggle |
 | `src/components/landing/pass-recall.tsx` | the way back to a booked pass |

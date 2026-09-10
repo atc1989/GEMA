@@ -84,6 +84,9 @@ function schedulingError(message: string): string {
   const passThrough = [
     "would strand",
     "shorter than one slot",
+    "no arrival windows",
+    "working day",
+    "day of the week",
     "set an end time",
     "break",
     "slot length",
@@ -110,6 +113,9 @@ async function syncEventSlots(
   breakEnd?: string,
   slotMinutes?: number,
   teamsPerSlot?: number,
+  dayStart?: string,
+  dayEnd?: string,
+  weekdays?: number[],
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (enabled) {
     const { error } = await supabase.rpc("generate_event_slots", {
@@ -120,6 +126,11 @@ async function syncEventSlots(
       // half-set pair, and the RPC refuses it again.
       p_break_start: breakStart ?? null,
       p_break_end: breakEnd ?? null,
+      // Null weekdays means every date in the run; the form posts an empty
+      // array for that, so it is normalised here rather than in the RPC.
+      p_day_start: dayStart ?? null,
+      p_day_end: dayEnd ?? null,
+      p_weekdays: weekdays && weekdays.length > 0 ? weekdays : null,
     });
     if (error) {
       console.error("generate_event_slots failed:", error.code, error.message);
@@ -196,6 +207,9 @@ export async function createEvent(
     parsed.data.breakEnd,
     parsed.data.slotMinutes,
     parsed.data.teamsPerSlot,
+    parsed.data.dayStart,
+    parsed.data.dayEnd,
+    parsed.data.weekdays,
   );
   if (!slotSync.ok) {
     return { ok: false, error: `Event saved, but ${slotSync.error}` };
@@ -299,6 +313,9 @@ export async function updateEvent(
     parsed.data.breakEnd,
     parsed.data.slotMinutes,
     parsed.data.teamsPerSlot,
+    parsed.data.dayStart,
+    parsed.data.dayEnd,
+    parsed.data.weekdays,
   );
   if (!slotSync.ok) {
     return { ok: false, error: `Event saved, but ${slotSync.error}` };

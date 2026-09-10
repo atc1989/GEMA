@@ -12,10 +12,13 @@ import {
   type RegistrationSuccess,
 } from "@/lib/actions/registration";
 import {
+  formatDayLabel,
   formatSlotChip,
   formatWindowRange,
+  groupSlotsByDay,
   groupSlotsByHour,
   openSlots,
+  slotDayKey,
   slotIsOpen,
   type EventScheduling,
 } from "@/lib/events/slots";
@@ -88,6 +91,10 @@ export function BookSheet({
     initialScheduling ? "time" : "details",
   );
   const [refreshing, setRefreshing] = useState(false);
+  // Which day of the run they are looking at. A Friday-Saturday clinic booked
+  // as one event can carry weeks of windows, and one flat list of those is
+  // unusable.
+  const [day, setDay] = useState<string | null>(null);
   const [qr, setQr] = useState<string | null>(null);
   const sheet = useRef<HTMLDivElement>(null);
   const restoreFocus = useRef<HTMLElement | null>(null);
@@ -213,6 +220,10 @@ export function BookSheet({
     (!scheduling || slotId !== null);
 
   const available = scheduling ? openSlots(scheduling) : [];
+  const days = groupSlotsByDay(available, scheduling?.timezone);
+  // Default to the first day that still has room, not to today: on a Saturday
+  // that is already full the useful answer is next Friday.
+  const activeDay = days.find((d) => d.key === day) ?? days[0] ?? null;
   const chosen = scheduling?.slots.find((slot) => slot.id === slotId) ?? null;
   const picking = Boolean(scheduling) && step === "time";
 
@@ -285,6 +296,7 @@ export function BookSheet({
             {success.slotStartsAt && success.slotEndsAt ? (
               <p className="bs-window">
                 <span className="bs-window-label">Arrive</span>
+                <b>{formatDayLabel(success.slotStartsAt, scheduling?.timezone)}</b>
                 <b>
                   {formatWindowRange(
                     success.slotStartsAt,
@@ -347,7 +359,12 @@ export function BookSheet({
                   onClick={() => setStep("time")}
                 >
                   <span className="bs-chosen-label">Arrive</span>
-                  <b>{formatWindowRange(chosen.startsAt, chosen.endsAt, scheduling?.timezone)}</b>
+                  <b>
+                    {days.length > 1
+                      ? `${formatDayLabel(chosen.startsAt, scheduling?.timezone)}, `
+                      : ""}
+                    {formatWindowRange(chosen.startsAt, chosen.endsAt, scheduling?.timezone)}
+                  </b>
                   <span className="bs-chosen-change">Change</span>
                 </button>
               ) : null}
@@ -362,7 +379,24 @@ export function BookSheet({
                       : "Every arrival time has gone. Watch for the next check-up date."}
                   </p>
                 ) : (
-                  groupSlotsByHour(available, scheduling?.timezone).map((group) => (
+                  <>
+                    {days.length > 1 ? (
+                      <div className="bs-days" role="group" aria-label="Days">
+                        {days.map((d) => (
+                          <button
+                            key={d.key}
+                            type="button"
+                            className="bs-day"
+                            aria-pressed={d.key === activeDay?.key}
+                            onClick={() => setDay(d.key)}
+                          >
+                            {d.label}
+                            <em>{d.slots.length} left</em>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                    {groupSlotsByHour(activeDay?.slots ?? [], scheduling?.timezone).map((group) => (
                     <div className="bs-slot-group" key={group.key}>
                       <div className="bs-slot-hour">{group.label}</div>
                       <div className="bs-slot-row" role="group" aria-label={`${group.label} arrival times`}>
@@ -374,6 +408,7 @@ export function BookSheet({
                             aria-pressed={slot.id === slotId}
                             onClick={() => {
                               setSlotId(slot.id);
+                              setDay(slotDayKey(slot, scheduling?.timezone));
                               setFormError(null);
                               setStep("details");
                             }}
@@ -388,7 +423,8 @@ export function BookSheet({
                         ))}
                       </div>
                     </div>
-                  ))
+                  ))}
+                  </>
                 )}
               </div>
             ) : (
