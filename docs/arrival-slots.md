@@ -223,14 +223,33 @@ sheet, which never renders before mount.
 
 ## Deploy
 
-**Order matters.** The migration drops the 11-argument
-`register_prospect_for_event` and creates a 12-argument one. Old app code sends
-11 and gets `PGRST202` against the new signature.
+**GEMA runs on Production Auth (`rvwseybgimmewuoccecu`, ~431 real accounts).**
+The migration replaces `register_prospect_for_event`, which the deployed app
+calls on every booking, so it ships in two halves:
 
-1. Apply `supabase/event_slot_scheduling.sql` to Staging
-   (`fxdsnacuonfvutdquogb`).
-2. Ship the app.
-3. Same file promotes to Production (`rvwseybgimmewuoccecu`) — it is re-runnable.
+| | |
+|---|---|
+| `event_slot_scheduling_step1.sql` | additive only — columns, the slots table, the RPCs, the trigger. Safe with guests mid-booking |
+| `event_slot_scheduling_step2.sql` | replaces `register_prospect_for_event`. Run after the app is deployed |
+
+`event_slot_scheduling.sql` is the two concatenated. It is fine on a database
+nobody is using and wrong on a live one.
+
+Order, per database — Staging first, then Production:
+
+1. **Step 1.** Nothing the running app calls changes shape.
+2. **Deploy the app.** It sends `p_slot_id` only when a window was picked, so an
+   unscheduled booking still resolves against the old 11-argument function.
+3. **Step 2.** Both signatures cannot coexist — PostgREST cannot choose between
+   an 11-argument function and a 12-argument one whose last argument defaults,
+   so it refuses both. The drop and create share a transaction; other sessions
+   block rather than error.
+
+Because of step 2's app-side tolerance, the gap between 2 and 3 is harmless:
+arrival times simply do not work yet, and no event has them switched on.
+
+After any of it, PostgREST caches the schema — `notify pgrst, 'reload schema';`
+if the app still cannot see a new column.
 
 Run it **after** `remove_registration_city.sql`, which holds the current
 signature. Do not apply an older copy of that function afterwards
