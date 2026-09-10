@@ -42,6 +42,15 @@ function friendlyDbError(message: string, fallback = "Something went wrong. Plea
   if (m.includes("row-level security") || m.includes("permission denied")) {
     return "You do not have permission to do that.";
   }
+  // PGRST204 and friends: the app is ahead of the database. Admin-only screens,
+  // so the real cause is far more use than a shrug — this is a migration that
+  // has not been applied, not anything the host did wrong.
+  const missingColumn = /'([a-z_]+)' column/.exec(message)?.[1];
+  if (missingColumn || m.includes("schema cache") || m.includes("does not exist")) {
+    return missingColumn
+      ? `This database has no "${missingColumn}" column yet — a migration has not been applied. Ask an admin to run the pending SQL.`
+      : "This database is missing a column the app expects — a migration has not been applied.";
+  }
   return fallback;
 }
 
@@ -403,6 +412,25 @@ export async function duplicateEvent(
   const startsAt = shift(source.starts_at) as string;
   const endsAt = shift(source.ends_at);
 
+  // `select *` returns whatever the database actually has, so a missing key
+  // means event_slot_scheduling.sql has not been applied here. Naming those
+  // columns anyway makes PostgREST reject the whole insert on schema cache,
+  // which is how duplicating failed with nothing but a shrug. Duplicating an
+  // event has no business waiting on the slots migration.
+  const hasScheduling = source.scheduling_enabled !== undefined;
+  const schedulingColumns = hasScheduling
+    ? {
+        scheduling_enabled: source.scheduling_enabled ?? false,
+        slot_minutes: source.slot_minutes ?? null,
+        teams_per_slot: source.teams_per_slot ?? null,
+        break_start: source.break_start ?? null,
+        break_end: source.break_end ?? null,
+        day_start: source.day_start ?? null,
+        day_end: source.day_end ?? null,
+        weekdays: source.weekdays ?? null,
+      }
+    : {};
+
   const { data: created, error: insertError } = await supabase
     .from("events")
     .insert({
@@ -428,14 +456,7 @@ export async function duplicateEvent(
       host_member_id: source.host_member_id,
       metadata: source.metadata ?? {},
       // Slot settings ride along; the grid itself is rebuilt below.
-      scheduling_enabled: source.scheduling_enabled ?? false,
-      slot_minutes: source.slot_minutes ?? null,
-      teams_per_slot: source.teams_per_slot ?? null,
-      break_start: source.break_start ?? null,
-      break_end: source.break_end ?? null,
-      day_start: source.day_start ?? null,
-      day_end: source.day_end ?? null,
-      weekdays: source.weekdays ?? null,
+      ...schedulingColumns,
     })
     .select("id, slug")
     .single<{ id: string; slug: string }>();
@@ -448,6 +469,7 @@ export async function duplicateEvent(
         : "Could not duplicate the event.",
     };
   }
+
 
   const { data: speakers } = await supabase
     .from("event_speakers")
@@ -468,7 +490,7 @@ export async function duplicateEvent(
     { startsAt, timezone: source.timezone, adminId: admin.id },
   );
 
-  if (source.scheduling_enabled) {
+  if (hasScheduling && source.scheduling_enabled) {
     const slotSync = await syncEventSlots(
       supabase,
       created.id,
