@@ -240,6 +240,26 @@ export const eventFormSchema = z
       .refine((v) => v === undefined || (Number.isInteger(v) && v >= 1 && v <= 20), {
         message: "Between 1 and 20 teams.",
       }),
+    /**
+     * When every window has gone, take names for a queue instead of turning
+     * people away. Capped, because an uncapped list is how two hundred people
+     * turn up to a hall with twenty-eight chairs.
+     */
+    standbyEnabled: z
+      .union([z.boolean(), z.string()])
+      .optional()
+      .transform((v) => v === true || v === "true" || v === "on"),
+    standbyLimit: z
+      .union([z.string(), z.number()])
+      .optional()
+      .transform((v) => {
+        if (v === undefined || v === "") return undefined;
+        const n = typeof v === "number" ? v : Number(v);
+        return Number.isFinite(n) ? n : NaN;
+      })
+      .refine((v) => v === undefined || (Number.isInteger(v) && v >= 1 && v <= 500), {
+        message: "A standby list holds between 1 and 500 people.",
+      }),
     breakStart: clockTime,
     breakEnd: clockTime,
     /**

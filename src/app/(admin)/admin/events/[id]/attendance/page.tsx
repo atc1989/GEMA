@@ -31,6 +31,8 @@ type RegRow = {
   registered_at: string;
   registration_kind: RegistrationKind;
   slot_id: string | null;
+  standby: boolean | null;
+  standby_day: string | null;
   // Embedded through the slot_id FK; Supabase returns an object, or null.
   event_slots: { starts_at: string; ends_at: string } | null;
   admin_note: string | null;
@@ -67,7 +69,7 @@ export default async function EventAttendancePage({
   const [{ data: regs }, { data: atts }, { data: sponsors }] = await Promise.all([
     supabase
       .from("event_registrations")
-      .select("id, attendee_name, attendee_email, attendee_phone, registered_at, registration_kind, admin_note, slot_id, event_slots(starts_at, ends_at)")
+      .select("id, attendee_name, attendee_email, attendee_phone, registered_at, registration_kind, admin_note, slot_id, standby, standby_day, event_slots(starts_at, ends_at)")
       .eq("event_id", id)
       .neq("status", "cancelled")
       .order("registered_at", { ascending: true })
@@ -89,11 +91,13 @@ export default async function EventAttendancePage({
   // alone would need a zone offset and gets the label wrong either side of UTC.
   const dayCounts = new Map<string, { count: number; sample: string }>();
   for (const r of allRegistrations) {
-    if (!r.event_slots) continue;
-    const key = zonedDayKey(r.event_slots.starts_at, event.timezone);
+    const key = r.event_slots
+      ? zonedDayKey(r.event_slots.starts_at, event.timezone)
+      : r.standby_day;
+    if (!key) continue;
     const entry = dayCounts.get(key);
     if (entry) entry.count += 1;
-    else dayCounts.set(key, { count: 1, sample: r.event_slots.starts_at });
+    else dayCounts.set(key, { count: 1, sample: r.event_slots?.starts_at ?? `${key}T12:00:00Z` });
   }
   const days: AttendanceDay[] = [...dayCounts.entries()]
     .sort((a, b) => a[0].localeCompare(b[0]))
@@ -105,10 +109,10 @@ export default async function EventAttendancePage({
 
   const activeDay = dayParam && dayCounts.has(dayParam) ? dayParam : null;
   const registrations = activeDay
-    ? allRegistrations.filter(
-        (r) =>
-          r.event_slots &&
-          zonedDayKey(r.event_slots.starts_at, event.timezone) === activeDay,
+    ? allRegistrations.filter((r) =>
+        r.event_slots
+          ? zonedDayKey(r.event_slots.starts_at, event.timezone) === activeDay
+          : r.standby_day === activeDay,
       )
     : allRegistrations;
   const checkedInAtById = new Map(
@@ -131,6 +135,7 @@ export default async function EventAttendancePage({
     arrivalWindow: r.event_slots
       ? formatWindowRange(r.event_slots.starts_at, r.event_slots.ends_at, event.timezone)
       : null,
+    standby: r.standby === true,
     adminNote: r.admin_note,
   });
 

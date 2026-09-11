@@ -34,6 +34,8 @@ export type EventRow = {
   day_start?: string | null;
   day_end?: string | null;
   weekdays?: number[] | null;
+  standby_enabled?: boolean | null;
+  standby_limit?: number | null;
   description: string | null;
   banner_url: string | null;
   cancelled_at: string | null;
@@ -71,6 +73,8 @@ export function mapEventRow(row: EventRow): Event {
     dayStart: row.day_start ?? null,
     dayEnd: row.day_end ?? null,
     weekdays: row.weekdays ?? null,
+    standbyEnabled: row.standby_enabled === true,
+    standbyLimit: row.standby_limit ?? null,
     description: row.description,
     bannerUrl: row.banner_url,
     cancelledAt: row.cancelled_at,

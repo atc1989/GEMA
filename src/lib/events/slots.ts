@@ -31,6 +31,18 @@ export const TEAMS_PER_SLOT = 1;
 /** What the form offers. The database allows 1-20. */
 export const TEAM_CHOICES = [1, 2, 3, 4, 5, 6] as const;
 
+/**
+ * Below this many seats the page stops naming the number.
+ *
+ * An exact count is useful while it is comfortable and becomes a countdown
+ * clock once it is small. What it must never do is claim seats that are gone —
+ * at zero the page says fully booked and offers the standby list instead.
+ */
+export const SEATS_LOW_THRESHOLD = 5;
+
+/** Standby list size a new event starts with; the real value is on the event. */
+export const STANDBY_LIMIT = 80;
+
 /** 0 = Sunday, matching Postgres `extract(dow)` and JS `getDay()`. */
 export const WEEKDAYS: { value: number; short: string; label: string }[] = [
   { value: 1, short: "Mon", label: "Monday" },
@@ -97,6 +109,14 @@ export type EventScheduling = {
   timezone: string;
   slotMinutes: number;
   slots: EventSlot[];
+  /** A full day offers the queue instead of turning people away. */
+  standbyEnabled: boolean;
+  standbyLimit: number;
+  /**
+   * Waiting per day, keyed "YYYY-MM-DD" — or "all" on a single-day event.
+   * Counts only: the public payload never carries a name.
+   */
+  standbyCounts: Record<string, number>;
 };
 
 function str(value: unknown): string {
@@ -136,12 +156,56 @@ export function parseEventScheduling(raw: unknown): EventScheduling | null {
 
   slots.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
 
+  const rawCounts =
+    row.standby_counts && typeof row.standby_counts === "object"
+      ? (row.standby_counts as Record<string, unknown>)
+      : {};
+  const standbyCounts: Record<string, number> = {};
+  for (const [key, value] of Object.entries(rawCounts)) {
+    standbyCounts[key] = int(value, 0);
+  }
+
   return {
     eventId,
     timezone: str(row.timezone) || APP_TIMEZONE,
     slotMinutes: int(row.slot_minutes, SLOT_MINUTES),
     slots,
+    standbyEnabled: row.standby_enabled === true,
+    standbyLimit: int(row.standby_limit, STANDBY_LIMIT),
+    standbyCounts,
   };
+}
+
+/** Waiting on a given day — "all" on a single-day event. */
+export function standbyWaiting(
+  scheduling: EventScheduling,
+  dayKey?: string | null,
+): number {
+  return scheduling.standbyCounts[dayKey || "all"] ?? 0;
+}
+
+/** The queue itself can fill up. 80 people for 28 chairs is already generous. */
+export function standbyIsFull(
+  scheduling: EventScheduling,
+  dayKey?: string | null,
+): boolean {
+  return standbyWaiting(scheduling, dayKey) >= scheduling.standbyLimit;
+}
+
+/**
+ * What the page says about seats.
+ *
+ * Exact while the number is comfortable, vague when it is short, and honest
+ * when it is gone — a page that says "a few seats left" to somebody who then
+ * travels an hour to be turned away has cost more than the registration.
+ */
+export function seatsLabel(scheduling: EventScheduling | null, seatsFree: number): string {
+  if (seatsFree > SEATS_LOW_THRESHOLD) return `Free · ${seatsFree} seats left`;
+  if (seatsFree > 0) return "Free · only a few seats left";
+  if (scheduling?.standbyEnabled && !standbyIsFull(scheduling)) {
+    return "Fully booked · standby open";
+  }
+  return "Fully booked";
 }
 
 export function slotSeatsLeft(slot: EventSlot): number {

@@ -35,6 +35,12 @@ export type RegistrationSuccess = {
   /** Arrival window, on scheduled events. Null when the event has no slots. */
   slotStartsAt: string | null;
   slotEndsAt: string | null;
+  /** On the standby list rather than holding a window. */
+  standby: boolean;
+  /** Their place in the queue at the moment they joined. */
+  standbyRank: number | null;
+  /** "YYYY-MM-DD" — which day they said they are coming. */
+  standbyDay: string | null;
 };
 
 export type MemberRsvpSuccess = {
@@ -122,6 +128,12 @@ export async function registerProspectForEvent(
       p_ref_code: values.refCode ?? null,
     };
     if (values.slotId) rpcArgs.p_slot_id = values.slotId;
+    // Same reason as p_slot_id: sent only when it applies, so this build still
+    // resolves against a database that has not had the standby migration yet.
+    if (values.standby) {
+      rpcArgs.p_standby = true;
+      if (values.standbyDay) rpcArgs.p_standby_day = values.standbyDay;
+    }
 
     const { data, error } = await supabase.rpc("register_prospect_for_event", rpcArgs);
 
@@ -129,6 +141,9 @@ export async function registerProspectForEvent(
       const claimed = (data ?? null) as {
         slot_starts_at?: string | null;
         slot_ends_at?: string | null;
+        standby?: boolean | null;
+        standby_rank?: number | null;
+        standby_day?: string | null;
       } | null;
       return {
         ok: true,
@@ -141,6 +156,9 @@ export async function registerProspectForEvent(
           timezone: event.timezone,
           slotStartsAt: claimed?.slot_starts_at ?? null,
           slotEndsAt: claimed?.slot_ends_at ?? null,
+          standby: claimed?.standby === true,
+          standbyRank: claimed?.standby_rank ?? null,
+          standbyDay: claimed?.standby_day ?? null,
         },
       };
     }
@@ -157,6 +175,12 @@ export async function registerProspectForEvent(
         ok: false,
         error: "That arrival time has just been taken. Please pick another.",
         code: "slot_taken",
+      };
+    }
+    if (message.includes("standby list is full")) {
+      return {
+        ok: false,
+        error: "The standby list is full for that day. Watch for the next check-up.",
       };
     }
     if (message.includes("uniq_event_registration_attendee")) {
@@ -262,6 +286,9 @@ function friendlyDbError(message: string): string {
   if (m.includes("consent")) return "You must agree to the privacy terms to register.";
   if (m.includes("capacity")) return "Sorry, this event is fully booked.";
   if (m.includes("pick an arrival time")) return "Please pick an arrival time.";
+  if (m.includes("pick the day")) return "Please pick the day you are coming.";
+  if (m.includes("standby list")) return "The standby list is full for that day.";
+  if (m.includes("no standby list")) return "This event is fully booked.";
   if (m.includes("arrival time")) return "That arrival time is no longer available.";
   if (m.includes("not open") || m.includes("not found")) {
     return "This event is not open for registration.";

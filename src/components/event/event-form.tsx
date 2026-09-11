@@ -23,6 +23,7 @@ import {
   DEFAULT_BREAK_START,
   SLOT_MINUTE_CHOICES,
   SLOT_MINUTES,
+  STANDBY_LIMIT,
   TEAM_CHOICES,
   TEAMS_PER_SLOT,
   WEEKDAYS,
@@ -97,6 +98,8 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
       timezone: "Asia/Manila",
       slotMinutes: SLOT_MINUTES,
       teamsPerSlot: TEAMS_PER_SLOT,
+      standbyEnabled: false,
+      standbyLimit: STANDBY_LIMIT,
       dayStart: "",
       dayEnd: "",
       weekdays: [],
@@ -113,6 +116,7 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
   const scheduled = watch("schedulingEnabled") === true;
   const slotLength = Number(watch("slotMinutes")) || SLOT_MINUTES;
   const teams = Number(watch("teamsPerSlot")) || TEAMS_PER_SLOT;
+  const standby = watch("standbyEnabled") === true;
   const showVenue = selectedMode !== "online";
   const showOnline = selectedMode !== "in_person";
   const titleWatch = useWatch({ control, name: "title" });
@@ -445,6 +449,36 @@ export function EventForm({ mode, eventId, defaultValues, landingPreviewHref }: 
                   </label>
                 ))}
               </div>
+            </Field>
+          ) : null}
+          <Field
+            label="Standby list"
+            htmlFor="standbyEnabled"
+            error={errors.standbyEnabled?.message}
+            hint="When every seat has gone, take names for a queue instead of turning people away. Standby guests get a pass and a place in line, but no fixed time — they are seen as seats open up."
+          >
+            <label className="flex items-start gap-3" htmlFor="standbyEnabled">
+              <Checkbox id="standbyEnabled" {...register("standbyEnabled")} />
+              <span className="text-sm font-semibold leading-5">
+                Keep taking names when full
+              </span>
+            </label>
+          </Field>
+          {standby ? (
+            <Field
+              label="Standby list holds"
+              htmlFor="standbyLimit"
+              error={errors.standbyLimit?.message}
+              hint="Per day on a multi-day run. Leave the default unless you know the venue can hold the queue."
+            >
+              <Input
+                id="standbyLimit"
+                type="number"
+                min={1}
+                max={500}
+                step={1}
+                {...register("standbyLimit")}
+              />
             </Field>
           ) : null}
           <Field

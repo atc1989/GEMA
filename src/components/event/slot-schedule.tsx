@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { CircleSlash, Clock, Lock, LockOpen, UserRound } from "lucide-react";
+import { CircleSlash, Clock, Lock, LockOpen, UserRound, UserX } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { markRegistrationNoShow } from "@/lib/actions/attendance";
 import { setEventSlotClosed } from "@/lib/actions/event-slots";
 import {
   formatWindowRange,
@@ -19,6 +20,17 @@ export type ScheduleGuest = {
   name: string;
   passCode: string;
   checkedIn: boolean;
+  noShow: boolean;
+};
+
+/** Somebody waiting for a seat to open up, in the order they joined. */
+export type StandbyGuest = {
+  registrationId: string;
+  name: string;
+  passCode: string;
+  checkedIn: boolean;
+  /** "YYYY-MM-DD" in the event timezone, or null on a single-day event. */
+  day: string | null;
 };
 
 export type ScheduleSlot = EventSlot & {
@@ -38,11 +50,14 @@ export type ScheduleSlot = EventSlot & {
 export function SlotSchedule({
   eventId,
   slots,
+  standby,
   timezone,
   canEdit,
 }: {
   eventId: string;
   slots: ScheduleSlot[];
+  /** The queue. Empty when the event takes no standby. */
+  standby: StandbyGuest[];
   timezone: string;
   /** Cancelled or finished events are read-only. */
   canEdit: boolean;
@@ -62,6 +77,21 @@ export function SlotSchedule({
     const tick = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(tick);
   }, []);
+
+  const setNoShow = (guest: ScheduleGuest) => {
+    if (!canEdit) return;
+    setPendingId(guest.registrationId);
+    setError(null);
+    startTransition(async () => {
+      const result = await markRegistrationNoShow({
+        eventId,
+        registrationId: guest.registrationId,
+        noShow: !guest.noShow,
+      });
+      setPendingId(null);
+      if (!result.ok) setError(result.error);
+    });
+  };
 
   const toggle = (slot: ScheduleSlot) => {
     if (!canEdit || slot.seatsTaken > 0) return;
@@ -86,6 +116,12 @@ export function SlotSchedule({
   const seatsBooked = open.reduce((sum, s) => sum + s.seatsTaken, 0);
   const seatsFree = open.reduce((sum, s) => sum + Math.max(s.seatsTotal - s.seatsTaken, 0), 0);
   const closedCount = shown.length - open.length;
+  // The queue for the day on screen. A freed seat is one a booked guest did not
+  // turn up for, which is exactly what the next name in line is waiting on.
+  const dayStandby =
+    days.length > 1 && activeDay
+      ? standby.filter((g) => g.day === activeDay.key)
+      : standby;
 
   return (
     <div className="grid gap-4">
@@ -94,6 +130,49 @@ export function SlotSchedule({
         <Summary label="Seats free" value={`${seatsFree}`} />
         <Summary label="Closed" value={`${closedCount}`} />
       </Card>
+
+      {dayStandby.length > 0 || seatsFree > 0 ? (
+        <Card className="grid gap-3 p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-sm font-black">
+              Standby · {dayStandby.length} waiting
+            </p>
+            <p className="text-sm font-bold text-success">
+              {seatsFree} seat{seatsFree === 1 ? "" : "s"} free
+            </p>
+          </div>
+          {dayStandby.length === 0 ? (
+            <p className="text-sm font-semibold text-muted-foreground">
+              Nobody waiting.
+            </p>
+          ) : (
+            <ol className="grid gap-1">
+              {dayStandby.map((guest, index) => (
+                <li
+                  key={guest.registrationId}
+                  className="flex flex-wrap items-center gap-x-2 text-sm font-bold"
+                >
+                  <span className="w-6 shrink-0 tabular-nums text-muted-foreground">
+                    {index + 1}.
+                  </span>
+                  <span className="truncate">{guest.name}</span>
+                  <span className="font-mono text-[11px] font-semibold text-muted-foreground">
+                    {guest.passCode}
+                  </span>
+                  {guest.checkedIn ? (
+                    <span className="text-[10px] font-black uppercase tracking-wide text-success">
+                      Seen
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ol>
+          )}
+          <p className="text-xs font-semibold text-muted-foreground">
+            Mark a booked guest a no-show to free their window, then call the next name.
+          </p>
+        </Card>
+      ) : null}
 
       {days.length > 1 ? (
         <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Days">
@@ -201,6 +280,22 @@ export function SlotSchedule({
                               <span className="text-[10px] font-black uppercase tracking-wide text-success">
                                 In
                               </span>
+                            ) : null}
+                            {guest.noShow ? (
+                              <span className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+                                No-show
+                              </span>
+                            ) : null}
+                            {canEdit && !guest.checkedIn ? (
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                                disabled={pendingId === guest.registrationId}
+                                onClick={() => setNoShow(guest)}
+                              >
+                                <UserX className="size-3" aria-hidden="true" />
+                                {guest.noShow ? "Undo" : "No-show"}
+                              </button>
                             ) : null}
                           </li>
                         ))}

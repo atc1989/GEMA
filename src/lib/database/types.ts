@@ -150,6 +150,9 @@ export interface Event {
   dayEnd: string | null;
   /** Days of the week the run happens on, 0 = Sunday. Null means every day. */
   weekdays: number[] | null;
+  /** Take names once the grid is full, up to standbyLimit. */
+  standbyEnabled: boolean;
+  standbyLimit: number | null;
   description: string | null;
   bannerUrl: string | null;
   cancelledAt: string | null;

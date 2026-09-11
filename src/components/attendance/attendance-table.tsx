@@ -25,6 +25,11 @@ export type AttendanceRow = {
    * this, not by when someone registered.
    */
   arrivalWindow: string | null;
+  /**
+   * On the queue, no window. Without this on the row, staff scanning in order
+   * seat walk-ups ahead of the people who booked 10:30 and did what was asked.
+   */
+  standby: boolean;
   adminNote?: string | null;
 };
 
@@ -90,7 +95,11 @@ export function AttendanceTable({
                 <p className="truncate text-xs font-semibold text-muted-foreground">
                   {[row.email, row.phone].filter(Boolean).join(" · ") || "—"}
                 </p>
-                {row.arrivalWindow ? (
+                {row.standby ? (
+                  <p className="truncate text-[11px] font-black uppercase tracking-wide text-purple">
+                    Standby · no fixed time
+                  </p>
+                ) : row.arrivalWindow ? (
                   <p className="truncate text-[11px] font-black uppercase tracking-wide text-foreground">
                     Arrive {row.arrivalWindow}
                   </p>
