@@ -19,9 +19,10 @@ owner wants it tracked there, this file is the Change note ready to move.
 | Break | per event, 12:00–13:00 by default, blank for none |
 | Teams per window | per event, 1 by default, 1-6 on the form. One guest each |
 | Clinician choice | none — guests pick a time, the team is assigned at the door |
-| Walk-ins | none. The grid is the capacity |
+| Walk-ins | none. A full day takes a **standby list** instead, capped at 80/day |
+| Seats shown | exact above 5, "only a few seats left" at 1-5, never a number at 0 |
 | Copy | arrival window, never "appointment" |
-| No-show release | **out of v1**. A booked window stays spent |
+| No-show release | **in**. A button, not a timer — it is what moves the queue |
 | Templates | medical and check-up only. Sizzle and Session book as before |
 
 The grid comes from `events.starts_at` / `ends_at` — nothing hard-codes a
@@ -102,6 +103,64 @@ Everything follows from it: the booking sheet shows day tabs and defaults to the
 first day with room, the admin schedule shows one day at a time with per-day
 counters, and both attendance pages take `?day=YYYY-MM-DD`.
 
+## Standby
+
+A full day used to be a closed door. It now takes names, up to 80 per day.
+
+```
+event_registrations.standby      true = in the queue, holds no window
+event_registrations.standby_day  which day of a run they mean to come
+events.standby_enabled           per event
+events.standby_limit             per event per day, 80 by default
+```
+
+**Queue position is derived, never stored** — `standby_position()` counts by
+`registered_at`. Cancel number three and number four becomes three, which is the
+only behaviour a queue can have without going stale.
+
+`standby` is explicit rather than inferred from a null `slot_id`: on an
+unscheduled event every row has a null slot, and those guests are booked.
+
+Two guests racing the last place is a check-then-act with no single row to lock,
+so the standby path takes `pg_advisory_xact_lock` on the event. The slot claim
+still does not need one — there it is a real row.
+
+### What the page says about seats
+
+| Seats left | Shown |
+|---|---|
+| Above 5 | `Free · 12 seats left` |
+| 1 to 5 | `Free · only a few seats left` |
+| 0, standby open | `Fully booked · standby open`, CTA becomes **Join the standby list** |
+| 0, standby full | `Fully booked`, CTA goes |
+
+Vague where the number is scarce and pressure is useful; never claiming seats
+that are gone. Somebody who travels an hour on the strength of "a few seats
+left" and is turned away costs more than the registration did.
+
+### A no-show is what moves the queue
+
+Marking a booked guest a no-show frees their window, and the schedule page shows
+the queue beside the seats freed so the door can call the next name.
+
+It is a button, not a timer: a clock at :05 past cannot see that the guest is
+queuing outside or eight minutes away in traffic, and would cancel real
+people's passes. It is also reversible — and the release trigger refuses the
+undo if somebody from the queue has since taken the window.
+
+`event_standby.sql` also widens that trigger, which fired only on `cancelled`.
+A no-show left the window locked, which would have made standby a queue that
+never moves.
+
+### Standby never gets a time
+
+A standby guest picks a **day** on a multi-day run, and nothing finer. The door
+list marks them `Standby · no fixed time` so staff scanning in order do not seat
+walk-ups ahead of the people who booked 10:30 and did what was asked.
+
+E-Points are held the same way as a booked seat: paid on check-in, and a standby
+guest who is not seen gets nothing.
+
 ## Why a window and not an appointment
 
 A fixed grid at a free community check-up runs late by mid-morning. "Your slot:
@@ -162,7 +221,8 @@ double-count.
 
 | | |
 |---|---|
-| `supabase/event_slot_scheduling.sql` | the whole migration |
+| `supabase/event_slot_scheduling.sql` | the slots migration (the two steps, concatenated) |
+| `supabase/event_standby.sql` | standby, and the no-show release fix |
 | `src/lib/events/slots.ts` | types, parsing, window formatting |
 | `src/lib/actions/event-slots.ts` | `loadEventScheduling` — SSR and client refresh |
 | `src/lib/actions/registration.ts` | passes `slotId`, returns the booked window |

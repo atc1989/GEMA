@@ -10,6 +10,9 @@ import {
   formatArrivalWindow,
   isSoldOut,
   nextSlotWithSeats,
+  seatsLabel,
+  seatsLeftTotal,
+  standbyIsFull,
 } from "@/lib/events/slots";
 import { shopEntryUrl } from "@/lib/ginhawa/ecosystem";
 import type { Clinician, GinhawaLanding } from "@/lib/ginhawa/public-landing";
@@ -87,16 +90,23 @@ export function GinhawaLanding({
   // page has to say out loud rather than letting the sheet reject at the door.
   const scheduling = landing.scheduling;
   const soldOut = scheduling ? isSoldOut(scheduling) : false;
+  // Full does not mean closed any more: the queue takes over, up to its own cap.
+  const standbyOpen = Boolean(
+    scheduling && soldOut && scheduling.standbyEnabled && !standbyIsFull(scheduling),
+  );
   const nextWindow = scheduling ? nextSlotWithSeats(scheduling) : null;
   const seatsNote = scheduling
     ? soldOut
-      ? "Fully booked"
+      ? seatsLabel(scheduling, 0)
       : nextWindow
-        ? `Free · next arrival ${formatArrivalWindow(nextWindow, scheduling.timezone)}`
-        : "Free"
+        ? `${seatsLabel(scheduling, seatsLeftTotal(scheduling))} · next ${formatArrivalWindow(nextWindow, scheduling.timezone)}`
+        : seatsLabel(scheduling, seatsLeftTotal(scheduling))
     : left == null || seats == null
       ? "Free"
       : `Free · ${left} of ${seats} seats left`;
+  // Only a genuinely closed day loses its call to action.
+  const ctaClosed = soldOut && !standbyOpen;
+  const ctaLabel = standbyOpen ? "Join the standby list" : "Book my seat";
   const slides = landingSlides(landing);
   const showVenue = Boolean(landing.venueName || landing.venueAddress || landing.mapUrl);
   const showWhen = Boolean(landing.dateLabel || landing.timeLabel);
@@ -179,7 +189,7 @@ export function GinhawaLanding({
 
   return (
     <div id="top" className="gg-surface">
-      <TopBar bookUrl={landing.bookUrl} soldOut={soldOut} />
+      <TopBar bookUrl={landing.bookUrl} soldOut={ctaClosed} ctaLabel={ctaLabel} />
 
       <header className="hero" id="event" ref={heroRef}>
         <img src="/watermark.png" alt="" aria-hidden="true" className="hero-g" />
@@ -192,7 +202,7 @@ export function GinhawaLanding({
             </div>
             {landing.heroWhat ? <p className="hero-what">{landing.heroWhat}</p> : null}
             {landing.bookUrl ? (
-              soldOut ? (
+              ctaClosed ? (
                 <span className="gg-button gg-button--bone" role="status">
                   Fully booked
                 </span>
@@ -202,7 +212,7 @@ export function GinhawaLanding({
                   href={landing.bookUrl}
                   rel="noopener noreferrer"
                 >
-                  Book my seat
+                  {ctaLabel}
                 </a>
               )
             ) : null}
@@ -534,13 +544,13 @@ export function GinhawaLanding({
                 </>
               ) : null}
             </div>
-            {soldOut ? (
+            {ctaClosed ? (
               <span className="gg-button gg-button--bone" role="status">
                 Fully booked
               </span>
             ) : (
               <a className="gg-button gg-button--primary" href={landing.bookUrl}>
-                Book my seat
+                {ctaLabel}
               </a>
             )}
           </div>

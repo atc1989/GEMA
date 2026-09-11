@@ -15,10 +15,13 @@ function IconX() {
 export function TopBar({
   bookUrl,
   soldOut = false,
+  ctaLabel = "Book my seat",
 }: {
   bookUrl?: string | null;
-  /** Scheduled event with every arrival window gone. No walk-ins, so no CTA. */
+  /** Every window gone AND the standby list full. Only then is there no CTA. */
   soldOut?: boolean;
+  /** "Join the standby list" once the windows are gone but the queue is open. */
+  ctaLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const shop = shopEntryUrl();
@@ -107,7 +110,7 @@ export function TopBar({
                 </span>
               ) : (
                 <a className="gg-button gg-button--primary topbar-book" href={bookUrl} rel="noopener noreferrer">
-                  Book my seat
+                  {ctaLabel}
                 </a>
               )
             ) : null}
@@ -161,7 +164,7 @@ export function TopBar({
                   rel="noopener noreferrer"
                   onClick={close}
                 >
-                  Book my seat
+                  {ctaLabel}
                 </a>
               </div>
             ) : null}

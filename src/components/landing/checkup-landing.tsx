@@ -11,6 +11,9 @@ import {
   formatArrivalWindow,
   isSoldOut,
   nextSlotWithSeats,
+  seatsLabel,
+  seatsLeftTotal,
+  standbyIsFull,
 } from "@/lib/events/slots";
 import { shopEntryUrl } from "@/lib/ginhawa/ecosystem";
 import { MarkdownBody } from "@/lib/ginhawa/markdown";
@@ -85,16 +88,23 @@ export function CheckupLanding({
   // page has to say out loud rather than letting the sheet reject at the door.
   const scheduling = landing.scheduling;
   const soldOut = scheduling ? isSoldOut(scheduling) : false;
+  // Full does not mean closed any more: the queue takes over, up to its own cap.
+  const standbyOpen = Boolean(
+    scheduling && soldOut && scheduling.standbyEnabled && !standbyIsFull(scheduling),
+  );
   const nextWindow = scheduling ? nextSlotWithSeats(scheduling) : null;
   const seatsNote = scheduling
     ? soldOut
-      ? "Fully booked"
+      ? seatsLabel(scheduling, 0)
       : nextWindow
-        ? `Free · next arrival ${formatArrivalWindow(nextWindow, scheduling.timezone)}`
-        : "Free"
+        ? `${seatsLabel(scheduling, seatsLeftTotal(scheduling))} · next ${formatArrivalWindow(nextWindow, scheduling.timezone)}`
+        : seatsLabel(scheduling, seatsLeftTotal(scheduling))
     : left == null || seats == null
       ? "Free"
       : `Free · ${left} of ${seats} seats left`;
+  // Only a genuinely closed day loses its call to action.
+  const ctaClosed = soldOut && !standbyOpen;
+  const ctaLabel = standbyOpen ? "Join the standby list" : "Book my seat";
 
   const mapVisual = landing.mapEmbedSrc ? (
     <iframe
@@ -161,13 +171,13 @@ export function CheckupLanding({
           {landing.heroWhat ? <p className="ck-hero-what">{landing.heroWhat}</p> : null}
 
           {landing.bookUrl ? (
-            soldOut ? (
+            ctaClosed ? (
               <span className="ck-cta ck-cta--big ck-cta--done" role="status">
                 Fully booked
               </span>
             ) : (
               <a className="ck-cta ck-cta--big" href={landing.bookUrl}>
-                Book my seat
+                {ctaLabel}
               </a>
             )
           ) : null}
@@ -356,15 +366,26 @@ export function CheckupLanding({
                 <b>{left} seats left</b>
               </div>
             ) : null}
-            <h3>{soldOut ? "Fully booked" : "Book your seat"}</h3>
-            {soldOut ? (
+            <h3>
+              {ctaClosed ? "Fully booked" : standbyOpen ? "Join the standby list" : "Book your seat"}
+            </h3>
+            {ctaClosed ? (
               <p className="ck-fine" role="status">
-                Every arrival time has gone. Watch for the next check-up date.
+                Every arrival time has gone, and the standby list is full. Watch for the next
+                check-up date — we run these often.
               </p>
             ) : (
-              <a className="ck-cta ck-cta--wide" href={landing.bookUrl}>
-                Book my seat
-              </a>
+              <>
+                {standbyOpen ? (
+                  <p className="ck-fine">
+                    Every time is taken, but seats open up when people cannot come. We take
+                    standby guests in the order they joined.
+                  </p>
+                ) : null}
+                <a className="ck-cta ck-cta--wide" href={landing.bookUrl}>
+                  {ctaLabel}
+                </a>
+              </>
             )}
             <p className="ck-fine">Free. No payment at any point.</p>
             <PassRecall eventId={landing.sourceEventId} />
@@ -432,13 +453,13 @@ export function CheckupLanding({
                 </>
               ) : null}
             </div>
-            {soldOut ? (
+            {ctaClosed ? (
               <span className="ck-cta ck-cta--done" role="status">
                 Fully booked
               </span>
             ) : (
               <a className="ck-cta" href={landing.bookUrl}>
-                Book my seat
+                {ctaLabel}
               </a>
             )}
           </div>

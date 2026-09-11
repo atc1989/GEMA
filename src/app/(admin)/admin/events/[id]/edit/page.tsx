@@ -56,6 +56,8 @@ export default async function EditEventPage({
     // keys are absent otherwise so the form's own defaults apply, and a spread
     // of `undefined` would blank them.
     schedulingEnabled: data.scheduling_enabled === true,
+    standbyEnabled: data.standby_enabled === true,
+    ...(data.standby_limit != null ? { standbyLimit: data.standby_limit } : {}),
     ...(data.scheduling_enabled === true
       ? {
           slotMinutes: data.slot_minutes ?? undefined,

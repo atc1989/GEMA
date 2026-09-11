@@ -20,6 +20,8 @@ import {
   openSlots,
   slotDayKey,
   slotIsOpen,
+  standbyIsFull,
+  standbyWaiting,
   type EventScheduling,
 } from "@/lib/events/slots";
 
@@ -239,21 +241,35 @@ export function BookSheet({
     });
   };
 
-  const ready =
-    name.trim().length > 1 &&
-    phone.replace(/\D/g, "").length >= 10 &&
-    email.includes("@") &&
-    consent &&
-    // No walk-ins: a scheduled event is booked by window or not at all.
-    (!scheduling || slotId !== null);
-
   const available = scheduling ? openSlots(scheduling) : [];
   const days = groupSlotsByDay(available, scheduling?.timezone);
   // Default to the first day that still has room, not to today: on a Saturday
   // that is already full the useful answer is next Friday.
   const activeDay = days.find((d) => d.key === day) ?? days[0] ?? null;
   const chosen = scheduling?.slots.find((slot) => slot.id === slotId) ?? null;
-  const picking = Boolean(scheduling) && step === "time";
+
+  // Standby: every window has gone, so the guest joins the queue instead of
+  // being turned away. The day list comes from ALL slots, not the open ones —
+  // by definition there are none left.
+  const runDays = scheduling ? groupSlotsByDay(scheduling.slots, scheduling.timezone) : [];
+  const multiDay = runDays.length > 1;
+  const onStandby = Boolean(scheduling) && available.length === 0 && scheduling!.standbyEnabled;
+  const standbyDayKey = (multiDay ? day : null) ?? runDays[0]?.key ?? null;
+  const standbyFull = scheduling ? standbyIsFull(scheduling, standbyDayKey) : false;
+  const waiting = scheduling ? standbyWaiting(scheduling, standbyDayKey) : 0;
+
+  // A single-day standby has nothing to choose, so it skips the first step.
+  const needsTimeStep = Boolean(scheduling) && (available.length > 0 || (onStandby && multiDay));
+  const picking = step === "time" && needsTimeStep;
+
+  const ready =
+    name.trim().length > 1 &&
+    phone.replace(/\D/g, "").length >= 10 &&
+    email.includes("@") &&
+    consent &&
+    // A scheduled event is booked by window, or joined on standby, never blind.
+    (!scheduling || (onStandby ? !standbyFull && standbyDayKey !== null : slotId !== null));
+
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,7 +286,9 @@ export function BookSheet({
       email,
       consentPrivacy: consent,
       consentMarketing: marketing,
-      slotId,
+      slotId: onStandby ? undefined : slotId,
+      standby: onStandby,
+      standbyDay: onStandby ? (standbyDayKey ?? undefined) : undefined,
     });
 
     setPending(false);
@@ -317,11 +335,19 @@ export function BookSheet({
 
         {success ? (
           <div className="bs-done">
-            <div className="bs-eyebrow">Your Ginhawa Pass</div>
+            <div className="bs-eyebrow">
+              {success.standby ? "Standby · no fixed time" : "Your Ginhawa Pass"}
+            </div>
             <h3 className="bs-h" id="bs-title">
-              You&apos;re booked
+              {success.standby ? "You're on the standby list" : "You're booked"}
             </h3>
-            {success.slotStartsAt && success.slotEndsAt ? (
+            {success.standby && success.standbyRank ? (
+              <p className="bs-window">
+                <span className="bs-window-label">You are</span>
+                <b>Number {success.standbyRank} in line</b>
+              </p>
+            ) : null}
+            {!success.standby && success.slotStartsAt && success.slotEndsAt ? (
               <p className="bs-window">
                 <span className="bs-window-label">Arrive</span>
                 <b>{formatDayLabel(success.slotStartsAt, scheduling?.timezone)}</b>
@@ -335,10 +361,20 @@ export function BookSheet({
               </p>
             ) : null}
             <p className="bs-p">
-              {success.attendeeName}, your seat for {success.eventTitle} is confirmed.{" "}
-              {passAnchor
-                ? "Your pass and its QR are on your Lifestyle Card, below."
-                : "Show this at the door."}
+              {success.standby ? (
+                <>
+                  {success.attendeeName}, come to {success.eventTitle} at the opening time and
+                  show this pass. We will call standby guests as seats open up through the
+                  day. We cannot promise a time, but we will do our best to see you.
+                </>
+              ) : (
+                <>
+                  {success.attendeeName}, your seat for {success.eventTitle} is confirmed.{" "}
+                  {passAnchor
+                    ? "Your pass and its QR are on your Lifestyle Card, below."
+                    : "Show this at the door."}
+                </>
+              )}
             </p>
             {passAnchor ? null : qr ? (
               <img
@@ -373,7 +409,7 @@ export function BookSheet({
               with your name and email.
             </p>
             <button type="button" className="bs-btn bs-btn--wide" onClick={finish}>
-              {passAnchor ? "See my card" : "Done"}
+              {passAnchor && !success.standby ? "See my card" : "Done"}
             </button>
           </div>
         ) : (
@@ -381,16 +417,35 @@ export function BookSheet({
             <div className="bs-head">
               <div className="bs-eyebrow">Your Ginhawa Pass</div>
               <h3 className="bs-h" id="bs-title">
-                {picking ? "Pick your arrival time" : "Put your name on it"}
+                {onStandby
+                  ? standbyFull
+                    ? "Standby is full"
+                    : picking
+                      ? "Which day can you come?"
+                      : "Join the standby list"
+                  : picking
+                    ? "Pick your arrival time"
+                    : "Put your name on it"}
               </h3>
               <p className="bs-p">
-                {picking
-                  ? "Come any time inside your window. You are seen in the order people arrive."
-                  : giftPoints > 0
-                    ? `We will hold ${giftPoints} E-Points on your card until the day. Yours the moment you check in.`
-                    : "We will text you the details. Nobody will ring you to sell you anything."}
+                {onStandby
+                  ? standbyFull
+                    ? "The standby list is full for this date too. Watch for the next check-up — we run these often."
+                    : "Every time is taken, but seats open up through the day when people cannot come. We take standby guests in the order they joined."
+                  : picking
+                    ? "Come any time inside your window. You are seen in the order people arrive."
+                    : giftPoints > 0
+                      ? `We will hold ${giftPoints} E-Points on your card until the day. Yours the moment you check in.`
+                      : "We will text you the details. Nobody will ring you to sell you anything."}
               </p>
-              {chosen ? (
+              {onStandby && !standbyFull && !picking && multiDay && standbyDayKey ? (
+                <button type="button" className="bs-chosen" onClick={() => setStep("time")}>
+                  <span className="bs-chosen-label">Coming</span>
+                  <b>{runDays.find((d) => d.key === standbyDayKey)?.label ?? ""}</b>
+                  <span className="bs-chosen-change">Change</span>
+                </button>
+              ) : null}
+              {!onStandby && chosen ? (
                 <button
                   type="button"
                   className="bs-chosen"
@@ -408,7 +463,36 @@ export function BookSheet({
               ) : null}
             </div>
 
-            {picking ? (
+            {picking && onStandby ? (
+              <div className="bs-slots">
+                <div className="bs-days" role="group" aria-label="Days">
+                  {runDays.map((d) => {
+                    const full = scheduling ? standbyIsFull(scheduling, d.key) : false;
+                    return (
+                      <button
+                        key={d.key}
+                        type="button"
+                        className="bs-day"
+                        aria-pressed={d.key === standbyDayKey}
+                        disabled={full}
+                        onClick={() => {
+                          setDay(d.key);
+                          setFormError(null);
+                          setStep("details");
+                        }}
+                      >
+                        {d.label}
+                        <em>
+                          {full
+                            ? "standby full"
+                            : `${standbyWaiting(scheduling!, d.key)} waiting`}
+                        </em>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : picking ? (
               <div className="bs-slots">
                 {available.length === 0 ? (
                   <p className="bs-alert" role="status">
@@ -537,10 +621,18 @@ export function BookSheet({
 
             {picking ? (
               <p className="bs-fine">Free. Nobody will ring you to sell you anything.</p>
+            ) : standbyFull ? (
+              <p className="bs-fine">Free. Nobody will ring you to sell you anything.</p>
             ) : (
               <>
                 <button type="submit" className="bs-btn bs-btn--wide" disabled={!ready || pending}>
-                  {pending ? "Booking your seat…" : "Claim my card"}
+                  {pending
+                    ? onStandby
+                      ? "Adding you to the list…"
+                      : "Booking your seat…"
+                    : onStandby
+                      ? `Join the standby list${waiting > 0 ? ` · ${waiting} waiting` : ""}`
+                      : "Claim my card"}
                 </button>
                 <p className="bs-fine">Free. Nobody will ring you to sell you anything.</p>
                 <p className="bs-fine">

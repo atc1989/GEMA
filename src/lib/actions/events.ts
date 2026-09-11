@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { SLOT_MINUTES, TEAMS_PER_SLOT } from "@/lib/events/slots";
+import { SLOT_MINUTES, STANDBY_LIMIT, TEAMS_PER_SLOT } from "@/lib/events/slots";
 import { mapEventRow, toEventRow, type EventRow } from "@/lib/database/mappers";
 import {
   cancelEventSchema,
@@ -160,6 +160,23 @@ async function syncEventSlots(
   return { ok: true };
 }
 
+/**
+ * Standby settings for the event row.
+ *
+ * Not part of toEventRow and not written by generate_event_slots: a full
+ * unscheduled event can take a queue too, so this belongs to the event rather
+ * than to the grid.
+ */
+function standbySettings(values: {
+  standbyEnabled?: boolean;
+  standbyLimit?: number;
+}): Record<string, unknown> {
+  return {
+    standby_enabled: values.standbyEnabled === true,
+    standby_limit: values.standbyEnabled ? (values.standbyLimit ?? STANDBY_LIMIT) : null,
+  };
+}
+
 /** Creates a draft event owned by the current admin. */
 export async function createEvent(
   input: EventFormInput,
@@ -188,6 +205,7 @@ export async function createEvent(
     .from("events")
     .insert({
       ...toEventRow(parsed.data),
+      ...standbySettings(parsed.data),
       slug,
       status: "draft",
       created_by_profile_id: admin.id,
@@ -301,6 +319,7 @@ export async function updateEvent(
     .from("events")
     .update({
       ...toEventRow(parsed.data),
+      ...standbySettings(parsed.data),
       slug,
       metadata: {
         ...((existing.metadata as Record<string, unknown> | null) ?? {}),
@@ -417,6 +436,15 @@ export async function duplicateEvent(
   // columns anyway makes PostgREST reject the whole insert on schema cache,
   // which is how duplicating failed with nothing but a shrug. Duplicating an
   // event has no business waiting on the slots migration.
+  // Standby shipped in its own migration, so it gets its own presence check.
+  const standbyColumns =
+    source.standby_enabled === undefined
+      ? {}
+      : {
+          standby_enabled: source.standby_enabled ?? false,
+          standby_limit: source.standby_limit ?? null,
+        };
+
   const hasScheduling = source.scheduling_enabled !== undefined;
   const schedulingColumns = hasScheduling
     ? {
@@ -457,6 +485,7 @@ export async function duplicateEvent(
       metadata: source.metadata ?? {},
       // Slot settings ride along; the grid itself is rebuilt below.
       ...schedulingColumns,
+      ...standbyColumns,
     })
     .select("id, slug")
     .single<{ id: string; slug: string }>();

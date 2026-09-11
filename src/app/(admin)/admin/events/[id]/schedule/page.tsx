@@ -10,6 +10,7 @@ import {
   SlotSchedule,
   type ScheduleGuest,
   type ScheduleSlot,
+  type StandbyGuest,
 } from "@/components/event/slot-schedule";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,6 +32,9 @@ type BookingRow = {
   slot_id: string | null;
   attendee_name: string;
   pass_code: string;
+  status: string;
+  standby: boolean | null;
+  standby_day: string | null;
 };
 
 export const dynamic = "force-dynamic";
@@ -81,10 +85,12 @@ export default async function EventSchedulePage({
       .returns<SlotRow[]>(),
     supabase
       .from("event_registrations")
-      .select("id, slot_id, attendee_name, pass_code")
+      // Standby rows come back too — they hold no slot, so without them the
+      // day's real headcount is missing everybody in the queue.
+      .select("id, slot_id, attendee_name, pass_code, status, standby, standby_day")
       .eq("event_id", id)
       .neq("status", "cancelled")
-      .not("slot_id", "is", null)
+      .order("registered_at", { ascending: true })
       .returns<BookingRow[]>(),
     supabase
       .from("attendance_records")
@@ -96,7 +102,18 @@ export default async function EventSchedulePage({
   const checkedIn = new Set((atts ?? []).map((a) => a.registration_id));
 
   const guestsBySlot = new Map<string, ScheduleGuest[]>();
+  const standby: StandbyGuest[] = [];
   for (const booking of bookings ?? []) {
+    if (booking.standby) {
+      standby.push({
+        registrationId: booking.id,
+        name: booking.attendee_name,
+        passCode: booking.pass_code,
+        checkedIn: checkedIn.has(booking.id),
+        day: booking.standby_day,
+      });
+      continue;
+    }
     if (!booking.slot_id) continue;
     const list = guestsBySlot.get(booking.slot_id) ?? [];
     list.push({
@@ -104,6 +121,7 @@ export default async function EventSchedulePage({
       name: booking.attendee_name,
       passCode: booking.pass_code,
       checkedIn: checkedIn.has(booking.id),
+      noShow: booking.status === "no_show",
     });
     guestsBySlot.set(booking.slot_id, list);
   }
@@ -169,6 +187,7 @@ export default async function EventSchedulePage({
       <SlotSchedule
         eventId={id}
         slots={slots}
+        standby={standby}
         timezone={event.timezone}
         canEdit={event.status !== "cancelled" && event.status !== "completed"}
       />
