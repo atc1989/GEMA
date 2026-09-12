@@ -19,11 +19,9 @@ Canonical folder on Najee’s machine:
 
 Copy this whole folder there (not inside Tech Stack, not inside Design System). Cloud agents read the product-repo copy at `docs/obsidian/One Account/`.
 
-**Current change:** none. One Account Changes 1 through 6b remain **done**.
-Gentrep Academy Change 8 (streamlined Academy production cutover) is
-**CLOSED** as of 2026-09-12. Do not start a new One Account Change from this
-board; Academy Change 9 is planning-only on the Academy To Do, not
-implementation.
+**Current change:** none. [[Change 9 - Member chrome identity]] is **done**
+(2026-09-12). One Account Changes 1 through 6b remain **done**. Gentrep
+Academy Change 8 remains **CLOSED**. Do not invent Change 10 from this note.
 
 Change 1 is checked done — proven on Staging 2026-08-28, production Auth untouched.  
 Change 2 is checked done — Staging shared-login proof recorded 2026-09-03 (`TEST_MANCERA` + `demo.admin` email across Lifestyle, Academy, GEMA Preview; OneGrinders-unavailable safe failure on Academy Preview).
@@ -57,6 +55,7 @@ flowchart TB
 5. [[Change 5 - Hub chrome]] — **done** (Staging, 2026-09-07) — cross-app links, and Settings name/mobile closed the same day
 6. [[Change 6 - Shared domain SSO]] — **done** (Staging, 2026-09-07)
 6b. [[Change 6b - Staging on the real domain]] — **done** (2026-09-07), opened from a failed Change 6 test that turned out to be environment scoping
+9. [[Change 9 - Member chrome identity]] — **done** (Staging + Production Lifestyle, 2026-09-12). Lifestyle shell identity from `public.profiles`. There is no One Account Change 7 or 8; those numbers were Academy-only.
 
 ## Proven end to end, 2026-09-07
 
@@ -96,15 +95,11 @@ historical; [[Change 6b - Staging on the real domain]] has the addendum.
 ## What is actually left
 
 - ~~**The production cutover**~~ **Done 2026-09-12.** All three custom
-  domains are Production. Gentrep Academy Change 8 is CLOSED. Academy Change 9
-  is not started.
-- **Settings name/mobile.** Shipped in Lifestyle Change 5 and is on Production
-  `main`. Duplicate-mobile collision remains a construction proof, not a new
-  Change 8 item.
-- **The member chrome still says "Member"** when the client session is a guest
-  session — masthead / avatar / QR seed can stay empty even with a good row.
-  Wants a server-side read in `app/app/layout.tsx`. Own Change, not Academy
-  Change 9. See [[Change 5 - Hub chrome]].
+  domains are Production. Gentrep Academy Change 8 is CLOSED.
+- ~~**Settings name/mobile.**~~ Shipped in Lifestyle Change 5 on Production
+  `main`. Change 9 merged that lineage onto Lifestyle `staging` as well.
+- ~~**Change 9 (member chrome).**~~ **Done 2026-09-12.** Lifestyle `/app/*`
+  chrome reads `public.profiles` on the server. See [[Change 9 - Member chrome identity]].
 - ~~**Registration asks for a PH mobile, and requires it.**~~ **Answered by the
   owner, 2026-09-07: PH only, and it stays required.** The one thing that
   changed is that `639171234567` is now accepted alongside `09171234567` and

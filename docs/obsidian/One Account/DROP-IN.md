@@ -15,6 +15,6 @@ Do **not** put it inside:
 
 Those two vaults stay owner-only. This board lives at `C:\Users\najee\OneDrive\Documents\Obsidian Vault\One Account\`, not inside them.
 
-After copy, open `One Account.md` in Obsidian. Current change is Change 1.
+After copy, open `One Account.md` in Obsidian and read **Current change** from that file. Do not assume Change 1 is still current.
 
 Cloud agents also have this folder at `docs/obsidian/One Account/` in the three product repos so they can read it when OneDrive is not mounted.
