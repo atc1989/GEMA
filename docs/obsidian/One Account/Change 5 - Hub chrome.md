@@ -99,8 +99,9 @@ is a guest session whenever Supabase is on, the masthead and avatar render
 though Change 4 mints a real card number. Saving a name in Settings therefore
 does **not** change the masthead. The fix is to read the profile in the server
 component `app/app/layout.tsx`, which already calls `ensureCardForCurrentUser()`,
-and pass it into `MemberShell` — a change with its own proof, not a rider on this
-one. It wants an owner call on whether it belongs before the production cutover.
+and pass it into `MemberShell`.
+
+**Fixed by [[Change 9 - Member chrome identity]]** (done 2026-09-12).
 
 ## Where the origins come from
 
@@ -144,6 +145,9 @@ and the new entries reuse the shell's existing `gg-nav-btn` / `gg-button--second
 classes rather than introducing a radius. GEMA keeps Tailwind and shadcn
 ([[00 - Locks]]), so its link is written in that idiom instead — same behaviour,
 same words, two stacks, no cross-contamination.
+
+Identity in that chrome (name / avatar / QR) is [[Change 9 - Member chrome identity]]
+(**done** 2026-09-12), not a rider on this Change.
 
 ### One registration
 
