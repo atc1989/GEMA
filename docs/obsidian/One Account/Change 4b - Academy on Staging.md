@@ -11,7 +11,7 @@ tags:
 
 # Change 4b — Academy on Staging
 
-**Status:** **current**. Opened 2026-09-04 from a live failure, and numbered 4b
+**Status:** **done** — Staging, 2026-09-05. Opened 2026-09-04 from a live failure, and numbered 4b
 rather than renumbering [[Change 5 - Hub chrome]] and [[Change 6 - Shared domain SSO]].
 
 Read [[00 - Session gate]], [[00 - Locks]] and [[03 - Identity model]] before this Change.
