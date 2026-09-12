@@ -25,7 +25,6 @@ import { asPosterTemplateId } from "@/components/event/posters/types";
 import { asPhotoFocus } from "@/components/event/posters/shared";
 
 import { type ActionResult, type FieldErrors } from "@/lib/actions/types";
-export type { ActionResult, FieldErrors };
 
 const EVENTS_PATH = "/admin/events";
 

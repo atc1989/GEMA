@@ -16,8 +16,6 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionResult, FieldErrors } from "@/lib/actions/types";
 
-export type { ActionResult, FieldErrors };
-
 const GINHAWA_PATH = "/admin/ginhawa";
 
 /**
