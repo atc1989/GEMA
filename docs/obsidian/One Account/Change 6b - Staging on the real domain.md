@@ -11,8 +11,10 @@ tags:
 
 # Change 6b — Staging on the real domain
 
-**Status:** **current**, opened 2026-09-07 from a failed test of
-[[Change 6 - Shared domain SSO]].
+**Status:** **done** (2026-09-07 Staging-on-domain proof). **Addendum
+2026-09-12:** the three custom domains now serve Production `main` against
+Production Auth `rvwseybgimmewuoccecu`. The split recorded below is
+historical. Current mapping: Lifestyle `docs/environments.md`.
 
 Read [[00 - Session gate]] and [[00 - Locks]] before this Change.
 
@@ -80,16 +82,16 @@ test.
 ## Work
 
 - [x] `staging` branch in all three repos, from `main`.
-- [ ] **Owner: assign each domain to branch `staging`** — Vercel → Settings →
+- [x] **Owner: assign each domain to branch `staging`** — Vercel → Settings →
   Domains → the domain row → Edit → Git Branch → `staging`. Do not remove and
   re-add the domain; that drops DNS verification.
-- [ ] **Owner: add `NEXT_PUBLIC_ONE_ACCOUNT_COOKIE_DOMAIN=gutguard.ph` to
+- [x] **Owner: add `NEXT_PUBLIC_ONE_ACCOUNT_COOKIE_DOMAIN=gutguard.ph` to
   Preview** in all three projects. It is Production-only today.
-- [ ] **Owner: Lifestyle — repoint the Pre-Production `NEXT_PUBLIC_SITE_URL`**
+- [x] **Owner: Lifestyle — repoint the Pre-Production `NEXT_PUBLIC_SITE_URL`**
   from the old `…vercel.app` value to `https://lifestyle.gutguard.ph`.
-- [ ] **Owner: redeploy all three with the build cache OFF.** `NEXT_PUBLIC_*`
+- [x] **Owner: redeploy all three with the build cache OFF.** `NEXT_PUBLIC_*`
   is inlined at build time and a cached build reuses the old values.
-- [ ] **Owner: clear cookies for `gutguard.ph`** before retesting. Two
+- [x] **Owner: clear cookies for `gutguard.ph`** before retesting. Two
   conflicting sessions are sitting there, one of them a real production account.
 
 Everything else already on Preview is correct: Supabase keys, `GEMA_URL`,
@@ -102,6 +104,65 @@ that commit and deduplicated, so no deployment appeared and the domain had
 nothing to point at. This note is the commit that gives the branch its own
 deployment — recorded because it looks exactly like the Git integration being
 broken, and it is not.
+
+## What made it pass
+
+The domain edit is not a "Git Branch" text field any more. Vercel's Domains
+panel offers **Connect to an environment**, and the domain is pointed at
+**Preview** there. Written down because the older instructions everywhere
+describe a field that no longer exists.
+
+Also worth keeping: an incognito window is a better way to start this test than
+clearing cookies by hand. There is nothing to forget to clear.
+
+## The split, from 2026-09-07 — read this before touching a domain
+
+GEMA has real users. Pointing `gema.gutguard.ph` at the `staging` branch put it
+behind Vercel's **Deployment Protection**, which every Preview deployment has
+by default, and real members landed on a Vercel login page. That was an agent
+error: all three domains were moved uniformly without asking which app has
+users. GEMA is the only one that does — [[00 - Locks]] says so, and D5 says
+Academy has none.
+
+So the domains are deliberately **not** in the same place:
+
+```text
+gema.gutguard.ph        Production   production Auth rvwseybgimmewuoccecu, ~431 real accounts
+lifestyle.gutguard.ph   staging      Staging Auth fxdsnacuonfvutdquogb
+gentrep.gutguard.ph     staging      Staging Auth fxdsnacuonfvutdquogb
+```
+
+**Cross-app sign-in is therefore off, on purpose.** Two Auth projects; a token
+signed by one means nothing to the other. It is not a regression and it is not
+Change 6 breaking — Change 6 was proven the same day and the code has not
+changed. Do not debug it.
+
+### The variable that makes the split safe
+
+`NEXT_PUBLIC_LIFESTYLE_URL` is set on GEMA **Preview only**, never Production.
+
+Left on Production it would send a real GEMA prospect to a Lifestyle running
+Staging Auth, where they would create an account in the wrong project — one
+that then does not work on GEMA. The same variable also draws "Gutguard home"
+in the account menu, which would drop a real member onto a staging app.
+
+Unset, both links **omit themselves**. That is the omit-when-unset rule from
+Changes 4c and 5 doing real work rather than being a nicety: the safe state is
+the absence of a link, so a missing variable degrades instead of misleading.
+
+### Preview deployments are private
+
+Worth stating plainly, because it looks like an outage: a domain pointed at a
+branch serves a **Preview** deployment, and Vercel requires a Vercel account to
+view one. Fine for a staging host nobody real uses. Never for an app with
+members.
+
+### Getting out of the split
+
+Only the production cutover ends it — all three apps on
+`rvwseybgimmewuoccecu`, which needs Lifestyle to gain production Supabase
+credentials (it has none) and retires every Staging account, including the ones
+used to prove this board. Its own Change, and it needs the owner.
 
 ## Done when
 
