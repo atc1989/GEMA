@@ -9,7 +9,7 @@ import { CommissionStats } from "@/components/commission/commission-stats";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cleanPage, cleanPerPage, DEFAULT_PER_PAGE, Pagination } from "@/components/ui/pagination";
-import { getCurrentMember } from "@/lib/auth/require-member";
+import { requireMember } from "@/lib/auth/require-member";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function pageHref(page: number, perPage: number) {
@@ -40,8 +40,8 @@ export default async function MemberEarningsPage({
   const perPage = cleanPerPage(rawPer);
   const from = (page - 1) * perPage;
 
-  const ctx = await getCurrentMember();
-  const member = ctx!.member;
+  const ctx = await requireMember();
+  const member = ctx.member;
 
   const supabase = await createSupabaseServerClient();
   // Single query: join source member name via FK relation alias.

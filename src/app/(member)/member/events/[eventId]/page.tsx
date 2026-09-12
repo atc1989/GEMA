@@ -11,7 +11,7 @@ import { VISIBILITY_META } from "@/components/event/event-meta";
 import { QRCodeCard } from "@/components/qr/qr-code-card";
 import { QrDownload } from "@/components/qr/qr-download";
 import { Card } from "@/components/ui/card";
-import { getCurrentMember } from "@/lib/auth/require-member";
+import { requireMember } from "@/lib/auth/require-member";
 import { mapEventRow, type EventRow } from "@/lib/database/mappers";
 import { eventHasEnded } from "@/lib/event-time-filter";
 import { getPublishedLandingPath } from "@/lib/ginhawa/landing-path";
@@ -57,8 +57,8 @@ export default async function MemberEventPage({
   const { eventId } = await params;
   // Set only by the RSVP redirect, so revisiting the pass does not re-download.
   const justRegistered = (await searchParams).pass === "new";
-  const ctx = await getCurrentMember();
-  const member = ctx!.member;
+  const ctx = await requireMember();
+  const member = ctx.member;
 
   const supabase = await createSupabaseServerClient();
   const [{ data: row }, { data: registration }, { data: speakerRows }, regCount] =

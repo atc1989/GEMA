@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
-import { createEvent, updateEvent, type FieldErrors } from "@/lib/actions/events";
+import { createEvent, updateEvent } from "@/lib/actions/events";
+import type { FieldErrors } from "@/lib/actions/types";
 import { BannerStudio } from "@/components/event/banner-studio";
 import { MedicalLandingFields } from "@/components/event/medical-landing-fields";
 import { ADMIN_POSTER_FALLBACKS, livePosterData } from "@/components/event/live-poster-data";
