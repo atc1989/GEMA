@@ -19,9 +19,11 @@ Canonical folder on Najee’s machine:
 
 Copy this whole folder there (not inside Tech Stack, not inside Design System). Cloud agents read the product-repo copy at `docs/obsidian/One Account/`.
 
-**Current change:** none. Changes 1 through 6b are done and proven on Staging
-at `gutguard.ph`, 2026-09-07. The next thing is a decision, not a Change — see
-*What is actually left* below.
+**Current change:** none. One Account Changes 1 through 6b remain **done**.
+Gentrep Academy Change 8 (streamlined Academy production cutover) is
+**CLOSED** as of 2026-09-12. Do not start a new One Account Change from this
+board; Academy Change 9 is planning-only on the Academy To Do, not
+implementation.
 
 Change 1 is checked done — proven on Staging 2026-08-28, production Auth untouched.  
 Change 2 is checked done — Staging shared-login proof recorded 2026-09-03 (`TEST_MANCERA` + `demo.admin` email across Lifestyle, Academy, GEMA Preview; OneGrinders-unavailable safe failure on Academy Preview).
@@ -74,37 +76,35 @@ Gutguard home on both spokes           back to the hub, signed in
 Owner-verified in a browser, not by tests alone — which is what every
 *Done when* on these notes asks for.
 
-## Where the three apps actually are, 2026-09-07
+## Where the three apps actually are, 2026-09-12
 
-Not in the same place, and deliberately:
+All three custom domains serve Production `main` against Production Auth
+`rvwseybgimmewuoccecu`:
 
 ```text
-gema.gutguard.ph        Production   production Auth, ~431 real accounts
-lifestyle.gutguard.ph   staging      Staging Auth
-gentrep.gutguard.ph     staging      Staging Auth
+gema.gutguard.ph        Production   main
+lifestyle.gutguard.ph   Production   main
+gentrep.gutguard.ph     Production   main
 ```
 
-GEMA has real users, so it cannot sit on a Preview deployment — those are
-private to Vercel accounts, and pointing it at `staging` locked members out
-for a while on 2026-09-07. **Cross-app sign-in is off while this holds**, and
-that is two Auth projects, not a fault. [[Change 6b - Staging on the real
-domain]] carries the detail, including the one variable that keeps the split
-safe.
+Staging remains separately available as Vercel Preview aliases of the
+`staging` branch (Deployment Protection / SSO still on), pointed at Staging
+Auth `fxdsnacuonfvutdquogb`. Custom domains were switched in place — do not
+remove and re-add them. The 2026-09-07 Staging-on-domain proof below is
+historical; [[Change 6b - Staging on the real domain]] has the addendum.
 
 ## What is actually left
 
-- **The production cutover** — the only thing that ends the split. All three on
-  `rvwseybgimmewuoccecu`; Lifestyle needs production Supabase credentials, and
-  every Staging account retires, including the ones that proved this board.
-  Its own Change, and it needs the owner. Nothing here implies it.
-- **Settings name/mobile on Staging.** The drawer shipped 2026-09-07 and is
-  proven with Supabase env empty; reading the real row and the duplicate-mobile
-  collision are proven by construction, not on `lifestyle.gutguard.ph` yet.
-- **The member chrome still says "Member".** The client session is a guest
-  session whenever Supabase is on, so the masthead, the avatar and the QR seed
-  are empty however good the row is — saving a name in Settings does not change
-  them. Wants a server-side read in `app/app/layout.tsx`. Own Change, owner's
-  call on whether it comes before the cutover. See [[Change 5 - Hub chrome]].
+- ~~**The production cutover**~~ **Done 2026-09-12.** All three custom
+  domains are Production. Gentrep Academy Change 8 is CLOSED. Academy Change 9
+  is not started.
+- **Settings name/mobile.** Shipped in Lifestyle Change 5 and is on Production
+  `main`. Duplicate-mobile collision remains a construction proof, not a new
+  Change 8 item.
+- **The member chrome still says "Member"** when the client session is a guest
+  session — masthead / avatar / QR seed can stay empty even with a good row.
+  Wants a server-side read in `app/app/layout.tsx`. Own Change, not Academy
+  Change 9. See [[Change 5 - Hub chrome]].
 - ~~**Registration asks for a PH mobile, and requires it.**~~ **Answered by the
   owner, 2026-09-07: PH only, and it stays required.** The one thing that
   changed is that `639171234567` is now accepted alongside `09171234567` and

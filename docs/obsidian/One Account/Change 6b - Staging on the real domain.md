@@ -11,9 +11,10 @@ tags:
 
 # Change 6b — Staging on the real domain
 
-**Status:** **done** — the domains serve `staging`, and One Account was
-proven on them 2026-09-07. Opened the same day from a failed test of
-[[Change 6 - Shared domain SSO]] that turned out not to be a Change 6 fault.
+**Status:** **done** (2026-09-07 Staging-on-domain proof). **Addendum
+2026-09-12:** the three custom domains now serve Production `main` against
+Production Auth `rvwseybgimmewuoccecu`. The split recorded below is
+historical. Current mapping: Lifestyle `docs/environments.md`.
 
 Read [[00 - Session gate]] and [[00 - Locks]] before this Change.
 
