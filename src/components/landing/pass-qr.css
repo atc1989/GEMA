@@ -67,6 +67,17 @@
 }
 .pq .pq-btn:disabled { opacity: 0.55; cursor: default; }
 .pq .pq-btn { white-space: nowrap; }
+.pq .pq-note {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pq-ink-soft);
+}
+.pq .pq-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .pq .pq-right {
   flex-shrink: 0;
   padding: 10px;
@@ -91,6 +102,7 @@
   .pq .pq-title { font-size: 15px; }
   .pq .pq-code { font-size: 12.5px; letter-spacing: 0.02em; }
   .pq .pq-btn { min-height: 42px; padding: 0 14px; font-size: 15px; }
+  .pq .pq-note { margin-top: 8px; font-size: 11px; }
   /* A quarter of the row, as on the card face — the copy needs the rest. */
   .pq .pq-right { padding: 8px; }
   .pq .pq-right img,

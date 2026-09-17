@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getCurrentProfile } from "@/lib/auth/require-admin";
 import { buildEventReportRows, toCsv, toPrintHtml, type ReportEvent } from "@/lib/report";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -26,15 +27,20 @@ export async function GET(
     .maybeSingle<ReportEvent>();
   if (!event) return new NextResponse("Event not found", { status: 404 });
 
-  const rows = await buildEventReportRows(supabase, event);
+  // can_manage_event already let a member host through; the note column is
+  // admin-only, as it is on the attendance screen.
+  const profile = await getCurrentProfile();
+  const options = { notes: profile?.isAdmin === true };
+
+  const rows = await buildEventReportRows(supabase, event, options);
 
   if (format === "pdf") {
-    return new NextResponse(toPrintHtml(`Event report — ${event.title}`, rows), {
+    return new NextResponse(toPrintHtml(`Event report — ${event.title}`, rows, options), {
       headers: { "Content-Type": "text/html; charset=utf-8" },
     });
   }
 
-  return new NextResponse(toCsv(rows), {
+  return new NextResponse(toCsv(rows, options), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="event-report-${eventId.slice(0, 8)}.csv"`,
