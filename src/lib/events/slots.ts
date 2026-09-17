@@ -40,8 +40,17 @@ export const TEAM_CHOICES = [1, 2, 3, 4, 5, 6] as const;
  */
 export const SEATS_LOW_THRESHOLD = 5;
 
-/** Standby list size a new event starts with; the real value is on the event. */
-export const STANDBY_LIMIT = 80;
+/**
+ * Standby list size a new event starts with; the real value is on the event.
+ *
+ * Twenty rather than eighty, because the only thing that frees a seat is a
+ * no-show. A day of 21 seats turns over maybe four of them, so a queue of
+ * eighty is four people seen and seventy-six who travelled for nothing. Twenty
+ * is still a long shot for those at the back, but it is a queue rather than a
+ * crowd — and the people beyond it are turned away on the website, where it
+ * costs them nothing, instead of at the door.
+ */
+export const STANDBY_LIMIT = 20;
 
 /** 0 = Sunday, matching Postgres `extract(dow)` and JS `getDay()`. */
 export const WEEKDAYS: { value: number; short: string; label: string }[] = [
@@ -184,7 +193,7 @@ export function standbyWaiting(
   return scheduling.standbyCounts[dayKey || "all"] ?? 0;
 }
 
-/** The queue itself can fill up. 80 people for 28 chairs is already generous. */
+/** The queue itself fills up. Beyond the cap the page says so and stops. */
 export function standbyIsFull(
   scheduling: EventScheduling,
   dayKey?: string | null,
