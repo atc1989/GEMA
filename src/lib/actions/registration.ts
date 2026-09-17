@@ -16,7 +16,14 @@ export type FieldErrors = Record<string, string[] | undefined>;
 
 export type ActionResult<T> =
   | { ok: true; data: T }
-  | { ok: false; error: string; fieldErrors?: FieldErrors };
+  | { ok: false; error: string; fieldErrors?: FieldErrors; code?: FailureCode };
+
+/**
+ * "slot_taken" is the one failure the caller can recover from: the window went
+ * while the guest was typing, so the sheet refreshes the grid and sends them
+ * back to the picker with everything they typed still in place.
+ */
+export type FailureCode = "slot_taken";
 
 export type RegistrationSuccess = {
   passCode: string;
@@ -25,6 +32,15 @@ export type RegistrationSuccess = {
   eventTitle: string;
   startsAt: string;
   timezone: string;
+  /** Arrival window, on scheduled events. Null when the event has no slots. */
+  slotStartsAt: string | null;
+  slotEndsAt: string | null;
+  /** On the standby list rather than holding a window. */
+  standby: boolean;
+  /** Their place in the queue at the moment they joined. */
+  standbyRank: number | null;
+  /** "YYYY-MM-DD" — which day they said they are coming. */
+  standbyDay: string | null;
 };
 
 export type MemberRsvpSuccess = {
@@ -89,7 +105,16 @@ export async function registerProspectForEvent(
       kind: "prospect",
     });
 
-    const { error } = await supabase.rpc("register_prospect_for_event", {
+    // p_slot_id is sent ONLY when a window was picked, and that is a deploy
+    // concern, not a style one. The slots migration replaces this function's
+    // 11-argument signature with a 12-argument one, and on a database with real
+    // guests booking there is no safe instant to swap both at once. Omitting
+    // the argument when there is no slot means this build satisfies BOTH
+    // signatures — 11 args resolve against the old function, 12 against the new
+    // — so the app can ship before the SQL and nobody's booking breaks in
+    // between. Sending `p_slot_id: null` unconditionally would have made the
+    // app hard-fail against the old function.
+    const rpcArgs: Record<string, unknown> = {
       p_event_id: values.eventId,
       p_full_name: values.fullName,
       p_phone: values.phone,
@@ -101,9 +126,25 @@ export async function registerProspectForEvent(
       p_pass_code: passCode,
       p_qr_payload: qrToken,
       p_ref_code: values.refCode ?? null,
-    });
+    };
+    if (values.slotId) rpcArgs.p_slot_id = values.slotId;
+    // Same reason as p_slot_id: sent only when it applies, so this build still
+    // resolves against a database that has not had the standby migration yet.
+    if (values.standby) {
+      rpcArgs.p_standby = true;
+      if (values.standbyDay) rpcArgs.p_standby_day = values.standbyDay;
+    }
+
+    const { data, error } = await supabase.rpc("register_prospect_for_event", rpcArgs);
 
     if (!error) {
+      const claimed = (data ?? null) as {
+        slot_starts_at?: string | null;
+        slot_ends_at?: string | null;
+        standby?: boolean | null;
+        standby_rank?: number | null;
+        standby_day?: string | null;
+      } | null;
       return {
         ok: true,
         data: {
@@ -113,6 +154,11 @@ export async function registerProspectForEvent(
           eventTitle: event.title,
           startsAt: event.starts_at,
           timezone: event.timezone,
+          slotStartsAt: claimed?.slot_starts_at ?? null,
+          slotEndsAt: claimed?.slot_ends_at ?? null,
+          standby: claimed?.standby === true,
+          standbyRank: claimed?.standby_rank ?? null,
+          standbyDay: claimed?.standby_day ?? null,
         },
       };
     }
@@ -122,6 +168,21 @@ export async function registerProspectForEvent(
     console.error("register_prospect_for_event failed:", error.code, error.message);
     // Retry once only on a pass-code/qr collision; otherwise surface a message.
     const message = error.message.toLowerCase();
+    // The window went while they were filling the form. Recoverable — say so
+    // with a code so the sheet can reopen the picker instead of dead-ending.
+    if (message.includes("arrival time has just been taken")) {
+      return {
+        ok: false,
+        error: "That arrival time has just been taken. Please pick another.",
+        code: "slot_taken",
+      };
+    }
+    if (message.includes("standby list is full")) {
+      return {
+        ok: false,
+        error: "The standby list is full for that day. Watch for the next check-up.",
+      };
+    }
     if (message.includes("uniq_event_registration_attendee")) {
       return {
         ok: false,
@@ -224,6 +285,11 @@ function friendlyDbError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("consent")) return "You must agree to the privacy terms to register.";
   if (m.includes("capacity")) return "Sorry, this event is fully booked.";
+  if (m.includes("pick an arrival time")) return "Please pick an arrival time.";
+  if (m.includes("pick the day")) return "Please pick the day you are coming.";
+  if (m.includes("standby list")) return "The standby list is full for that day.";
+  if (m.includes("no standby list")) return "This event is fully booked.";
+  if (m.includes("arrival time")) return "That arrival time is no longer available.";
   if (m.includes("not open") || m.includes("not found")) {
     return "This event is not open for registration.";
   }

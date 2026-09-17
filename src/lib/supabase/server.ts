@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 
 import { sharedSessionCookieOptions } from "@/lib/one-account";
-import { cookies } from "next/headers";
+import { cookieOptionsForRequestHost } from "@/lib/supabase/cookie-options";
+import { cookies, headers } from "next/headers";
 
 /**
  * Supabase client for use in Server Components, Server Actions, and Route
@@ -19,13 +20,18 @@ export async function createSupabaseServerClient() {
     throw new Error("Missing Supabase server environment variables.");
   }
 
-  const cookieStore = await cookies();
+  const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
+  const requestHostname =
+    headerStore.get("x-forwarded-host") ?? headerStore.get("host");
 
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     db: { schema: "gema" },
-    // Change 6: one session across the three origins. Undefined until
-    // NEXT_PUBLIC_ONE_ACCOUNT_COOKIE_DOMAIN is set, so this is a no-op today.
-    cookieOptions: sharedSessionCookieOptions(),
+    // Share on gutguard.ph, but keep a host-only session on Vercel aliases.
+    // A browser silently rejects Domain=.gutguard.ph from a *.vercel.app host.
+    cookieOptions: cookieOptionsForRequestHost(
+      sharedSessionCookieOptions(),
+      requestHostname,
+    ),
     cookies: {
       getAll() {
         return cookieStore.getAll();

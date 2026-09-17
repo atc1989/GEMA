@@ -3,7 +3,7 @@ import {
   type ReferralEventItem,
   type ReferralLinkItem,
 } from "@/components/referral/referral-links-view";
-import { getCurrentMember } from "@/lib/auth/require-member";
+import { requireMember } from "@/lib/auth/require-member";
 import type { EventType } from "@/lib/database/types";
 import { eventTimeOrFilter } from "@/lib/event-time-filter";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -31,8 +31,8 @@ type LandingRow = {
 };
 
 export default async function MemberReferralsPage() {
-  const ctx = await getCurrentMember();
-  const member = ctx!.member;
+  const ctx = await requireMember();
+  const member = ctx.member;
 
   const supabase = await createSupabaseServerClient();
 

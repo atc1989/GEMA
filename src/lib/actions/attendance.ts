@@ -207,6 +207,63 @@ export async function cancelRegistration(input: {
 }
 
 /**
+ * Marks a booked guest a no-show, which frees their arrival window.
+ *
+ * This is the only thing that makes a standby list move. It is a button rather
+ * than a timer on purpose: a clock at :05 past cannot see that the guest is
+ * queuing outside your door or eight minutes away in traffic, and would cancel
+ * real people's passes. The staff in the room can.
+ *
+ * Reversible — setting the status back re-takes the window, and the release
+ * trigger refuses if somebody from the queue has since taken it.
+ */
+export async function markRegistrationNoShow(input: {
+  eventId: string;
+  registrationId: string;
+  /** false puts them back to registered, if the window is still free. */
+  noShow: boolean;
+}): Promise<ActionResult<null>> {
+  const parsed = z
+    .object({
+      eventId: z.string().uuid(),
+      registrationId: z.string().uuid(),
+      noShow: z.boolean(),
+    })
+    .safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
+
+  const perm = await canManage(parsed.data.eventId);
+  if (!perm.ok) return perm;
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("event_registrations")
+    .update({ status: parsed.data.noShow ? "no_show" : "registered" })
+    .eq("id", parsed.data.registrationId)
+    .eq("event_id", parsed.data.eventId)
+    .neq("status", "cancelled")
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    const message = error.message.toLowerCase();
+    if (message.includes("arrival time is full")) {
+      return {
+        ok: false,
+        error: "Somebody from the standby list has taken that window already.",
+      };
+    }
+    return { ok: false, error: friendlyDbError(error.message) };
+  }
+  if (!data) return { ok: false, error: "Registration not found." };
+
+  revalidatePath(`/admin/events/${parsed.data.eventId}/schedule`);
+  revalidatePath(`/admin/events/${parsed.data.eventId}/attendance`);
+  revalidatePath(`/member/events/${parsed.data.eventId}/attendance`);
+  return { ok: true, data: null };
+}
+
+/**
  * Sets (or clears, with an empty string) an admin-only note on a registration.
  * Not visible to the attendee. RLS (registrations_manage_event) enforces the
  * same can_manage_event gate server-side.

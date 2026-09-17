@@ -3,8 +3,17 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { BookSheet } from "@/components/landing/book-sheet";
 import { PassQr, usePassQr } from "@/components/landing/pass-qr";
+import { PassRecall } from "@/components/landing/pass-recall";
 import { MediaCarousel } from "@/components/landing/media-carousel";
 import { TopBar } from "@/components/landing/top-bar";
+import {
+  formatArrivalWindow,
+  isSoldOut,
+  nextSlotWithSeats,
+  seatsLabel,
+  seatsLeftTotal,
+  standbyIsFull,
+} from "@/lib/events/slots";
 import { shopEntryUrl } from "@/lib/ginhawa/ecosystem";
 import type { Clinician, GinhawaLanding } from "@/lib/ginhawa/public-landing";
 import { MarkdownBody } from "@/lib/ginhawa/markdown";
@@ -76,6 +85,28 @@ export function GinhawaLanding({
   const taken = landing.seatsTaken;
   const left = seats == null ? null : Math.max(seats - taken, 0);
   const takenPct = seats && seats > 0 ? Math.min(100, (taken / seats) * 100) : 0;
+
+  // Scheduled events have no walk-ins, so "sold out" is a real end state the
+  // page has to say out loud rather than letting the sheet reject at the door.
+  const scheduling = landing.scheduling;
+  const soldOut = scheduling ? isSoldOut(scheduling) : false;
+  // Full does not mean closed any more: the queue takes over, up to its own cap.
+  const standbyOpen = Boolean(
+    scheduling && soldOut && scheduling.standbyEnabled && !standbyIsFull(scheduling),
+  );
+  const nextWindow = scheduling ? nextSlotWithSeats(scheduling) : null;
+  const seatsNote = scheduling
+    ? soldOut
+      ? seatsLabel(scheduling, 0)
+      : nextWindow
+        ? `${seatsLabel(scheduling, seatsLeftTotal(scheduling))} · next ${formatArrivalWindow(nextWindow, scheduling.timezone)}`
+        : seatsLabel(scheduling, seatsLeftTotal(scheduling))
+    : left == null || seats == null
+      ? "Free"
+      : `Free · ${left} of ${seats} seats left`;
+  // Only a genuinely closed day loses its call to action.
+  const ctaClosed = soldOut && !standbyOpen;
+  const ctaLabel = standbyOpen ? "Join the standby list" : "Book my seat";
   const slides = landingSlides(landing);
   const showVenue = Boolean(landing.venueName || landing.venueAddress || landing.mapUrl);
   const showWhen = Boolean(landing.dateLabel || landing.timeLabel);
@@ -158,7 +189,7 @@ export function GinhawaLanding({
 
   return (
     <div id="top" className="gg-surface">
-      <TopBar bookUrl={landing.bookUrl} />
+      <TopBar bookUrl={landing.bookUrl} soldOut={ctaClosed} ctaLabel={ctaLabel} />
 
       <header className="hero" id="event" ref={heroRef}>
         <img src="/watermark.png" alt="" aria-hidden="true" className="hero-g" />
@@ -171,16 +202,26 @@ export function GinhawaLanding({
             </div>
             {landing.heroWhat ? <p className="hero-what">{landing.heroWhat}</p> : null}
             {landing.bookUrl ? (
-              <a className="gg-button gg-button--bone" href={landing.bookUrl} rel="noopener noreferrer">
-                Book my seat
-              </a>
+              ctaClosed ? (
+                <span className="gg-button gg-button--bone" role="status">
+                  Fully booked
+                </span>
+              ) : (
+                <a
+                  className="gg-button gg-button--bone"
+                  href={landing.bookUrl}
+                  rel="noopener noreferrer"
+                >
+                  {ctaLabel}
+                </a>
+              )
             ) : null}
             <div className="hero-gift">
               <span className="gg-badge gg-badge--gold">{landing.giftPoints} E-Points, free</span>
               <em>worth ₱{landing.giftPeso} in product</em>
             </div>
             <p className="hero-note">
-              {left == null || seats == null ? "Free" : `Free · ${left} of ${seats} seats left`}
+              {seatsNote}
             </p>
           </div>
           {landing.clinicians.length ? (
@@ -352,6 +393,8 @@ export function GinhawaLanding({
           </div>
         </section>
 
+        <PassRecall eventId={landing.sourceEventId} />
+
         <section className="logistics">
           <h3 className="sec"><span className="sec-num">03</span> Before you come</h3>
           <div className="close-pair">
@@ -431,6 +474,7 @@ export function GinhawaLanding({
         eventId={landing.sourceEventId}
         refCode={refCode}
         giftPoints={landing.giftPoints}
+        scheduling={scheduling}
         passAnchor="pass"
         onRegistered={(booked) =>
           setHolder({
@@ -500,9 +544,15 @@ export function GinhawaLanding({
                 </>
               ) : null}
             </div>
-            <a className="gg-button gg-button--primary" href={landing.bookUrl}>
-              Book my seat
-            </a>
+            {ctaClosed ? (
+              <span className="gg-button gg-button--bone" role="status">
+                Fully booked
+              </span>
+            ) : (
+              <a className="gg-button gg-button--primary" href={landing.bookUrl}>
+                {ctaLabel}
+              </a>
+            )}
           </div>
         </div>
       ) : null}

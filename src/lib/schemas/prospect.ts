@@ -28,6 +28,42 @@ export const prospectRegistrationSchema = z.object({
     .max(64)
     .optional()
     .transform((v) => (v ? v : undefined)),
+  /**
+   * Arrival window, on scheduled events only. Reaches the parser as "" from the
+   * no-JS <select> and as null from an unscheduled booking, so it cannot be a
+   * bare .uuid().optional(). The RPC is the real gate: it rejects a missing
+   * slot on a scheduled event and a supplied one on an unscheduled event.
+   */
+  slotId: z
+    .string()
+    .trim()
+    .nullish()
+    .transform((v) => (v ? v : undefined))
+    .refine((v) => v === undefined || z.string().uuid().safeParse(v).success, {
+      message: "Pick an arrival time.",
+    }),
+  /**
+   * Joining the queue instead of taking a window, because every window has
+   * gone. The RPC enforces the cap and refuses standby on an event that does
+   * not offer it.
+   */
+  standby: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((v) => v === true || v === "true" || v === "on"),
+  /**
+   * Which day of a multi-day run they mean to come. "YYYY-MM-DD" in the event's
+   * timezone. Without it a standby guest belongs to neither Friday nor
+   * Saturday and drops out of every per-day count.
+   */
+  standbyDay: z
+    .string()
+    .trim()
+    .nullish()
+    .transform((v) => (v ? v : undefined))
+    .refine((v) => v === undefined || /^\d{4}-\d{2}-\d{2}$/.test(v), {
+      message: "Pick the day you are coming.",
+    }),
 });
 
 export type ProspectRegistrationInput = z.input<typeof prospectRegistrationSchema>;

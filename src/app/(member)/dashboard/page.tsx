@@ -19,7 +19,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PaginatedList } from "@/components/ui/paginated-list";
-import { getCurrentMember } from "@/lib/auth/require-member";
+import { requireMember } from "@/lib/auth/require-member";
 import { buildNoZeroMonth, type DayCell } from "@/lib/calendar/no-zero-month";
 import { eventTimeOrFilter } from "@/lib/event-time-filter";
 import { WEEK_GUIDE, WEEKDAY_LETTERS, WEEKDAY_NAMES } from "@/lib/calendar/weekly-guide";
@@ -84,9 +84,9 @@ export default async function MemberDashboardPage({
   searchParams?: Promise<{ backup?: string }>;
 }) {
   const backupLogin = (await searchParams)?.backup === "1";
-  const ctx = await getCurrentMember();
-  const member = ctx!.member;
-  const profile = ctx!.profile;
+  const ctx = await requireMember();
+  const member = ctx.member;
+  const profile = ctx.profile;
   const profileId = profile.id;
 
   const supabase = await createSupabaseServerClient();

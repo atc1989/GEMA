@@ -11,6 +11,14 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import {
+  formatArrivalWindow,
+  formatWindowRange,
+  isSoldOut,
+  slotHasSeats,
+  type EventScheduling,
+} from "@/lib/events/slots";
 import {
   registerProspectForEvent,
   type FieldErrors,
@@ -25,9 +33,16 @@ import { formatEventDateTime } from "@/lib/utils/format";
 export function ProspectRegistrationForm({
   eventId,
   refCode,
+  scheduling = null,
 }: {
   eventId: string;
   refCode?: string;
+  /**
+   * Arrival slots on a scheduled event. This page is the fallback the landing
+   * sheet degrades to, so it has to offer the same windows — without it a guest
+   * who lands here can never book a scheduled event at all.
+   */
+  scheduling?: EventScheduling | null;
 }) {
   const [pending, startTransition] = useTransition();
   const [success, setSuccess] = useState<RegistrationSuccess | null>(null);
@@ -47,6 +62,7 @@ export function ProspectRegistrationForm({
       email: "",
       consentPrivacy: false,
       consentMarketing: false,
+      slotId: "",
     },
   });
 
@@ -84,6 +100,16 @@ export function ProspectRegistrationForm({
             <span className="font-bold text-foreground">{success.eventTitle}</span> on{" "}
             {formatEventDateTime(success.startsAt, success.timezone)} is confirmed.
           </p>
+          {success.slotStartsAt && success.slotEndsAt ? (
+            <p className="mt-3 rounded-xl bg-secondary/60 px-4 py-3 text-sm font-bold">
+              Arrive{" "}
+              {formatWindowRange(
+                success.slotStartsAt,
+                success.slotEndsAt,
+                success.timezone,
+              )}
+            </p>
+          ) : null}
         </Card>
 
         <QRCodeCard
@@ -98,12 +124,47 @@ export function ProspectRegistrationForm({
     );
   }
 
+  // No walk-ins: when every window has gone there is nothing to offer, so the
+  // form itself comes off the page rather than failing at submit.
+  if (scheduling && isSoldOut(scheduling)) {
+    return (
+      <Card className="p-6 text-center">
+        <h2 className="text-lg font-black tracking-tight">Fully booked</h2>
+        <p className="mt-1 text-sm font-semibold leading-6 text-muted-foreground">
+          Every arrival time for this check-up has gone. Watch for the next date.
+        </p>
+      </Card>
+    );
+  }
+
+  const windows = scheduling?.slots.filter(slotHasSeats) ?? [];
+
   return (
     <form onSubmit={onSubmit} className="grid gap-4">
       <input type="hidden" {...register("eventId")} />
       <input type="hidden" {...register("refCode")} />
 
       <Card className="grid gap-4 p-5">
+        {scheduling ? (
+          <Field
+            label="Arrival time"
+            htmlFor="slotId"
+            required
+            error={errors.slotId?.message}
+            hint="Come any time inside your window. You are seen in the order people arrive."
+          >
+            <Select id="slotId" required defaultValue="" {...register("slotId")}>
+              <option value="" disabled>
+                Pick a window
+              </option>
+              {windows.map((slot) => (
+                <option key={slot.id} value={slot.id}>
+                  {formatArrivalWindow(slot, scheduling.timezone)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : null}
         <Field label="Full name" htmlFor="fullName" required error={errors.fullName?.message}>
           <Input id="fullName" autoComplete="name" {...register("fullName")} />
         </Field>

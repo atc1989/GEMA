@@ -1,5 +1,6 @@
 /** Public medical landing payload shape (GEMA /e/[slug] + legacy Ginhawa). */
 
+import type { EventScheduling } from "@/lib/events/slots";
 import { cleanMedia, type LandingMedia } from "@/lib/ginhawa/media";
 
 export type Clinician = {
@@ -43,6 +44,13 @@ export type PublicLanding = {
   mapUrl: string | null;
   mapEmbedSrc: string | null;
   bookUrl: string | null;
+  /**
+   * Arrival slots, when the event is scheduled. Null on every unscheduled
+   * event, which is every event that existed before this shipped. Attached by
+   * the loader, not by parseLandingPayload — slots live on the event, not on
+   * the landing snapshot.
+   */
+  scheduling: EventScheduling | null;
 };
 
 /** Alias used by the medical template components. */
@@ -109,6 +117,7 @@ export function parseLandingPayload(raw: unknown): PublicLanding | null {
     mapUrl: str(row.map_url) || null,
     mapEmbedSrc: null,
     bookUrl: str(row.book_url) || null,
+    scheduling: null,
   };
 }
 

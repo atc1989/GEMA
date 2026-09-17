@@ -2,7 +2,7 @@ import {
   MemberProspectsView,
   type MemberProspect,
 } from "@/components/prospect/member-prospects-view";
-import { getCurrentMember } from "@/lib/auth/require-member";
+import { requireMember } from "@/lib/auth/require-member";
 import type { ProspectStage } from "@/lib/database/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -24,8 +24,8 @@ export default async function MemberProspectsPage({
   searchParams: Promise<{ focus?: string }>;
 }) {
   const { focus } = await searchParams;
-  const ctx = await getCurrentMember();
-  const member = ctx!.member;
+  const ctx = await requireMember();
+  const member = ctx.member;
 
   const supabase = await createSupabaseServerClient();
   const { data: prospects } = await supabase

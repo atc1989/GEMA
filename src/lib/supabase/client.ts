@@ -1,6 +1,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 
 import { sharedSessionCookieOptions } from "@/lib/one-account/client";
+import { cookieOptionsForRequestHost } from "@/lib/supabase/cookie-options";
 
 /**
  * Supabase client for use in Client Components. Shares the auth session with
@@ -18,6 +19,9 @@ export function createSupabaseBrowserClient() {
     db: { schema: "gema" },
     // Change 6: the browser writes these cookies too, so it must agree with the
     // server about their Domain — otherwise two cookies share one name.
-    cookieOptions: sharedSessionCookieOptions(),
+    cookieOptions: cookieOptionsForRequestHost(
+      sharedSessionCookieOptions(),
+      typeof window === "undefined" ? undefined : window.location.hostname,
+    ),
   });
 }

@@ -1,5 +1,6 @@
 import { cache } from "react";
 
+import { loadEventScheduling } from "@/lib/actions/event-slots";
 import { getCurrentProfile } from "@/lib/auth/require-admin";
 import { mapsEmbedSrc, resolveGoogleMapsUrl } from "@/lib/ginhawa/maps";
 import {
@@ -16,11 +17,18 @@ async function hydrateLanding(
   const landing = parseLandingPayload(raw);
   if (!landing) return null;
 
-  const resolvedMap = await resolveGoogleMapsUrl(landing.mapUrl);
+  // Slots hang off the event, not off the landing snapshot, so they are read
+  // separately. Null for every unscheduled event.
+  const [resolvedMap, scheduling] = await Promise.all([
+    resolveGoogleMapsUrl(landing.mapUrl),
+    loadEventScheduling(landing.sourceEventId),
+  ]);
+
   return {
     ...landing,
     mapEmbedSrc: mapsEmbedSrc(resolvedMap, landing.venueAddress, landing.venueName),
     bookUrl: resolveBookUrl(landing.sourceEventId, landing.bookUrl, ref),
+    scheduling,
   };
 }
 

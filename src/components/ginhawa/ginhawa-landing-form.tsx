@@ -12,7 +12,8 @@ import {
   type Path,
 } from "react-hook-form";
 
-import { publishGinhawaLanding, type FieldErrors } from "@/lib/actions/ginhawa-landing";
+import { publishGinhawaLanding } from "@/lib/actions/ginhawa-landing";
+import type { FieldErrors } from "@/lib/actions/types";
 import { MediaUploadField } from "@/components/event/media-upload-field";
 import { MAX_LANDING_MEDIA } from "@/lib/ginhawa/media";
 import { emptyClinician, initialsFromName } from "@/lib/ginhawa/prefill";
