@@ -19,7 +19,7 @@ owner wants it tracked there, this file is the Change note ready to move.
 | Break | per event, 12:00–13:00 by default, blank for none |
 | Teams per window | per event, 1 by default, 1-6 on the form. One guest each |
 | Clinician choice | none — guests pick a time, the team is assigned at the door |
-| Walk-ins | none. A full day takes a **standby list** instead, capped at 80/day |
+| Walk-ins | none. A full day takes a **standby list** instead, 20/day by default |
 | Seats shown | exact above 5, "only a few seats left" at 1-5, never a number at 0 |
 | Copy | arrival window, never "appointment" |
 | No-show release | **in**. A button, not a timer — it is what moves the queue |
@@ -105,14 +105,21 @@ counters, and both attendance pages take `?day=YYYY-MM-DD`.
 
 ## Standby
 
-A full day used to be a closed door. It now takes names, up to 80 per day.
+A full day used to be a closed door. It now takes names, 20 a day by default.
 
 ```
 event_registrations.standby      true = in the queue, holds no window
 event_registrations.standby_day  which day of a run they mean to come
 events.standby_enabled           per event
-events.standby_limit             per event per day, 80 by default
+events.standby_limit             per event PER DAY, 20 by default
 ```
+
+**The cap is per day, and it is small on purpose.** Only a no-show frees a
+seat, so a day of 21 seats turns over perhaps four. A queue of eighty would be
+four people seen and seventy-six who travelled for nothing; twenty is a long
+shot at the back but still a queue. `events_standby_limit_present` makes a null
+limit impossible while standby is on, so the landing page and the registration
+RPC can never disagree about how long the queue is.
 
 **Queue position is derived, never stored** — `standby_position()` counts by
 `registered_at`. Cancel number three and number four becomes three, which is the
