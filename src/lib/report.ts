@@ -8,6 +8,7 @@ import type { GemaClient } from "@/lib/supabase/types";
  * complete data under RLS.
  */
 
+/** Base columns. The admin-only Notes column is appended by `reportHeaders`. */
 export const REPORT_HEADERS = [
   "Event",
   "Event date",
@@ -28,6 +29,21 @@ export const REPORT_HEADERS = [
 
 export type ReportRow = (string | number)[];
 
+/**
+ * `notes`: include the admin-only note each registration carries.
+ *
+ * Off by default, and the routes only turn it on for admins. RLS lets any
+ * event manager read `admin_note`, but the attendance screen shows the field
+ * on the admin view alone (`AttendanceTable showNotes`) — an export that
+ * handed it to member hosts would quietly undo that.
+ */
+export type ReportOptions = { notes?: boolean };
+
+/** Column headings for a report built with the same options. */
+export function reportHeaders({ notes = false }: ReportOptions = {}): readonly string[] {
+  return notes ? [...REPORT_HEADERS, "Notes"] : REPORT_HEADERS;
+}
+
 export type ReportEvent = {
   id: string;
   title: string;
@@ -41,17 +57,21 @@ type RegRow = {
   attendee_name: string;
   attendee_email: string | null;
   attendee_phone: string | null;
+  admin_note: string | null;
 };
 type SponsorRow = { registration_id: string; ref_code: string | null; sponsor_name: string | null };
 
 export async function buildEventReportRows(
   supabase: GemaClient,
   event: ReportEvent,
+  { notes = false }: ReportOptions = {},
 ): Promise<ReportRow[]> {
   const [regsRes, attsRes, sponsorsRes] = await Promise.all([
     supabase
       .from("event_registrations")
-      .select("id, registration_kind, attendee_name, attendee_email, attendee_phone")
+      .select(
+        "id, registration_kind, attendee_name, attendee_email, attendee_phone, admin_note",
+      )
       .eq("event_id", event.id)
       .neq("status", "cancelled")
       .order("registered_at", { ascending: true })
@@ -106,8 +126,8 @@ export async function buildEventReportRows(
   });
   const date = dateFmt.format(new Date(event.starts_at));
 
-  const pad = (row: ReportRow) =>
-    row.concat(Array(REPORT_HEADERS.length - row.length).fill(""));
+  const width = reportHeaders({ notes }).length;
+  const pad = (row: ReportRow) => row.concat(Array(width - row.length).fill(""));
 
   const rows: ReportRow[] = [
     pad([event.title, date, "Summary", byLink.size, membersCheckedIn, prospectsCheckedIn]),
@@ -116,11 +136,12 @@ export async function buildEventReportRows(
   for (const [code, link] of links) {
     rows.push(pad([event.title, date, "Link", "", "", "", code, link.owner, link.prospects, link.checked]));
   }
-  // One row per registrant: name/email/number split out, check-in timestamp if attended.
+  // One row per registrant: name/email/number split out, check-in timestamp if
+  // attended, and the admin note last when this report carries notes.
   for (const r of regs) {
     const checked = checkedInAt.get(r.id);
     const sponsor = sponsorById.get(r.id);
-    rows.push([
+    const row: ReportRow = [
       event.title,
       date,
       "Attendee",
@@ -133,7 +154,11 @@ export async function buildEventReportRows(
       r.attendee_phone ?? "",
       r.registration_kind,
       checked ? dateTimeFmt.format(new Date(checked)) : "",
-    ]);
+    ];
+    // Newlines survive: csvCell quotes them, and the print view keeps them with
+    // white-space: pre-line.
+    if (notes) row.push(r.admin_note ?? "");
+    rows.push(row);
   }
   return rows;
 }
@@ -143,8 +168,8 @@ function csvCell(value: string | number): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-export function toCsv(rows: ReportRow[]): string {
-  return [REPORT_HEADERS as readonly string[], ...rows]
+export function toCsv(rows: ReportRow[], options: ReportOptions = {}): string {
+  return [reportHeaders(options), ...rows]
     .map((row) => row.map(csvCell).join(","))
     .join("\r\n");
 }
@@ -154,13 +179,21 @@ function esc(value: string | number): string {
 }
 
 /** Self-contained print view; the browser's print dialog produces the PDF. */
-export function toPrintHtml(title: string, rows: ReportRow[]): string {
-  const head = REPORT_HEADERS.map((h) => `<th>${esc(h)}</th>`).join("");
+export function toPrintHtml(
+  title: string,
+  rows: ReportRow[],
+  options: ReportOptions = {},
+): string {
+  const headers = reportHeaders(options);
+  const head = headers.map((h) => `<th>${esc(h)}</th>`).join("");
+  // A note is free text and can hold line breaks; the column index moves with
+  // the options, so mark the cell rather than styling by position.
+  const noteAt = options.notes ? headers.length - 1 : -1;
   const body = rows
     .map(
       (row) =>
         `<tr${row[2] === "Summary" ? ' class="summary"' : ""}>${row
-          .map((c) => `<td>${esc(c)}</td>`)
+          .map((c, i) => `<td${i === noteAt ? ' class="note"' : ""}>${esc(c)}</td>`)
           .join("")}</tr>`,
     )
     .join("");
@@ -174,6 +207,7 @@ table{border-collapse:collapse;width:100%;font-size:11px}
 th,td{border:1px solid #e2e8f0;padding:5px 7px;text-align:left}
 th{background:#eef2f7;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
 tr.summary td{background:#f8fafc;font-weight:700}
+td.note{white-space:pre-line;min-width:140px}
 @media print{body{margin:0}}
 </style></head>
 <body>

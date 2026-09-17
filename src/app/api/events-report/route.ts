@@ -31,18 +31,22 @@ export async function GET(request: Request) {
 
   const { data: events } = await query.returns<ReportEvent[]>();
 
+  // Admin-only note per registration, matching the attendance screen: the note
+  // field is on the admin view alone, so a host's export must not carry it.
+  const options = { notes: profile.isAdmin };
+
   const rowsPerEvent = await Promise.all(
-    (events ?? []).map((event) => buildEventReportRows(supabase, event)),
+    (events ?? []).map((event) => buildEventReportRows(supabase, event, options)),
   );
   const rows: ReportRow[] = rowsPerEvent.flat();
 
   if (format === "pdf") {
-    return new NextResponse(toPrintHtml("Events report", rows), {
+    return new NextResponse(toPrintHtml("Events report", rows, options), {
       headers: { "Content-Type": "text/html; charset=utf-8" },
     });
   }
 
-  return new NextResponse(toCsv(rows), {
+  return new NextResponse(toCsv(rows, options), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="events-report.csv"`,
