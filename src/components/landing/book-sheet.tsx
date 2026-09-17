@@ -12,6 +12,19 @@ import {
   type RegistrationSuccess,
 } from "@/lib/actions/registration";
 import { savePassQr } from "@/components/landing/save-pass-qr";
+import {
+  formatDayLabel,
+  formatSlotChip,
+  formatWindowRange,
+  groupSlotsByDay,
+  groupSlotsByHour,
+  openSlots,
+  slotDayKey,
+  slotIsOpen,
+  standbyIsFull,
+  standbyWaiting,
+  type EventScheduling,
+} from "@/lib/events/slots";
 
 import "./book-sheet.css";
 
@@ -313,6 +326,15 @@ export function BookSheet({
     }
     setSuccess(result.data);
     booked.current = true;
+    // So the landing can point them back at their QR tomorrow. The token is
+    // deliberately not stored — /passes re-issues it after checking name plus
+    // contact.
+    rememberBookedPass(eventId, {
+      passCode: result.data.passCode,
+      name: result.data.attendeeName,
+      contact: email,
+      bookedAt: new Date().toISOString(),
+    });
     onRegistered?.(result.data);
     // Seats-left counters are server-rendered; pull the new count.
     router.refresh();
