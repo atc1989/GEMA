@@ -227,6 +227,7 @@ export default async function EventAttendancePage({
         emptyLabel="No check-ins yet."
         variant="checked"
         eventId={id}
+        timezone={event.timezone}
         showNotes
       />
 
@@ -237,6 +238,7 @@ export default async function EventAttendancePage({
         emptyLabel="Everyone registered has checked in."
         variant="pending"
         eventId={id}
+        timezone={event.timezone}
         removable
         showNotes
       />

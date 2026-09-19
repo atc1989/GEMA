@@ -44,6 +44,8 @@ type AttendanceTableProps = {
   removable?: boolean;
   /** When true, each row gets an editable admin-only note field. Admin view only. */
   showNotes?: boolean;
+  /** The event's IANA zone. Times here are the door's times, not the server's. */
+  timezone?: string;
 };
 
 export function AttendanceTable({
@@ -55,6 +57,7 @@ export function AttendanceTable({
   eventId,
   removable = false,
   showNotes = false,
+  timezone,
 }: AttendanceTableProps) {
   return (
     <Card className="p-0">
@@ -127,11 +130,11 @@ export function AttendanceTable({
                 </span>
                 {variant === "checked" && row.checkedInAt ? (
                   <span className="text-xs font-semibold text-success">
-                    {formatEventDateTime(row.checkedInAt)}
+                    {formatEventDateTime(row.checkedInAt, timezone)}
                   </span>
                 ) : row.registeredAt ? (
                   <span className="text-xs font-semibold text-muted-foreground">
-                    Reg. {formatEventDateTime(row.registeredAt)}
+                    Reg. {formatEventDateTime(row.registeredAt, timezone)}
                   </span>
                 ) : null}
               </div>

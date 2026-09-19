@@ -229,6 +229,7 @@ export default async function MemberEventAttendancePage({
         emptyLabel="No check-ins yet."
         variant="checked"
         eventId={eventId}
+        timezone={event.timezone}
       />
 
       <AttendanceTable
@@ -238,6 +239,7 @@ export default async function MemberEventAttendancePage({
         emptyLabel="Everyone registered has checked in."
         variant="pending"
         eventId={eventId}
+        timezone={event.timezone}
       />
     </div>
   );
