@@ -17,7 +17,17 @@ export function profileDisplayName(
   return local || fallback;
 }
 
-/** Formats an ISO timestamp in the event's timezone (e.g. "Fri, Jun 20, 4:00 PM"). */
+/** ponytail: single-region app — swap for a per-org setting if GEMA ever ships elsewhere. */
+export const APP_TIMEZONE = "Asia/Manila";
+
+/**
+ * Formats an ISO timestamp in the event's timezone (e.g. "Fri, Jun 20, 4:00 PM").
+ *
+ * Falls back to APP_TIMEZONE, never to the runtime's zone: this renders on the
+ * server as often as in the browser, and a Vercel box runs in UTC. Manila is
+ * UTC+8, so an unzoned 9:36 AM check-in printed as "1:36 AM" lands on the day
+ * before — the wrong date next to a guest booked for the right one.
+ */
 export function formatEventDateTime(iso: string, timezone?: string): string {
   try {
     return new Intl.DateTimeFormat("en-US", {
@@ -26,15 +36,12 @@ export function formatEventDateTime(iso: string, timezone?: string): string {
       day: "numeric",
       hour: "numeric",
       minute: "2-digit",
-      timeZone: timezone || undefined,
+      timeZone: timezone || APP_TIMEZONE,
     }).format(new Date(iso));
   } catch {
     return new Date(iso).toLocaleString();
   }
 }
-
-/** ponytail: single-region app — swap for a per-org setting if GEMA ever ships elsewhere. */
-export const APP_TIMEZONE = "Asia/Manila";
 
 /**
  * Calendar day ("YYYY-MM-DD") an instant falls on *in `timeZone`*, not in UTC.
