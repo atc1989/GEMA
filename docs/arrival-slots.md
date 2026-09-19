@@ -103,6 +103,22 @@ Everything follows from it: the booking sheet shows day tabs and defaults to the
 first day with room, the admin schedule shows one day at a time with per-day
 counters, and both attendance pages take `?day=YYYY-MM-DD`.
 
+With one exception, once they have actually turned up.
+
+People book Friday 4:40pm and walk in on Saturday afternoon, and a two-day
+clinic gets a handful of those every run. Grouped by the window they booked,
+a body that was in the room on Saturday lands in Friday's headcount and drags
+Friday's attendance rate down with it — the day tab says 6 checked in when 4
+of them were there.
+
+So the axis is: **scanned guests count on the day they were scanned, everybody
+else on the day they booked.** Nobody has a scan day until they arrive, so the
+booked window is still the only thing separating the people who have not come
+yet, which is what the door works from. A guest who moved keeps their booked
+day on their row (`booked Fri, 18 Sep`) so staff can see which window they were
+meant to be in. `indexAttendanceDays` in `src/lib/events/attendance-days.ts`
+owns this, and both attendance pages read it.
+
 ## Standby
 
 A full day used to be a closed door. It now takes names, 20 a day by default.
@@ -239,6 +255,7 @@ double-count.
 | `src/components/event/event-form.tsx` | the host toggle |
 | `src/components/attendance/attendance-table.tsx` | the window at the door |
 | `src/components/attendance/attendance-day-tabs.tsx` | one day of a run at a time |
+| `src/lib/events/attendance-days.ts` | which day a guest counts against |
 | `duplicateEvent` in `src/lib/actions/events.ts` | the copy button behind a repeat |
 | `src/app/(admin)/admin/events/[id]/schedule/page.tsx` | the clinic day, window by window |
 | `src/components/event/slot-schedule.tsx` | the grid, with the open/close toggle |

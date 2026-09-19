@@ -30,6 +30,12 @@ export type AttendanceRow = {
    * seat walk-ups ahead of the people who booked 10:30 and did what was asked.
    */
   standby: boolean;
+  /**
+   * The day they booked, when the door scanned them on a different one. Their
+   * row counts on the day they were really here, so this is what says why it
+   * moved — and which window they were meant to be in.
+   */
+  bookedElsewhere?: string | null;
   adminNote?: string | null;
 };
 
@@ -105,6 +111,11 @@ export function AttendanceTable({
                 ) : row.arrivalWindow ? (
                   <p className="truncate text-[11px] font-black uppercase tracking-wide text-foreground">
                     Arrive {row.arrivalWindow}
+                    {row.bookedElsewhere ? (
+                      <span className="ml-1.5 font-bold normal-case tracking-normal text-gold">
+                        booked {row.bookedElsewhere}
+                      </span>
+                    ) : null}
                   </p>
                 ) : null}
                 {row.invitedBy ? (
