@@ -18,8 +18,9 @@ import {
 import { ExportReportMenu } from "@/components/event/export-report-menu";
 import { buttonVariants } from "@/components/ui/button";
 import { requireEventManager } from "@/lib/auth/require-admin";
-import { AttendanceDayTabs, type AttendanceDay } from "@/components/attendance/attendance-day-tabs";
-import { formatDayLabel, formatWindowRange, zonedDayKey } from "@/lib/events/slots";
+import { AttendanceDayTabs } from "@/components/attendance/attendance-day-tabs";
+import { indexAttendanceDays } from "@/lib/events/attendance-days";
+import { formatWindowRange } from "@/lib/events/slots";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import type { RegistrationKind } from "@/lib/database/types";
@@ -87,40 +88,27 @@ export default async function MemberEventAttendancePage({
 
   const allRegistrations = regs ?? [];
 
-  // The day a guest is COMING, from their arrival window — not the day they
-  // registered. A repeating clinic is one event so the URL survives, and this
-  // is the axis that pulls each day's list back apart.
-  // Keeps one real timestamp per day: rebuilding an instant from the date key
-  // alone would need a zone offset and gets the label wrong either side of UTC.
-  const dayCounts = new Map<string, { count: number; sample: string }>();
-  for (const r of allRegistrations) {
-    const key = r.event_slots
-      ? zonedDayKey(r.event_slots.starts_at, event.timezone)
-      : r.standby_day;
-    if (!key) continue;
-    const entry = dayCounts.get(key);
-    if (entry) entry.count += 1;
-    else dayCounts.set(key, { count: 1, sample: r.event_slots?.starts_at ?? `${key}T12:00:00Z` });
-  }
-  const days: AttendanceDay[] = [...dayCounts.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([key, { count, sample }]) => ({
-      key,
-      label: formatDayLabel(sample, event.timezone),
-      count,
-    }));
-
-  const activeDay = dayParam && dayCounts.has(dayParam) ? dayParam : null;
-  const registrations = activeDay
-    ? allRegistrations.filter((r) =>
-        r.event_slots
-          ? zonedDayKey(r.event_slots.starts_at, event.timezone) === activeDay
-          : r.standby_day === activeDay,
-      )
-    : allRegistrations;
   const checkedInAtById = new Map(
     (atts ?? []).map((a) => [a.registration_id, a.checked_in_at]),
   );
+
+  // Days are split by where each guest actually was, not only by the window
+  // they booked — see indexAttendanceDays.
+  const { days, dayById, bookedElsewhereById } = indexAttendanceDays(
+    allRegistrations.map((r) => ({
+      id: r.id,
+      slotStartsAt: r.event_slots?.starts_at ?? null,
+      standbyDay: r.standby_day,
+      checkedInAt: checkedInAtById.get(r.id) ?? null,
+    })),
+    event.timezone,
+  );
+
+  const dayKeys = new Set(days.map((d) => d.key));
+  const activeDay = dayParam && dayKeys.has(dayParam) ? dayParam : null;
+  const registrations = activeDay
+    ? allRegistrations.filter((r) => dayById.get(r.id) === activeDay)
+    : allRegistrations;
   const sponsorById = new Map(
     ((sponsors ?? []) as SponsorRow[]).map((s) => [s.registration_id, s]),
   );
@@ -139,6 +127,7 @@ export default async function MemberEventAttendancePage({
       ? formatWindowRange(r.event_slots.starts_at, r.event_slots.ends_at, event.timezone)
       : null,
     standby: r.standby === true,
+    bookedElsewhere: bookedElsewhereById.get(r.id) ?? null,
   });
 
   const checkedRows = registrations
