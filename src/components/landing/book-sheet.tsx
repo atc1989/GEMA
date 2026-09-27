@@ -21,9 +21,11 @@ import {
   openSlots,
   slotDayKey,
   slotIsOpen,
+  slotSeatsLeft,
   standbyIsFull,
   standbyWaiting,
   type EventScheduling,
+  type EventSlot,
 } from "@/lib/events/slots";
 
 import "./book-sheet.css";
@@ -70,6 +72,11 @@ function scrollToPass(anchor: string) {
   requestAnimationFrame(() => {
     document.getElementById(anchor)?.scrollIntoView({ behavior: "smooth", block: "center" });
   });
+}
+
+/** Seats a day still has, across its open windows. */
+function daySeatsLeft(slots: EventSlot[]) {
+  return slots.reduce((sum, slot) => sum + slotSeatsLeft(slot), 0);
 }
 
 /**
@@ -531,7 +538,10 @@ export function BookSheet({
                             onClick={() => setDay(d.key)}
                           >
                             {d.label}
-                            <em>{d.slots.length} left</em>
+                            {/* Seats, not windows: two teams work each window,
+                                so twelve open windows is twenty-four people —
+                                and every chip below already counts in seats. */}
+                            <em>{daySeatsLeft(d.slots)} left</em>
                           </button>
                         ))}
                       </div>
